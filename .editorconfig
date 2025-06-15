@@ -1,0 +1,68 @@
+# Root editorconfig file
+root = true
+
+# Global settings
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# C# Specific Rules
+[*.cs]
+
+dotnet_diagnostic.CA1822.severity = none
+dotnet_diagnostic.IDE0130.severity = none
+dotnet_diagnostic.SYSLIB1045.severity = none
+dotnet_diagnostic.CA1816.severity = none
+dotnet_diagnostic.CS9107.severity = none
+
+# Symbol group: all private instance fields (excluding const)
+dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
+dotnet_naming_symbols.private_instance_fields.applicable_accessibilities = private
+dotnet_naming_symbols.private_instance_fields.required_modifiers = readonly  # optional, if you want readonly only
+dotnet_naming_symbols.private_instance_fields.excluded_modifiers = const
+
+# Naming style: underscore + camelCase
+dotnet_naming_style.require_underscore_prefix_and_camel_case.required_prefix = _
+dotnet_naming_style.require_underscore_prefix_and_camel_case.capitalization = camel_case
+
+# Naming rule: apply the style to private instance fields (not consts)
+dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.symbols = private_instance_fields
+dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.style = require_underscore_prefix_and_camel_case
+dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.severity = warning
+
+
+# Indentation
+csharp_indent_block_contents = true
+csharp_indent_braces = false
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+
+# Using directive cleanup
+dotnet_remove_unnecessary_imports = true
+dotnet_separate_import_directive_groups = false
+
+# Code style preferences
+csharp_new_line_before_open_brace = all
+csharp_new_line_before_else = true
+csharp_new_line_before_catch = true
+csharp_new_line_before_finally = true
+
+# 'var' preferences
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# Formatting preferences
+dotnet_style_parentheses_in_arithmetic_binary_operators = always_for_clarity:suggestion
+dotnet_style_parentheses_in_relational_binary_operators = always_for_clarity:suggestion
+
+# Quotes & literals
+csharp_prefer_simple_default_expression = true:suggestion
+csharp_style_prefer_single_quotes_for_char_literals = true:suggestion
+
+# Unused code cleanup
+dotnet_remove_unnecessary_suppression_exclusions = true

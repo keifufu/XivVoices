@@ -1,0 +1,30 @@
+name: Build
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Download Dalamud
+        run: |
+          curl -o latest.zip https://goatcorp.github.io/dalamud-distrib/latest.zip
+          mkdir -p ~/.xlcore/dalamud/Hooks/dev/
+          unzip -q latest.zip -d ~/.xlcore/dalamud/Hooks/dev/
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore -c Release

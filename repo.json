@@ -1,0 +1,24 @@
+[
+  {
+    "Author": "keifufu",
+    "Name": "XivVoices",
+    "Description": "Turning every dialogue into a voiced dialogue!",
+    "InternalName": "XivVoices",
+    "AssemblyVersion": "0.0.0.0",
+    "TestingAssemblyVersion": "0.0.0.0",
+    "RepoUrl": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices",
+    "ApplicableVersion": "any",
+    "DalamudApiLevel": 12,
+    "IsHide": "False",
+    "IsTestingExclusive": "False",
+    "DownloadCount": 0,
+    "LastUpdate": 0,
+    "LoadPriority": 69420,
+    "LoadRequiredState": 2,
+    "LoadSync": true,
+    "DownloadLinkInstall": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.0/XivVoices.zip",
+    "DownloadLinkUpdate": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.0/XivVoices.zip",
+    "DownloadLinkTesting": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.0/XivVoices.zip",
+    "IconUrl": "https://raw.githubusercontent.com/Final-Fantasy-XIV-Voices/XivVoices/main/data/logo.png"
+  }
+]

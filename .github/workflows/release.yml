@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "*"
+
+permissions:
+  contents: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Download Dalamud
+        run: |
+          curl -o latest.zip https://goatcorp.github.io/dalamud-distrib/latest.zip
+          mkdir -p ~/.xlcore/dalamud/Hooks/dev/
+          unzip -q latest.zip -d ~/.xlcore/dalamud/Hooks/dev/
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: |
+          dotnet build --no-restore -c Release -p:Version="${{ github.ref_name }}"
+
+      - name: Create Release
+        run: |
+          mv bin/Release/XivVoices/latest.zip bin/Release/XivVoices/XivVoices.zip
+          gh release create "${{ github.ref_name }}" bin/Release/XivVoices/XivVoices.zip \
+            --title "XivVoices ${{ github.ref_name }}" \
+            --notes "Xiv Voices Plugin Release. Install via the dalamud repo link."
+
+      - name: Write out repo.json
+        run: |
+          path="./repo.json"
+          tmp=$(mktemp)
+          jq --arg ver "${{ github.ref_name }}" '
+            .[0].AssemblyVersion = $ver |
+            .[0].TestingAssemblyVersion = $ver |
+            .[0].DownloadLinkInstall |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip") |
+            .[0].DownloadLinkTesting |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip") |
+            .[0].DownloadLinkUpdate |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip")
+          ' "$path" > "$tmp" && mv "$tmp" "$path"
+
+      - name: Commit repo.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add repo.json
+          git commit -m "[CI] Updating repo.json for ${{ github.ref_name }}" || true
+          git push origin main
