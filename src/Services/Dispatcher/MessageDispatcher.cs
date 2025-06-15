@@ -79,13 +79,15 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     // This one is a bit weird, we try to look up the NpcData directly from the game, that makes sense.
     // But even if we find it, for non-beastmen we prefer the cache? Ok.
-
+    // I belive this is due to solo duties, I was just in one where Korutt had a different appearance
+    // inside a duty than outside. Fine.
     // This can be null and a valid voice can still be found from Manifest.Nameless or Manifest.Voices
     NpcData? npcData = await _gameInteropService.TryGetNpcData(speaker, speakerBaseId);
-
-    // If NpcData was not found, try getting it from the cache.
-    if (npcData == null)
-      _dataService.Manifest.NpcData.TryGetValue(speaker, out npcData);
+    if (npcData == null || npcData.Body != "Beastman")
+    {
+      if (_dataService.Manifest.NpcData.TryGetValue(speaker, out NpcData? _npcData))
+        npcData = _npcData;
+    }
 
     // Cache player npcData to assign a gender to chatmessage tts when they're not near you.
     if (source == MessageSource.ChatMessage && npcData != null)
