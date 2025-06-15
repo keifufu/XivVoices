@@ -2,7 +2,7 @@ namespace XivVoices.Types;
 
 public class XivReport
 {
-  public ReportType ReportType;
+  public ReportType ReportType { get; }
   public string Date { get; }
   public XivMessage Message { get; }
 
