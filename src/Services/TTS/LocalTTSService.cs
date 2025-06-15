@@ -43,7 +43,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     )]);
     if (!sentence.Any(char.IsLetter))
     {
-      _logger.Error($"Failed to clean local tts message: {message.OriginalSentence} -> {sentence}");
+      _logger.Debug($"Failed to clean local tts message: {message.OriginalSentence} -> {sentence}");
       return null;
     }
 

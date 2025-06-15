@@ -28,12 +28,15 @@ public partial class MessageDispatcher
     return Task.Run(() =>
     {
       if (_dataService.Manifest == null) return (null, null);
+
       string voice;
       if (speaker == "???" && _dataService.Manifest.Nameless.TryGetValue(sentence, out string? v1))
       {
         // If the speaker is "???", try getting it from Manifest.Nameless
-        voice = v1;
         speaker = v1;
+        voice = v1;
+        if (_dataService.Manifest.Voices.TryGetValue(speaker, out string? v2))
+          voice = v2;
       }
       else if (_dataService.Manifest.Voices.TryGetValue(speaker, out string? v2))
       {
@@ -52,7 +55,7 @@ public partial class MessageDispatcher
       string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, Md5(voice, speaker, sentence) + ".ogg");
       _logger.Debug($"voicelinePath::{voicelinePath}");
 
-      if (!File.Exists(voicelinePath)) return (null, null);
+      if (!File.Exists(voicelinePath)) return (null, voice);
       return ((string?)voicelinePath, (string?)voice);
     });
   }
