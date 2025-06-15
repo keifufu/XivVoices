@@ -53,7 +53,7 @@ public class Configuration : IPluginConfiguration
 
   // Audio Logs
   public bool EnableAutomaticReports = true;
-  public bool LogReportsToChat = true;
+  public bool LogReportsToChat = false;
 
   // Wine Settings
   public bool WineUseNativeFFmpeg = true;
