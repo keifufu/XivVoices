@@ -7,7 +7,7 @@ public interface IMessageDispatcher : IHostedService
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
 {
-  private bool BlockAddonTalkAndBattleTalk = false;
+  private InterceptedSound? _interceptedSound;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -29,8 +29,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   {
     if (_dataService.Manifest == null) return;
     if (!_clientState.IsLoggedIn || !(_gameInteropService.IsInCutscene() || _gameInteropService.IsInDuty())) return;
-    _logger.Debug($"SoundFilter: {sound.BlockAddonTalkAndBattleTalk} {sound.SoundPath}");
-    BlockAddonTalkAndBattleTalk = sound.BlockAddonTalkAndBattleTalk;
+    _logger.Debug($"SoundFilter: {sound.ShouldBlock} {sound.SoundPath}");
+    _interceptedSound = sound;
   }
 
   public async Task TryDispatch(MessageSource source, string origSpeaker, string origSentence, uint? speakerBaseId = null)
@@ -44,11 +44,19 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       // SoundFilter is a lil slower than our providers so we wait a bit.
       // This is NOT that great but it works. 100 is an arbitrary number that seems to work for now.
       await Task.Delay(100);
-      if (BlockAddonTalkAndBattleTalk)
+      if (_interceptedSound != null)
       {
-        _logger.Debug($"{source} message blocked by SoundFilter");
-        BlockAddonTalkAndBattleTalk = false;
-        return;
+        if (_interceptedSound.ShouldBlock && _interceptedSound.IsValid())
+        {
+          _logger.Debug($"{source} message blocked by SoundFilter");
+          _interceptedSound = null;
+          return;
+        }
+        else
+        {
+          _logger.Debug($"Invalid SoundFilter not used, creation date: {_interceptedSound.CreationDate}");
+          _interceptedSound = null;
+        }
       }
     }
 

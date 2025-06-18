@@ -180,13 +180,13 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
     {
       if ((path.Contains("vo_man") || (path.Contains("cut/ffxiv/") && path.Contains("vo_voiceman"))) && _configuration.ReplaceVoicedARRCutscenes)
       {
-        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound() { SoundPath = path, BlockAddonTalkAndBattleTalk = false });
+        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(false, path));
         _logger.Debug("Blocking voiced ARR line in favor of XIVV");
         return true;
       }
       else
       {
-        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound() { SoundPath = path, BlockAddonTalkAndBattleTalk = true });
+        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
       }
     }
 
@@ -231,8 +231,12 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
   }
 }
 
-public class InterceptedSound : EventArgs
+public class InterceptedSound(bool shouldBlock, string soundPath) : EventArgs
 {
-  public required string SoundPath { get; set; }
-  public required bool BlockAddonTalkAndBattleTalk { get; set; }
+  public readonly DateTime CreationDate = DateTime.UtcNow;
+
+  public bool ShouldBlock { get; set; } = shouldBlock;
+  public string SoundPath { get; set; } = soundPath;
+
+  public bool IsValid() => (DateTime.UtcNow - CreationDate).TotalSeconds <= 3;
 }
