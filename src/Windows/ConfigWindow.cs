@@ -132,7 +132,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         _debugModeClickCount = 0;
         _configuration.DebugMode = !_configuration.DebugMode;
         _configuration.Save();
-        if (SelectedTab == ConfigWindowTab.Debug)
+        if (SelectedTab == ConfigWindowTab.Debug || SelectedTab == ConfigWindowTab.SelfTest)
           SelectedTab = ConfigWindowTab.Overview;
         _logger.Debug("Toggled Debug Mode");
       }

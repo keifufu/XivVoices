@@ -122,11 +122,22 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         float volume = track.Volume;
 
         (float distanceStart, float distanceEnd, float volumeStart, float volumeEnd)[] volumeRanges =
+        [
+          (0f, 3f, volume * 1f, volume * 0.85f), // 0 to 3 units: 100% to 85%
+          (3f, 5f, volume * 0.85f, volume * 0.3f), // 3 to 5 units: 85% to 30%
+          (5f, 20f, volume * 0.3f, volume * 0.05f) // 5 to 20 units: 30% to 5%
+        ];
+
+        // Can't let bubbles get too quiet in duties.
+        if (_gameInteropService.IsInDuty())
         {
-          (0f, 3f, volume*1f, volume*0.85f), // 0 to 3 units: 100% to 85%
-          (3f, 5f, volume*0.85f, volume*0.3f), // 3 to 5 units: 85% to 30%
-          (5f, 20f, volume*0.3f, volume*0.05f) // 5 to 20 units: 30% to 5%
-        };
+          volumeRanges[0].volumeStart = 0.65f;
+          volumeRanges[0].volumeEnd = 0.63f; // 0 to 3 units: 65% to 63%
+          volumeRanges[1].volumeStart = 0.63f;
+          volumeRanges[1].volumeEnd = 0.60f; // 3 to 5 units: 63% to 60%
+          volumeRanges[2].volumeStart = 0.60f;
+          volumeRanges[2].volumeEnd = 0.55f; // 5 to 20 units: 60% to 55%
+        }
 
         foreach ((float distanceStart, float distanceEnd, float volumeStart, float volumeEnd) in volumeRanges)
         {
