@@ -79,6 +79,7 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("Auto-Advance", ref _configuration.AutoAdvanceEnabled);
     DrawConfigCheckbox("Retainers Enabled", ref _configuration.RetainersEnabled);
-    DrawConfigCheckbox("Replaced Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
+    DrawConfigCheckbox("Print System Messages", ref _configuration.PrintSystemMessages);
+    DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
   }
 }

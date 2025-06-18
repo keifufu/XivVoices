@@ -148,6 +148,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         break;
     }
 
+    if (isSystemMessage && _configuration.PrintSystemMessages)
+      _logger.Chat(message.OriginalSentence, "", "", "System", XivChatType.NPCDialogue, false);
+
     if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled))
     {
       _logger.Debug("Not playing line due to user configuration");

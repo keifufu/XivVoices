@@ -19,6 +19,7 @@ global using System.Threading.Tasks;
 global using Concentus;
 global using Concentus.Oggfile;
 global using Dalamud.Game.Command;
+global using Dalamud.Game.Text;
 global using Dalamud.Hooking;
 global using Dalamud.Interface.Utility;
 global using Dalamud.Interface.Utility.Raii;

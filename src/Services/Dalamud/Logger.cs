@@ -1,15 +1,14 @@
 using Dalamud.Game.Gui.Toast;
-using Dalamud.Game.Text;
 using Dalamud.Game.Text.SeStringHandling;
 
 namespace XivVoices.Services;
 
 public interface ILogger
 {
-  Configuration Configuration { get; set; }
+  void SetConfiguration(Configuration configuration);
 
   void Toast(string pre, string italic = "", string post = "");
-  void Chat(string pre, string italic = "", string post = "");
+  void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true);
 
   void Error(string text,
       [CallerFilePath] string callerPath = "",
@@ -37,13 +36,18 @@ public interface ILogger
       [CallerLineNumber] int lineNumber = -1);
 }
 
-public class Logger(IPluginLog PluginLog, IToastGui ToastGui, IChatGui ChatGui) : ILogger
+public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGui) : ILogger
 {
-  public Configuration Configuration { get; set; } = new Configuration();
+  private Configuration _configuration { get; set; } = new Configuration();
+
+  public void SetConfiguration(Configuration configuration)
+  {
+    _configuration = configuration;
+  }
 
   public void Toast(string pre, string italic = "", string post = "")
   {
-    ToastGui.ShowNormal(
+    _toastGui.ShowNormal(
       new SeStringBuilder()
         .AddText(pre)
         .AddItalics(italic)
@@ -57,19 +61,20 @@ public class Logger(IPluginLog PluginLog, IToastGui ToastGui, IChatGui ChatGui) 
     );
   }
 
-  public void Chat(string pre, string italic = "", string post = "")
+  public void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true)
   {
     XivChatEntry chatMessage = new()
     {
-      Type = XivChatType.Debug,
+      Type = type,
+      Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
-        .AddUiForeground("[XivVoices] ", 35)
+        .AddUiForeground(addPrefix ? "[XivVoices] " : "", 35)
         .AddText(pre)
         .AddItalics(italic)
         .AddText(post)
         .Build(),
     };
-    ChatGui.Print(chatMessage);
+    _chatGui.Print(chatMessage);
     Debug($"Printed chatMessage::'{chatMessage.Message}'");
   }
 
@@ -77,15 +82,15 @@ public class Logger(IPluginLog PluginLog, IToastGui ToastGui, IChatGui ChatGui) 
     $"[{Path.GetFileName(callerPath)}:{callerName}:{lineNumber}]";
 
   public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1) =>
-    PluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+    _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
 
   public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1) =>
-    PluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
+    _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
 
   public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
-    if (!Configuration.DebugLogging) return;
-    PluginLog.Debug($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+    if (!_configuration.DebugLogging) return;
+    _pluginLog.Debug($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
   }
 
   public void DebugObj<T>(T obj, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)

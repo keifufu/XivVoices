@@ -32,6 +32,7 @@ public class Configuration : IPluginConfiguration
 
   public bool AutoAdvanceEnabled = true;
   public bool RetainersEnabled = true;
+  public bool PrintSystemMessages = true;
   public bool ReplaceVoicedARRCutscenes = true;
 
   // Audio Settings
@@ -75,7 +76,7 @@ public class Configuration : IPluginConfiguration
     Logger = logger;
     PluginInterface = pluginInterface;
 
-    Logger.Configuration = this;
+    Logger.SetConfiguration(this);
     ConfigurationMigrator.Migrate(this, Logger!);
   }
 
