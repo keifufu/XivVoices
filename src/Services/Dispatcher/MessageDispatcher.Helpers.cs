@@ -4,16 +4,18 @@ namespace XivVoices.Services;
 
 public partial class MessageDispatcher
 {
+  // We used to sanitize this in this way:
+  // string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
+  // and compare that, but that can lead to some non-retainer lines being
+  // matches as a retainer line. Perhaps Manifest.Retainers will need
+  // updating now.
   private string GetRetainerSpeaker(string speaker, string sentence)
   {
     if (_dataService.Manifest == null) return speaker;
 
-    // We do a tiny bit of sanitization, basically just remove all except a-z, A-Z.
-    string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
     foreach (string? key in _dataService.Manifest.Retainers.Keys)
     {
-      string sanitizedKey = Regex.Replace(key, @"[^a-zA-Z]", "");
-      if (sanitizedSentence.Equals(sanitizedKey))
+      if (key.Equals(sentence))
       {
         return _dataService.Manifest.Retainers[key];
       }
