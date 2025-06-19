@@ -1,6 +1,7 @@
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Dalamud.Game.Text.SeStringHandling;
 
 namespace XivVoices.Services;
 
@@ -30,7 +31,7 @@ public class AddonBattleTalkProvider(ILogger _logger, IMessageDispatcher _messag
 
   private unsafe void OnBattleTalkAddonPostDraw(AddonEvent type, AddonArgs args)
   {
-    var addon = (AddonBattleTalk*)args.Addon;
+    AddonBattleTalk* addon = (AddonBattleTalk*)args.Addon;
     if (addon == null) return;
 
     string speaker = ReadTextNode(addon->Speaker);
@@ -49,7 +50,7 @@ public class AddonBattleTalkProvider(ILogger _logger, IMessageDispatcher _messag
   private static unsafe string ReadTextNode(AtkTextNode* textNode)
   {
     if (textNode == null) return "";
-    var seString = textNode->NodeText.StringPtr.AsDalamudSeString();
+    SeString seString = textNode->NodeText.StringPtr.AsDalamudSeString();
     return seString.TextValue
       .Trim()
       .Replace("\n", "")

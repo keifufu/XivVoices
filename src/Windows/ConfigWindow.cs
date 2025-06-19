@@ -68,31 +68,34 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     drawList.AddLine(lineStart, lineEnd, lineColor, 1f);
     ImGui.SameLine(ScaledFloat(85));
 
-    using ImRaii.IEndObject group = ImRaii.Group();
-    ImGui.Unindent(ScaledFloat(8));
-    switch (SelectedTab)
+    using (ImRaii.IEndObject group = ImRaii.Group())
     {
-      case ConfigWindowTab.Overview:
-        DrawOverviewTab();
-        break;
-      case ConfigWindowTab.DialogueSettings:
-        DrawDialogueSettingsTab();
-        break;
-      case ConfigWindowTab.AudioSettings:
-        DrawAudioSettingsTab();
-        break;
-      case ConfigWindowTab.AudioLogs:
-        DrawAudioLogsTab();
-        break;
-      case ConfigWindowTab.WineSettings:
-        DrawWineTab();
-        break;
-      case ConfigWindowTab.Debug:
-        DrawDebugTab();
-        break;
-      case ConfigWindowTab.SelfTest:
-        DrawSelfTestTab();
-        break;
+      if (!group.Success) return;
+      ImGui.Unindent(ScaledFloat(8));
+      switch (SelectedTab)
+      {
+        case ConfigWindowTab.Overview:
+          DrawOverviewTab();
+          break;
+        case ConfigWindowTab.DialogueSettings:
+          DrawDialogueSettingsTab();
+          break;
+        case ConfigWindowTab.AudioSettings:
+          DrawAudioSettingsTab();
+          break;
+        case ConfigWindowTab.AudioLogs:
+          DrawAudioLogsTab();
+          break;
+        case ConfigWindowTab.WineSettings:
+          DrawWineTab();
+          break;
+        case ConfigWindowTab.Debug:
+          DrawDebugTab();
+          break;
+        case ConfigWindowTab.SelfTest:
+          DrawSelfTestTab();
+          break;
+      }
     }
 
     DrawInputPrompt();
@@ -207,34 +210,38 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
     using (ImRaii.PushColor(ImGuiCol.ChildBg, overlayColor))
     {
-      using ImRaii.IEndObject overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false);
-      if (!overlay.Success) return;
-
-      Vector2 promptSize = ScaledVector2(300, 105);
-      Vector2 promptPos = (windowSize - promptSize) / 2.0f;
-      ImGui.SetCursorPos(new(promptPos.X + ScaledFloat(25), promptPos.Y));
-
-      using (ImRaii.PushColor(ImGuiCol.ChildBg, promptColor))
+      using (ImRaii.IEndObject overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false))
       {
-        using ImRaii.IEndObject prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding);
-        if (!prompt.Success) return;
-        ImGui.TextWrapped(_promptDescription);
-        ImGui.Dummy(ScaledVector2(0, 5));
-        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
-        ImGui.InputText("##input", ref _promptInputBuffer, 256);
+        if (!overlay.Success) return;
 
-        ImGui.Dummy(ScaledVector2(0, 5));
-        if (ImGui.Button("Submit"))
-        {
-          _promptCallback?.Invoke(true, _promptInputBuffer);
-          _promptOpen = false;
-        }
+        Vector2 promptSize = ScaledVector2(300, 105);
+        Vector2 promptPos = (windowSize - promptSize) / 2.0f;
+        ImGui.SetCursorPos(new(promptPos.X + ScaledFloat(25), promptPos.Y));
 
-        ImGui.SameLine();
-        if (ImGui.Button("Cancel"))
+        using (ImRaii.PushColor(ImGuiCol.ChildBg, promptColor))
         {
-          _promptCallback?.Invoke(false, _promptInputBuffer);
-          _promptOpen = false;
+          using (ImRaii.IEndObject prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding))
+          {
+            if (!prompt.Success) return;
+            ImGui.TextWrapped(_promptDescription);
+            ImGui.Dummy(ScaledVector2(0, 5));
+            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
+            ImGui.InputText("##input", ref _promptInputBuffer, 256);
+
+            ImGui.Dummy(ScaledVector2(0, 5));
+            if (ImGui.Button("Submit"))
+            {
+              _promptCallback?.Invoke(true, _promptInputBuffer);
+              _promptOpen = false;
+            }
+
+            ImGui.SameLine();
+            if (ImGui.Button("Cancel"))
+            {
+              _promptCallback?.Invoke(false, _promptInputBuffer);
+              _promptOpen = false;
+            }
+          }
         }
       }
     }
