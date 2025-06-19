@@ -8,6 +8,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
   {
     _windowSystem.AddWindow(_configWindow);
 
+    _pluginInterface.UiBuilder.DisableCutsceneUiHide = true;
     _pluginInterface.UiBuilder.Draw += UiBuilderOnDraw;
     _pluginInterface.UiBuilder.OpenConfigUi += ToggleConfigUi;
     _pluginInterface.UiBuilder.OpenMainUi += ToggleConfigUi;
