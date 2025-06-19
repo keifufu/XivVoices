@@ -2,11 +2,10 @@ namespace XivVoices.Services;
 
 public partial class LocalTTSService
 {
-  private async Task<string> ProcessPlayerChat(XivMessage message)
+  private async Task<string> ProcessPlayerChat(string sentence, string speaker)
   {
-    string sentence = message.Sentence.Trim();
-    string playerName = message.OriginalSpeaker.Split(" ")[0];
-    bool iAmSpeaking = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue == message.OriginalSpeaker);
+    string playerName = speaker.Split(" ")[0];
+    bool iAmSpeaking = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue == speaker);
     if (iAmSpeaking) playerName = "You";
     RegexOptions regexOptions = RegexOptions.IgnoreCase;
 
@@ -99,6 +98,7 @@ public partial class LocalTTSService
     sentence = Regex.Replace(sentence, @"\bh1\b", "\"Healer One\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bh2\b", "\"Healer Two\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\brn\b", "\"right now\"", regexOptions);
+    sentence = Regex.Replace(sentence, @"\bsaya\b", "\"sah-ya\"", regexOptions);
 
     sentence = JobReplacement(sentence);
     return sentence;

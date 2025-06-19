@@ -27,25 +27,19 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     string? toolsDirectory = _dataService.ToolsDirectory;
     if (dataDirectory == null || toolsDirectory == null) return null;
 
-    string sentence = Regex.Replace(message.OriginalSentence, "[“”]", "\"");
-    if (message.Source == MessageSource.ChatMessage)
-      sentence = await ProcessPlayerChat(message);
-    sentence = ApplyLexicon(sentence);
-
-    // localtts only really supports english, oh well.
-    sentence = new string([.. sentence.Where(c =>
-      (c >= 'a' && c <= 'z') ||
-      (c >= 'A' && c <= 'Z') ||
-      (c >= '0' && c <= '9') ||
-      c == ',' ||
-      c == '.' ||
-      c == ' '
-    )]);
-    if (!sentence.Any(char.IsLetter))
+    // Something in our implementation can only handle ascii. I don't think
+    // that's on piper but probably something in our wrapper (localtts.dll)
+    string cleanedSentence = Regex.Replace(message.Sentence, "[“”]", "\"");
+    cleanedSentence = Regex.Replace(cleanedSentence, @"[^\u0000-\u007F]+", "").Trim();
+    if (string.IsNullOrEmpty(cleanedSentence))
     {
-      _logger.Debug($"Failed to clean local tts message: {message.OriginalSentence} -> {sentence}");
+      _logger.Debug($"Cleaned sentence is empty: {message.OriginalSentence}");
       return null;
     }
+
+    if (message.Source == MessageSource.ChatMessage)
+      cleanedSentence = await ProcessPlayerChat(cleanedSentence, message.Speaker);
+    cleanedSentence = ApplyLexicon(cleanedSentence);
 
     if (_localTTSEngine == null)
     {
@@ -69,7 +63,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       return null;
     }
 
-    float[] pcmData = await _localTTSEngine.SpeakTTS(sentence, _localTTSEngine.Voices[speaker]!);
+    float[] pcmData = await _localTTSEngine.SpeakTTS(cleanedSentence, _localTTSEngine.Voices[speaker]!);
+    if (pcmData.Length == 0) return null;
 
     WaveFormat waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(22050, 1);
     string? tempFilePath = _dataService.TempFilePath($"localtts-{Guid.NewGuid()}.wav");

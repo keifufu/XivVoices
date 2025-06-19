@@ -74,7 +74,7 @@ public partial class MessageDispatcher
   // Sanitizes the speaker and sentence. This should preferably NEVER be changed,
   // as that would break a lot of voicelines generated before then.
   // If we do want to add something here, make SURE it will NOT affect existing lines.
-  public async Task<(string speaker, string sentence)> CleanMessage(string _speaker, string _sentence)
+  public async Task<(string speaker, string sentence)> CleanMessage(string _speaker, string _sentence, bool keepName = false)
   {
     string speaker = _speaker;
     string sentence = _sentence;
@@ -92,7 +92,7 @@ public partial class MessageDispatcher
       {
         if (speaker.EndsWith(suffix))
         {
-          speaker = speaker.Substring(0, speaker.Length - suffix.Length);
+          speaker = speaker[..^suffix.Length];
           break;
         }
       }
@@ -115,7 +115,7 @@ public partial class MessageDispatcher
         .Replace("\n", " ");
 
       string? fullLocalName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
-      if (fullLocalName != null)
+      if (fullLocalName != null && !keepName)
       {
         string[] fullname = fullLocalName.Split(" ");
 

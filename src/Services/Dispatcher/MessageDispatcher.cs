@@ -82,7 +82,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
       // Skip if there's nothing meaningful to voice
       // E.g. if the sentence was "..." or "<sigh>"
-      if (string.IsNullOrEmpty(sentence)) return;
+      if (string.IsNullOrEmpty(sentence))
+      {
+        _logger.Debug($"Cleaned sentence is empty: {origSentence}");
+        return;
+      }
     }
 
     // This one is a bit weird, we try to look up the NpcData directly from the game, that makes sense.
@@ -109,6 +113,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     string? voice = "";
     if (source != MessageSource.ChatMessage)
       (voicelinePath, voice) = await TryGetVoicelinePath(speaker, sentence, npcData);
+
+    // If this line will be LocalTTS, clean message but keep the player name.
+    if (voicelinePath == null)
+      (speaker, sentence) = await CleanMessage(origSpeaker, origSentence, true);
 
     XivMessage message = new(
       Md5(speaker, sentence),
@@ -153,7 +161,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled))
     {
-      _logger.Debug("Not playing line due to user configuration");
+      _logger.Debug($"Not playing line due to user configuration: {allowed} {isSystemMessage} {isRetainer} {message.IsLocalTTS}");
       return;
     }
 
