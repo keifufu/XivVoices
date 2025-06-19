@@ -28,7 +28,7 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     {
       if ((gameObject as ICharacter) == null) continue;
 
-      if (gameObject.DataId == baseId)
+      if (gameObject.DataId == baseId && baseId != 0)
         baseIdCharacter = gameObject.Address;
 
       if (!string.IsNullOrEmpty(name) && gameObject.Name.TextValue == name)
