@@ -15,6 +15,8 @@ public interface IPlaybackService : IHostedService
   void Stop(MessageSource source);
   void Stop(string id);
 
+  bool IsPlaying(MessageSource source);
+
   IEnumerable<(XivMessage message, bool isPlaying, float percentage)> GetPlaybackHistory();
 
   IEnumerable<TrackableSound> Debug_GetPlaying();
@@ -102,7 +104,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
         if (_clientState.LocalPlayer == null) return;
 
-        if (track.Message.OriginalSpeaker == _clientState.LocalPlayer.Name.ToString()) return;
+        if (track.Message.Speaker == _clientState.LocalPlayer.Name.ToString()) return;
 
         Vector3 playerPosition = _clientState.LocalPlayer.Position;
         Vector3 speakerPosition = new(speaker->Position.X, speaker->Position.Y, speaker->Position.Z);
@@ -207,7 +209,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     _playing[message.Id] = track;
 
     if (_configuration.LipSyncEnabled)
-      _lipSync.TryLipSync(message, track.TotalTime.TotalSeconds);
+      _ = _lipSync.TryLipSync(message, track.TotalTime.TotalSeconds);
 
     if (!replay)
     {
@@ -247,6 +249,17 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _logger.Debug($"Failed to find playing audio with id {id}");
   }
 
+  public bool IsPlaying(MessageSource source)
+  {
+    foreach (TrackableSound track in _playing.Values)
+    {
+      if (track.Message.Source == source)
+        return true;
+    }
+
+    return false;
+  }
+
   public IEnumerable<(XivMessage message, bool isPlaying, float percentage)> GetPlaybackHistory()
   {
     lock (_playbackHistoryLock)
@@ -274,6 +287,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 150)
   {
+    if (track.IsStopping) return;
     track.IsStopping = true;
     _lipSync.TryStopLipSync(track.Message);
 

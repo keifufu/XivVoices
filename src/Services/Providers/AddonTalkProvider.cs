@@ -2,6 +2,9 @@ using Dalamud.Game.ClientState.Keys;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.Addon.Lifecycle;
 
 namespace XivVoices.Services;
 
@@ -13,7 +16,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameGui _gameGui, IKeyState _keyState, IFramework _framework) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -23,6 +26,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   {
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
+    _addonLifecycle.RegisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -32,9 +36,38 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   {
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
+    _addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  private const uint AdvanceIconNodeId = 8;
+  private const uint AutoAdvanceIconNodeId = 9;
+  private unsafe void OnAddonTalkPreDraw(AddonEvent _, AddonArgs args)
+  {
+    AddonTalk* addon = (AddonTalk*)args.Addon;
+    bool altHeld = _keyState[VirtualKey.MENU];
+    if (!_configuration.MuteEnabled && _configuration.AutoAdvanceEnabled && !altHeld && _playbackService.IsPlaying(MessageSource.AddonTalk))
+    {
+      AtkResNode* advanceIconNode = addon->UldManager.SearchNodeById(AdvanceIconNodeId);
+      AtkResNode* autoAdvanceIconNode = addon->UldManager.SearchNodeById(AutoAdvanceIconNodeId);
+
+      if (advanceIconNode->IsVisible())
+      {
+        advanceIconNode->NodeFlags &= ~NodeFlags.Visible;
+        advanceIconNode->DrawFlags |= 0x1;
+        autoAdvanceIconNode->NodeFlags |= NodeFlags.Visible;
+        autoAdvanceIconNode->DrawFlags |= 0x1;
+
+        float rotation = autoAdvanceIconNode->Rotation;
+        rotation += MathF.PI * (float)_framework.UpdateDelta.TotalSeconds;
+        if (rotation > 2 * MathF.PI) rotation = 0;
+
+        autoAdvanceIconNode->Rotation = rotation;
+        autoAdvanceIconNode->DrawFlags |= 0xD;
+      }
+    }
   }
 
   private unsafe void OnFrameworkUpdate(IFramework framework)
@@ -80,7 +113,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   private static unsafe string ReadTextNode(AtkTextNode* textNode)
   {
     if (textNode == null) return "";
-    var seString = textNode->NodeText.StringPtr.AsDalamudSeString();
+    SeString seString = textNode->NodeText.StringPtr.AsDalamudSeString();
     return seString.TextValue
       .Trim()
       .Replace("\n", "")
