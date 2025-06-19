@@ -14,11 +14,12 @@ public class XivReport
   public bool? IsInCutscene { get; }
   public bool? IsInDuty { get; }
   public List<string>? ActiveQuests { get; }
+  public List<string>? ActiveLeves { get; }
 
   // Manual report reason
   public string? Reason { get; }
 
-  public XivReport(XivMessage message, string location, string coordinates, bool isInCutscene, bool isInDuty, List<string> activeQuests)
+  public XivReport(XivMessage message, string location, string coordinates, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
   {
     ReportType = ReportType.Automatic;
     Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"); ;
@@ -29,6 +30,7 @@ public class XivReport
     IsInCutscene = isInCutscene;
     IsInDuty = isInDuty;
     ActiveQuests = activeQuests;
+    ActiveLeves = activeLeves;
   }
 
   public XivReport(XivMessage message, string reason)
@@ -50,6 +52,7 @@ public class XivReport
     bool? isInCutscene,
     bool? isInDuty,
     List<string>? activeQuests,
+    List<string>? activeLeves,
     string? reason)
   {
     ReportType = reportType;
@@ -60,6 +63,7 @@ public class XivReport
     IsInCutscene = isInCutscene;
     IsInDuty = isInDuty;
     ActiveQuests = activeQuests;
+    ActiveLeves = activeLeves;
     Reason = reason;
   }
 }

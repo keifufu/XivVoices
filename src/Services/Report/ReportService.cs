@@ -57,6 +57,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       string jsonContent = File.ReadAllText(filePath);
       Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent) ?? throw new Exception("Failed to deserialize localReports.json");
       _localReports = json;
+      _logger.Debug($"Loaded {_localReports.Count} local reports");
     }
     catch (Exception ex)
     {
@@ -100,9 +101,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     }
 
     foreach (string key in keysToRemove)
-    {
       _localReports.Remove(key);
-    }
 
     if (keysToRemove.Count > 0)
       SaveLocalReports();
@@ -156,6 +155,8 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
   private bool CanReport()
   {
+    if (_dataService.DataStatus.UpdateInProgress) return false;
+
     if (_clientState.ClientLanguage != Dalamud.Game.ClientLanguage.English)
     {
       if (!_languageWarningThisSession)
@@ -185,7 +186,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     bool mostVoicelinesDownloaded = _dataService.Manifest != null && (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
     if (!mostVoicelinesDownloaded)
     {
-      _logger.Chat("You are missing over 10k voicelines. Reporting is unavailable.");
+      _logger.Chat("You are missing over 10k voicelines. Reporting is unavailable, please update.");
       return false;
     }
 
@@ -207,8 +208,10 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       if (_configuration.LogReportsToChat)
         _logger.Chat($"Reporting: {message.Speaker}: {message.Sentence}");
 
-      TerritoryType territory = _dataManager.GetExcelSheet<TerritoryType>().GetRow(_clientState.TerritoryType);
-      string location = $"{territory.PlaceNameRegion.Value.Name.ExtractText()}, {territory.PlaceName.Value.Name.ExtractText()}";
+      string location = $"Unknown:{_clientState.TerritoryType}";
+      if (_dataManager.GetExcelSheet<TerritoryType>().TryGetRow(_clientState.TerritoryType, out TerritoryType territory))
+        location = $"{territory.PlaceNameRegion.Value.Name.ExtractText()}, {territory.PlaceName.Value.Name.ExtractText()}";
+
       Vector3 coordsVec3 = MapUtil.GetMapCoordinates(_clientState.LocalPlayer);
       string coordinates = $"X: {coordsVec3.X} Y: {coordsVec3.Y}";
 
@@ -218,8 +221,19 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
         foreach (QuestWork quest in QuestManager.Instance()->NormalQuests)
         {
           if (quest.QuestId is 0) continue;
-          Quest questData = _dataManager.GetExcelSheet<Quest>().GetRow(quest.QuestId + 65536u);
-          activeQuests.Add(questData.Name.ExtractText());
+          if (_dataManager.GetExcelSheet<Quest>().TryGetRow(quest.QuestId + 65536u, out Quest questData))
+            activeQuests.Add(questData.Name.ExtractText());
+        }
+      }
+
+      List<string> activeLeves = [];
+      unsafe
+      {
+        foreach (LeveWork leve in QuestManager.Instance()->LeveQuests)
+        {
+          if (leve.LeveId is 0) continue;
+          if (_dataManager.GetExcelSheet<Leve>().TryGetRow(leve.LeveId, out Leve leveData))
+            activeLeves.Add(leveData.Name.ExtractText());
         }
       }
 
@@ -229,7 +243,8 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
         coordinates,
         _gameInteropService.IsInCutscene(),
         _gameInteropService.IsInDuty(),
-        activeQuests
+        activeQuests,
+        activeLeves
       );
 
       _ = SendOrSaveReport(report, _cts?.Token ?? default);
