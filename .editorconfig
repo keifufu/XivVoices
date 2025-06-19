@@ -18,6 +18,7 @@ dotnet_diagnostic.IDE0130.severity = none
 dotnet_diagnostic.SYSLIB1045.severity = none
 dotnet_diagnostic.CA1816.severity = none
 dotnet_diagnostic.CS9107.severity = none
+dotnet_diagnostic.IDE0063.severity = none
 
 # Symbol group: all private instance fields (excluding const)
 dotnet_naming_symbols.private_instance_fields.applicable_kinds = field
