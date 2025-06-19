@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface ILipSync
 {
-  void TryLipSync(XivMessage message, double durationSeconds);
+  Task TryLipSync(XivMessage message, double durationSeconds);
   void TryStopLipSync(XivMessage message);
 }
 
@@ -14,7 +14,7 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
   private const ushort SpeakNormalMiddle = 630;
   private const ushort SpeakNormalShort = 629;
 
-  private Dictionary<string, CancellationTokenSource> _runningTasks = [];
+  private ConcurrentDictionary<string, CancellationTokenSource> _runningTasks = [];
 
   private string GetTaskId(XivMessage message)
   {
@@ -25,152 +25,105 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
     return message.Id;
   }
 
-  public async void TryLipSync(XivMessage message, double durationSeconds)
+  public async Task TryLipSync(XivMessage message, double durationSeconds)
   {
     if (durationSeconds < 0.2f) return;
+
+    TryStopLipSync(message);
 
     IntPtr character = await _gameInteropService.TryFindCharacter(message.Speaker, message.NpcData?.BaseId ?? 0);
     if (character == IntPtr.Zero)
     {
-      _logger.Debug($"No lipsync target found for speaker {message.Speaker}");
+      _logger.Debug($"No lipsync target found for speaker {message.Speaker} ({message.NpcData?.BaseId})");
       return;
     }
 
-    Dictionary<int, int> mouthMovement = [];
-    int durationMs = (int)(durationSeconds * 1000);
-    int durationRounded = (int)Math.Floor(durationSeconds);
-    int remaining = durationRounded;
-    mouthMovement[6] = remaining / 4;
-    remaining %= 4;
-    mouthMovement[5] = remaining / 2;
-    remaining %= 2;
-    mouthMovement[4] = remaining / 1;
-    remaining %= 1;
+    CancellationTokenSource cts = new();
+    string taskId = GetTaskId(message);
+    if (!_runningTasks.TryAdd(taskId, cts))
+    {
+      cts.Dispose();
+      _logger.Debug($"Could not add CTS for {taskId}, task already running.");
+      return;
+    }
 
-    _logger.Debug($"durationMs[{durationMs}] durationRounded[{durationRounded}] fours[{mouthMovement[6]}] twos[{mouthMovement[5]}] ones[{mouthMovement[4]}]");
-
-    // Decide on the mode
+    CancellationToken token = cts.Token;
     CharacterMode initialCharacterMode = TryGetCharacterMode(character);
     CharacterMode characterMode = CharacterMode.EmoteLoop;
 
-    if (!_runningTasks.ContainsKey(GetTaskId(message)))
+    int durationMs = (int)(durationSeconds * 1000);
+    int durationRounded = (int)Math.Floor(durationSeconds);
+    int remaining = durationRounded;
+    Dictionary<int, int> mouthMovement = new()
     {
-      CancellationTokenSource cts = new();
-      _runningTasks.Add(GetTaskId(message), cts);
-      var token = cts.Token;
+      [6] = durationRounded / 4,
+      [5] = durationRounded % 4 / 2,
+      [4] = durationRounded % 2
+    };
 
-      Task task = Task.Run(async () =>
+    _logger.Debug($"durationMs[{durationMs}] durationRounded[{durationRounded}] fours[{mouthMovement[6]}] twos[{mouthMovement[5]}] ones[{mouthMovement[4]}]");
+
+    await Task.Run(async () =>
+    {
+      try
       {
-        try
+        await Task.Delay(100, token);
+
+        if (mouthMovement[6] > 0)
         {
-          await Task.Delay(100, token);
-
-          // 4-Second Lips Movement Animation
-          if (!token.IsCancellationRequested && mouthMovement[6] > 0 && character != IntPtr.Zero)
-          {
-            await _framework.RunOnFrameworkThread(() =>
-            {
-              TrySetCharacterMode(character, characterMode);
-              TrySetLipsOverride(character, SpeakNormalLong);
-            });
-
-            int adjustedDelay = CalculateAdjustedDelay(mouthMovement[6] * 4000, 6);
-            _logger.Debug($"Task was started mouthMovement[6] durationMs[{mouthMovement[6] * 4}] delay [{adjustedDelay}]");
-
-            await Task.Delay(adjustedDelay, token);
-
-            if (!token.IsCancellationRequested && character != IntPtr.Zero)
-            {
-              _logger.Debug("Task mouthMovement[6] has finished");
-              await _framework.RunOnFrameworkThread(() =>
-              {
-                TrySetCharacterMode(character, initialCharacterMode);
-                TrySetLipsOverride(character, SpeakNone);
-              });
-            }
-          }
-
-          // 2-Second Lips Movement Animation
-          if (!token.IsCancellationRequested && mouthMovement[5] > 0 && character != IntPtr.Zero)
-          {
-            await _framework.RunOnFrameworkThread(() =>
-            {
-              TrySetCharacterMode(character, characterMode);
-              TrySetLipsOverride(character, SpeakNormalMiddle);
-            });
-
-            int adjustedDelay = CalculateAdjustedDelay(mouthMovement[5] * 2000, 5);
-            _logger.Debug($"Task was started mouthMovement[5] durationMs[{mouthMovement[5] * 2}] delay [{adjustedDelay}]");
-
-            await Task.Delay(adjustedDelay, token);
-
-            if (!token.IsCancellationRequested && character != IntPtr.Zero)
-            {
-              _logger.Debug("Task mouthMovement[5] has finished");
-              await _framework.RunOnFrameworkThread(() =>
-              {
-                TrySetCharacterMode(character, initialCharacterMode);
-                TrySetLipsOverride(character, SpeakNone);
-              });
-            }
-          }
-
-          // 1-Second Lips Movement Animation
-          if (!token.IsCancellationRequested && mouthMovement[4] > 0 && character != IntPtr.Zero)
-          {
-            await _framework.RunOnFrameworkThread(() =>
-            {
-              TrySetCharacterMode(character, characterMode);
-              TrySetLipsOverride(character, SpeakNormalShort);
-            });
-
-            int adjustedDelay = CalculateAdjustedDelay(mouthMovement[4] * 1000, 5);
-            _logger.Debug($"Task was started mouthMovement[4] durationMs[{mouthMovement[4] * 1}] delay [{adjustedDelay}]");
-
-            await Task.Delay(adjustedDelay, token);
-
-            if (!token.IsCancellationRequested && character != IntPtr.Zero)
-            {
-              _logger.Debug("Task mouthMovement[4] has finished");
-              await _framework.RunOnFrameworkThread(() =>
-              {
-                TrySetCharacterMode(character, initialCharacterMode);
-                TrySetLipsOverride(character, SpeakNone);
-              });
-            }
-          }
-
-          _logger.Debug("LipSync was completed");
+          int delay = CalculateAdjustedDelay(mouthMovement[6] * 4000, 6);
+          _logger.Debug($"Starting 4s lip movement. Delay: {delay}");
+          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalLong, delay, token);
         }
-        catch (TaskCanceledException)
+
+        if (mouthMovement[5] > 0)
         {
-          _logger.Debug("LipSync was cancelled");
+          int delay = CalculateAdjustedDelay(mouthMovement[5] * 2000, 5);
+          _logger.Debug($"Starting 2s lip movement. Delay: {delay}");
+          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalMiddle, delay, token);
         }
-        catch (Exception ex)
+
+        if (mouthMovement[4] > 0)
         {
-          _logger.Error(ex);
+          int delay = CalculateAdjustedDelay(mouthMovement[4] * 1000, 4);
+          _logger.Debug($"Starting 1s lip movement. Delay: {delay}");
+          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalShort, delay, token);
         }
-        finally
+
+        _logger.Debug("LipSync completed successfully");
+      }
+      catch (TaskCanceledException)
+      {
+        _logger.Debug("LipSync was cancelled");
+      }
+      catch (Exception ex)
+      {
+        _logger.Error(ex);
+      }
+      finally
+      {
+        await _framework.RunOnFrameworkThread(() =>
         {
           TrySetCharacterMode(character, initialCharacterMode);
           TrySetLipsOverride(character, SpeakNone);
+        });
 
-          cts.Dispose();
-          if (_runningTasks.ContainsKey(GetTaskId(message)))
-            _runningTasks.Remove(GetTaskId(message));
-        }
-      }, token);
-    }
+        if (_runningTasks.TryRemove(taskId, out CancellationTokenSource? oldCts))
+          oldCts.Dispose();
+      }
+    }, token);
   }
 
   public void TryStopLipSync(XivMessage message)
   {
-    if (_runningTasks.TryGetValue(GetTaskId(message), out var cts))
+    string taskId = GetTaskId(message);
+    if (_runningTasks.TryRemove(taskId, out CancellationTokenSource? cts))
     {
       try
       {
-        _logger.Debug("StopLipSync cancelling cts");
+        _logger.Debug($"StopLipSync cancelling CTS for {taskId}");
         cts.Cancel();
+        cts.Dispose();
       }
       catch (Exception ex)
       {
@@ -179,34 +132,49 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
     }
   }
 
-  int CalculateAdjustedDelay(int durationMs, int lipSyncType)
+  private async Task AnimateLipSync(IntPtr character, CharacterMode initialMode, CharacterMode targetMode, ushort speakValue, int delayMs, CancellationToken token)
   {
-    int delay = 0;
-    int animationLoop;
-    if (lipSyncType == 4)
-      animationLoop = 1000;
-    else if (lipSyncType == 5)
-      animationLoop = 2000;
-    else
-      animationLoop = 4000;
+    if (token.IsCancellationRequested || character == IntPtr.Zero) return;
+
+    await _framework.RunOnFrameworkThread(() =>
+    {
+      TrySetCharacterMode(character, targetMode);
+      TrySetLipsOverride(character, speakValue);
+    });
+
+    await Task.Delay(delayMs, token);
+
+    if (!token.IsCancellationRequested && character != IntPtr.Zero)
+    {
+      await _framework.RunOnFrameworkThread(() =>
+      {
+        TrySetCharacterMode(character, initialMode);
+        TrySetLipsOverride(character, SpeakNone);
+      });
+      _logger.Debug($"LipSync {speakValue} block finished after {delayMs}ms");
+    }
+  }
+
+  private int CalculateAdjustedDelay(int durationMs, int lipSyncType)
+  {
+    int animationLoop = lipSyncType switch
+    {
+      4 => 1000,
+      5 => 2000,
+      6 => 4000,
+      _ => 4000
+    };
+
     int halfStep = animationLoop / 2;
 
-    if (durationMs <= (1 * animationLoop) + halfStep)
+    for (int i = 1; i <= 10; i++)
     {
-      return (1 * animationLoop) - 50;
-    }
-    else
-    {
-      for (int i = 2; delay < durationMs; i++)
-      {
-        if (durationMs > (i * animationLoop) - halfStep && durationMs <= (i * animationLoop) + halfStep)
-        {
-          delay = (i * animationLoop) - 50;
-          return delay;
-        }
-      }
+      int ideal = i * animationLoop;
+      if (durationMs <= ideal + halfStep)
+        return ideal - 50;
     }
 
+    _logger.Debug($"CalculateAdjustedDelay fell through: {durationMs}, {lipSyncType}");
     return 404;
   }
 }
