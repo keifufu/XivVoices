@@ -1,5 +1,6 @@
 using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
+using Dalamud.Game.ClientState.GamePad;
 using Dalamud.Game.ClientState.Keys;
 using Dalamud.Game.Text.SeStringHandling;
 using FFXIVClientStructs.FFXIV.Client.System.String;
@@ -16,7 +17,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -42,13 +43,24 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     return Task.CompletedTask;
   }
 
+  private unsafe bool CanAutoAdvance()
+  {
+    AtkUnitBase* addon = (AtkUnitBase*)_gameGui.GetAddonByName("TalkAutoMessageSetting");
+    bool addonVisible = addon != null && addon->IsVisible;
+    return !_configuration.MuteEnabled
+      && _configuration.AutoAdvanceEnabled
+      && !_keyState[VirtualKey.MENU]
+      && !_keyState[VirtualKey.SPACE]
+      && _gamepadState.Pressed(GamepadButtons.North) == 0
+      && !addonVisible;
+  }
+
   private const uint AdvanceIconNodeId = 8;
   private const uint AutoAdvanceIconNodeId = 9;
   private unsafe void OnAddonTalkPreDraw(AddonEvent _, AddonArgs args)
   {
     AddonTalk* addon = (AddonTalk*)args.Addon;
-    bool altHeld = _keyState[VirtualKey.MENU];
-    if (!_configuration.MuteEnabled && _configuration.AutoAdvanceEnabled && !altHeld && _playbackService.IsPlaying(MessageSource.AddonTalk))
+    if (CanAutoAdvance() && _playbackService.IsPlaying(MessageSource.AddonTalk))
     {
       AtkResNode* advanceIconNode = addon->UldManager.SearchNodeById(AdvanceIconNodeId);
       AtkResNode* autoAdvanceIconNode = addon->UldManager.SearchNodeById(AutoAdvanceIconNodeId);
@@ -131,14 +143,11 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
   public unsafe void AutoAdvance()
   {
-    if (!_configuration.AutoAdvanceEnabled) return;
-
-    // Disable auto-advance temporarily when holding ALT.
-    bool altHeld = _keyState[VirtualKey.MENU];
+    if (!CanAutoAdvance()) return;
 
     AddonTalk* addonTalk = (AddonTalk*)_gameGui.GetAddonByName("Talk");
     if (addonTalk == null) return;
-    if (!addonTalk->AtkUnitBase.IsVisible || altHeld) return;
+    if (!addonTalk->IsVisible) return;
 
     _framework.RunOnFrameworkThread(() =>
     {

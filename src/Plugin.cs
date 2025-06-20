@@ -19,6 +19,7 @@ public sealed class Plugin : IDalamudPlugin
     IClientState clientState,
     IDataManager dataManager,
     IObjectTable objectTable,
+    IGamepadState gamepadState,
     IAddonLifecycle addonLifecycle,
     ICommandManager commandManager,
     ITextureProvider textureProvider,
@@ -45,6 +46,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(clientState);
         collection.AddSingleton(dataManager);
         collection.AddSingleton(objectTable);
+        collection.AddSingleton(gamepadState);
         collection.AddSingleton(addonLifecycle);
         collection.AddSingleton(commandManager);
         collection.AddSingleton(textureProvider);
