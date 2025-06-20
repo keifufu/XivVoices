@@ -116,22 +116,29 @@ public partial class MessageDispatcher
         .Replace("–", "-")
         .Replace("\n", " ");
 
-      string? fullLocalName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
-      if (fullLocalName != null && !keepName)
+      if (!keepName)
       {
-        string[] fullname = fullLocalName.Split(" ");
+        string? fullLocalName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
+        if (fullLocalName != null)
+        {
+          string[] fullname = fullLocalName.Split(" ");
 
-        // Replace 'full name' with 'firstName'
-        pattern = "\\b" + fullname[0] + " " + fullname[1] + "\\b";
-        sentence = Regex.Replace(sentence, pattern, fullname[0]);
+          // Replace 'full name' with 'firstName'
+          pattern = "\\b" + fullname[0] + " " + fullname[1] + "\\b";
+          sentence = Regex.Replace(sentence, pattern, fullname[0]);
 
-        // Replace 'lastName' with 'firstName'
-        pattern = "\\b" + fullname[1] + "\\b";
-        sentence = Regex.Replace(sentence, pattern, fullname[0]);
+          // Replace 'lastName' with 'firstName'
+          pattern = "\\b" + fullname[1] + "\\b";
+          sentence = Regex.Replace(sentence, pattern, fullname[0]);
 
-        // Replace 'firstName' with '_NAME_'
-        pattern = "(?<!the )\\b" + fullname[0] + "\\b(?! of the)";
-        sentence = Regex.Replace(sentence, pattern, "_NAME_");
+          // Replace 'firstName' with '_NAME_'
+          // Note: We used to prevent replacing here if the name was followed by "of the".
+          // I can only assume this was because of a few lines saying "Arc of the Worthy",
+          // but a good chunk of WHM and BLM quests call you <name> of the <white/black>.
+          // Old pattern: "(?<!the )\\b" + fullname[0] + "\\b(?! of the)"
+          pattern = "(?<!the )\\b" + fullname[0];
+          sentence = Regex.Replace(sentence, pattern, "_NAME_");
+        }
       }
 
       // "Send help" was the original comment for this, idk.
