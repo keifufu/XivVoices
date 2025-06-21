@@ -10,6 +10,7 @@ public interface IDataService : IHostedService
   string? VoicelinesDirectory { get; }
   string ServerUrl { get; }
   event EventHandler<string>? OnDataDirectoryChanged;
+  JsonSerializerOptions JsonWriteOptions { get; }
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
   Task Update(bool forceDownloadManifest = false);
@@ -31,6 +32,12 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   public Manifest? Manifest { get; private set; } = null;
 
   public event EventHandler<string>? OnDataDirectoryChanged;
+
+  public JsonSerializerOptions JsonWriteOptions { get; } = new()
+  {
+    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    WriteIndented = true
+  };
 
   private bool _dataDirectoryExists;
   public string? DataDirectory
@@ -429,7 +436,6 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
-  private readonly JsonSerializerOptions _jsonWriteOptions = new() { WriteIndented = true };
   private void SaveCachedPlayers()
   {
     try
@@ -442,7 +448,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       }
 
       string filePath = Path.Join(dataDirectory, "players.json");
-      string json = JsonSerializer.Serialize(_cachedPlayers, _jsonWriteOptions);
+      string json = JsonSerializer.Serialize(_cachedPlayers, JsonWriteOptions);
       File.WriteAllText(filePath, json);
     }
     catch (Exception ex)
