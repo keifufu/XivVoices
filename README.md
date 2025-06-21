@@ -2,8 +2,6 @@
 
 **Transforming Final Fantasy XIV by voicing every piece of dialogue!**
 
-![Github All Releases](https://img.shields.io/github/downloads/Final-Fantasy-XIV-Voices/XivVoices/total.svg)
-
 ## Description
 
 **Xiv Voices** is a plugin for Final Fantasy XIV that enhances your gaming experience by adding voice to every NPC dialogue, battle interaction, and more. This plugin not only voices dialogues but also syncs NPC lip movements for an immersive experience. Enjoy the rich storyline of FFXIV like never before, with every dialogue, whether from named or unnamed NPCs, brought to life through high-quality, audio-engineered voice overs.
