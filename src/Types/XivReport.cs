@@ -3,6 +3,7 @@ namespace XivVoices.Types;
 public class XivReport
 {
   public ReportType ReportType { get; }
+  public string PluginVersion { get; }
   public string Date { get; }
   public XivMessage Message { get; }
 
@@ -22,6 +23,7 @@ public class XivReport
   public XivReport(XivMessage message, string location, string coordinates, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
   {
     ReportType = ReportType.Automatic;
+    PluginVersion = Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
     Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"); ;
 
     Message = message;
@@ -36,6 +38,7 @@ public class XivReport
   public XivReport(XivMessage message, string reason)
   {
     ReportType = ReportType.Manual;
+    PluginVersion = Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
     Date = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ"); ;
 
     Message = message;
@@ -45,6 +48,7 @@ public class XivReport
   [JsonConstructor]
   public XivReport(
     ReportType reportType,
+    string pluginVersion,
     string date,
     XivMessage message,
     string? location,
@@ -56,6 +60,7 @@ public class XivReport
     string? reason)
   {
     ReportType = reportType;
+    PluginVersion = pluginVersion;
     Date = date;
     Message = message;
     Location = location;
