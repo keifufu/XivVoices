@@ -33,7 +33,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     cleanedSentence = Regex.Replace(cleanedSentence, @"[^\u0000-\u007F]+", "").Trim();
     if (string.IsNullOrEmpty(cleanedSentence))
     {
-      _logger.Debug($"Cleaned sentence is empty: {message.OriginalSentence}");
+      _logger.Debug($"Cleaned sentence is empty: {message.Sentence}");
       return null;
     }
 

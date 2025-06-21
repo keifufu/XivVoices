@@ -15,13 +15,13 @@ public interface IDataService : IHostedService
   Task Update(bool forceDownloadManifest = false);
   void CancelUpdate();
   string? TempFilePath(string fileName);
-  NpcData? TryGetCachedPlayerNpcData(string speaker);
-  void CachePlayerNpcData(string speaker, NpcData npcData);
+  NpcData? TryGetCachedPlayer(string speaker);
+  void CachePlayer(string speaker, NpcData npcData);
 }
 
 public class DataService(ILogger _logger, Configuration _configuration) : IDataService
 {
-  private Dictionary<string, NpcData> _cachedPlayerNpcData = [];
+  private Dictionary<string, NpcData> _cachedPlayers = [];
   private readonly HttpClient _httpClient = new();
   private CancellationTokenSource? _cts;
   private readonly SemaphoreSlim _semaphore = new(25);
@@ -106,7 +106,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     _configuration.Save();
 
     // Incase the new data directory is an existing installation, try to import these instead of overwriting them with empty ones.
-    LoadCachedPlayerNpcData();
+    LoadCachedPlayers();
     OnDataDirectoryChanged?.Invoke(this, dataDirectory); // Used in ReportService for localReports.json
 
     _ = Update();
@@ -122,7 +122,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
     _ = Update();
-    LoadCachedPlayerNpcData();
+    LoadCachedPlayers();
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -131,7 +131,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   public Task StopAsync(CancellationToken cancellationToken)
   {
     CancelUpdate();
-    SaveCachedPlayerNpcData();
+    SaveCachedPlayers();
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -412,16 +412,16 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
-  private void LoadCachedPlayerNpcData()
+  private void LoadCachedPlayers()
   {
-    string filePath = Path.Join(DataDirectory, "playerNpcData.json");
+    string filePath = Path.Join(DataDirectory, "players.json");
     if (!File.Exists(filePath)) return;
 
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, NpcData> json = JsonSerializer.Deserialize<Dictionary<string, NpcData>>(jsonContent) ?? throw new Exception("Failed to deserialize playerNpcData.json");
-      _cachedPlayerNpcData = json;
+      Dictionary<string, NpcData> json = JsonSerializer.Deserialize<Dictionary<string, NpcData>>(jsonContent) ?? throw new Exception("Failed to deserialize players.json");
+      _cachedPlayers = json;
     }
     catch (Exception ex)
     {
@@ -430,12 +430,19 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   }
 
   private readonly JsonSerializerOptions _jsonWriteOptions = new() { WriteIndented = true };
-  private void SaveCachedPlayerNpcData()
+  private void SaveCachedPlayers()
   {
     try
     {
-      string filePath = Path.Join(DataDirectory, "playerNpcData.json");
-      string json = JsonSerializer.Serialize(_cachedPlayerNpcData, _jsonWriteOptions);
+      string? dataDirectory = DataDirectory;
+      if (dataDirectory == null)
+      {
+        _logger.Debug("Can't save players.json. No DataDirectory found.");
+        return;
+      }
+
+      string filePath = Path.Join(dataDirectory, "players.json");
+      string json = JsonSerializer.Serialize(_cachedPlayers, _jsonWriteOptions);
       File.WriteAllText(filePath, json);
     }
     catch (Exception ex)
@@ -444,16 +451,16 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
-  public NpcData? TryGetCachedPlayerNpcData(string speaker)
+  public NpcData? TryGetCachedPlayer(string speaker)
   {
-    if (_cachedPlayerNpcData.TryGetValue(speaker, out NpcData? npcData))
+    if (_cachedPlayers.TryGetValue(speaker, out NpcData? npcData))
       return npcData;
     return null;
   }
 
-  public void CachePlayerNpcData(string speaker, NpcData npcData)
+  public void CachePlayer(string speaker, NpcData npcData)
   {
-    _cachedPlayerNpcData[speaker] = npcData;
-    SaveCachedPlayerNpcData();
+    _cachedPlayers[speaker] = npcData;
+    SaveCachedPlayers();
   }
 }

@@ -109,7 +109,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         Vector3 playerPosition = _clientState.LocalPlayer.Position;
         Vector3 speakerPosition = new(speaker->Position.X, speaker->Position.Y, speaker->Position.Z);
 
-        FFXIVClientStructs.FFXIV.Common.Math.Matrix4x4 cameraViewMatrix = camera->CameraBase.SceneCamera.ViewMatrix;
+        Matrix4x4 cameraViewMatrix = camera->CameraBase.SceneCamera.ViewMatrix;
         Vector3 cameraForward = Vector3.Normalize(new Vector3(cameraViewMatrix.M13, cameraViewMatrix.M23, cameraViewMatrix.M33));
         Vector3 cameraUp = Vector3.Normalize(camera->CameraBase.SceneCamera.Vector_1);
         Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(cameraUp, cameraForward));

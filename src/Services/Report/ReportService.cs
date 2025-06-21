@@ -14,7 +14,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private bool _languageWarningThisSession = false;
   private bool _invalidPluginsWarningsThisSession = false;
 
-  private Dictionary<string, XivReport> _localReports = [];
+  private Dictionary<string, XivReport> _reports = [];
   private readonly HttpClient _httpClient = new();
   private CancellationTokenSource? _cts;
 
@@ -23,8 +23,8 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     _cts = new();
     _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
 
-    LoadLocalReports();
-    _ = TryUploadLocalReports(_cts.Token);
+    LoadReports();
+    _ = TryUploadReports(_cts.Token);
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -38,26 +38,26 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
     _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
 
-    SaveLocalReports();
+    SaveReports();
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
   }
 
   private void OnDataDirectoryChanged(object? sender, string dataDirectory) =>
-    LoadLocalReports();
+    LoadReports();
 
-  private void LoadLocalReports()
+  private void LoadReports()
   {
-    string filePath = Path.Join(_dataService.DataDirectory, "localReports.json");
+    string filePath = Path.Join(_dataService.DataDirectory, "reports.json");
     if (!File.Exists(filePath)) return;
 
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent) ?? throw new Exception("Failed to deserialize localReports.json");
-      _localReports = json;
-      _logger.Debug($"Loaded {_localReports.Count} local reports");
+      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent) ?? throw new Exception("Failed to deserialize reports.json");
+      _reports = json;
+      _logger.Debug($"Loaded {_reports.Count} reports");
     }
     catch (Exception ex)
     {
@@ -66,19 +66,19 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   }
 
   private readonly JsonSerializerOptions _jsonWriteOptions = new() { WriteIndented = true };
-  private void SaveLocalReports()
+  private void SaveReports()
   {
     try
     {
       string? dataDirectory = _dataService.DataDirectory;
       if (dataDirectory == null)
       {
-        _logger.Debug("DataDirectory not set, can't save local reports");
+        _logger.Debug("DataDirectory not set, can't save reports");
         return;
       }
 
-      string filePath = Path.Join(dataDirectory, "localReports.json");
-      string json = JsonSerializer.Serialize(_localReports, _jsonWriteOptions);
+      string filePath = Path.Join(dataDirectory, "reports.json");
+      string json = JsonSerializer.Serialize(_reports, _jsonWriteOptions);
       File.WriteAllText(filePath, json);
     }
     catch (Exception ex)
@@ -87,12 +87,12 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     }
   }
 
-  private async Task TryUploadLocalReports(CancellationToken token)
+  private async Task TryUploadReports(CancellationToken token)
   {
-    if (!_dataService.ServerOnline || _localReports.Count == 0) return;
+    if (!_dataService.ServerOnline || _reports.Count == 0) return;
 
     List<string> keysToRemove = [];
-    foreach ((string key, XivReport report) in _localReports)
+    foreach ((string key, XivReport report) in _reports)
     {
       if (token.IsCancellationRequested) break;
       bool success = await TryUploadReport(report, token);
@@ -101,10 +101,10 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     }
 
     foreach (string key in keysToRemove)
-      _localReports.Remove(key);
+      _reports.Remove(key);
 
     if (keysToRemove.Count > 0)
-      SaveLocalReports();
+      SaveReports();
   }
 
   private async Task<bool> TryUploadReport(XivReport report, CancellationToken token)
@@ -118,7 +118,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       using HttpResponseMessage response = await _httpClient.PostAsync(url, content, token);
       response.EnsureSuccessStatusCode();
 
-      _logger.Debug($"Report successfully uploaded: {report.Date}");
+      _logger.Debug($"Report successfully uploaded: {report.Message.Id}");
       return true;
     }
     catch (HttpRequestException httpEx)
@@ -147,9 +147,9 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
     if (!wasUploaded)
     {
-      _logger.Debug("Saving report locally to be processed at a later date.");
-      _localReports[report.Date] = report;
-      SaveLocalReports();
+      _logger.Debug("Saving report to be processed at a later date.");
+      _reports[report.Message.Id] = report;
+      SaveReports();
     }
   }
 

@@ -29,7 +29,7 @@ public partial class ConfigWindow
 
       foreach ((XivMessage message, bool isPlaying, float percentage) in history)
       {
-        ImGui.TextWrapped($"{message.Speaker}: {message.Sentence}");
+        ImGui.TextWrapped($"{message.OriginalSpeaker}: {message.OriginalSentence}");
 
         float progressSize = 245;
         Vector4 plotHistogramColor = _green;
@@ -37,7 +37,7 @@ public partial class ConfigWindow
         if (message.IsLocalTTS)
         {
           plotHistogramColor = _yellow;
-          progressSize = 290;
+          progressSize = 270;
         }
 
         using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))

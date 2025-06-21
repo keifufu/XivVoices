@@ -103,14 +103,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     // Cache player npcData to assign a gender to chatmessage tts when they're not near you.
     if (source == MessageSource.ChatMessage && npcData != null)
-      _dataService.CachePlayerNpcData(origSpeaker, npcData);
+      _dataService.CachePlayer(origSpeaker, npcData);
 
     // Try to retrieve said cached npcData if they're not near you.
     if (source == MessageSource.ChatMessage && npcData == null)
-      npcData = _dataService.TryGetCachedPlayerNpcData(origSpeaker);
+      npcData = _dataService.TryGetCachedPlayer(origSpeaker);
 
     string? voicelinePath = null;
-    string? voice = "";
+    string voice = "Unknown";
     if (source != MessageSource.ChatMessage)
       (voicelinePath, voice) = await TryGetVoicelinePath(speaker, sentence, npcData);
 
@@ -119,7 +119,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       (speaker, sentence) = await CleanMessage(origSpeaker, origSentence, true);
 
     XivMessage message = new(
-      Md5(speaker, sentence),
+      Md5(voice, speaker, sentence),
       source,
       voice ?? "",
       speaker,

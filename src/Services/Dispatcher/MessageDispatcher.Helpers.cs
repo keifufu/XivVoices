@@ -25,13 +25,13 @@ public partial class MessageDispatcher
   }
 
   // Try to get a voiceline filepath given a cleaned speaker and sentence and optionally NpcData.
-  private Task<(string? voicelinePath, string? voice)> TryGetVoicelinePath(string speaker, string sentence, NpcData? npcData)
+  private Task<(string? voicelinePath, string voice)> TryGetVoicelinePath(string speaker, string sentence, NpcData? npcData)
   {
     return Task.Run(() =>
     {
-      if (_dataService.Manifest == null) return (null, null);
+      string voice = "Unknown";
+      if (_dataService.Manifest == null) return (null, voice);
 
-      string voice;
       if (speaker == "???" && _dataService.Manifest.Nameless.TryGetValue(sentence, out string? v1))
       {
         // If the speaker is "???", try getting it from Manifest.Nameless
@@ -49,7 +49,7 @@ public partial class MessageDispatcher
       else
       {
         // If no voice was found, get the generic voice from npcData, e.g. "Au_Ra_Raen_Female_05"
-        if (npcData == null) return (null, null); // If we have no NpcData, ggwp. We can't get a generic voice without npcData.
+        if (npcData == null) return (null, voice); // If we have no NpcData, ggwp. We can't get a generic voice without npcData.
         voice = GetGenericVoice(npcData, speaker);
       }
 
@@ -58,7 +58,7 @@ public partial class MessageDispatcher
       _logger.Debug($"voicelinePath::{voicelinePath}");
 
       if (!File.Exists(voicelinePath)) return (null, voice);
-      return ((string?)voicelinePath, (string?)voice);
+      return ((string?)voicelinePath, voice);
     });
   }
 
@@ -876,7 +876,7 @@ public partial class MessageDispatcher
     if (npcData.Race.StartsWith("Boss"))
       return npcData.Race;
 
-    _logger.Debug("Cannot find a voice for " + speaker);
+    _logger.Debug("Cannot find a generic voice for " + speaker);
     return "Unknown";
   }
 
