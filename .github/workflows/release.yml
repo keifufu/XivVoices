@@ -48,9 +48,28 @@ jobs:
       - name: Get download count
         id: get_downloads
         run: |
-          response=$(curl -s https://img.shields.io/github/downloads/Final-Fantasy-XIV-Voices/XivVoices/total.json)
-          total=$(echo "$response" | jq -r '.value')
-          echo "download_count=$total" >> $GITHUB_OUTPUT
+          OWNER="Final-Fantasy-XIV-Voices"
+          REPO="XivVoices"
+          PAGE=1
+          PER_PAGE=100
+          TOTAL=0
+
+          while true; do
+            RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=$PER_PAGE&page=$PAGE")
+
+            COUNT=$(echo "$RESPONSE" | jq '[.[] | .assets[]?.download_count] | add // 0')
+            TOTAL=$((TOTAL + COUNT))
+
+            LENGTH=$(echo "$RESPONSE" | jq 'length')
+            if [ "$LENGTH" -lt "$PER_PAGE" ]; then
+              break
+            fi
+
+            PAGE=$((PAGE + 1))
+          done
+
+          echo "download_count=$TOTAL" >> $GITHUB_OUTPUT
 
       - name: Write out repo.json
         run: |
