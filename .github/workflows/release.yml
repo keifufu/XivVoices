@@ -45,13 +45,24 @@ jobs:
             --title "XivVoices ${{ github.ref_name }}" \
             --notes "Xiv Voices Plugin Release. Install via the dalamud repo link."
 
+      - name: Get download count
+        id: get_downloads
+        run: |
+          response=$(curl -s https://img.shields.io/github/downloads/Final-Fantasy-XIV-Voices/XivVoices/total.json)
+          total=$(echo "$response" | jq -r '.value')
+          echo "download_count=$total" >> $GITHUB_OUTPUT
+
       - name: Write out repo.json
         run: |
           path="./repo.json"
           tmp=$(mktemp)
-          jq --arg ver "${{ github.ref_name }}" '
+          timestamp=$(date +%s)
+          jq --arg ver "${{ github.ref_name }}" \
+             --argjson dlcount "${{ steps.get_downloads.outputs.download_count }}" \
+             --argjson lastUpdate "$timestamp" '
             .[0].AssemblyVersion = $ver |
-            .[0].TestingAssemblyVersion = $ver |
+            .[0].DownloadCount = $dlcount |
+            .[0].LastUpdate = $lastUpdate |
             .[0].DownloadLinkInstall |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip") |
             .[0].DownloadLinkTesting |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip") |
             .[0].DownloadLinkUpdate |= sub("[^/]+/XivVoices.zip"; "\($ver)/XivVoices.zip")
