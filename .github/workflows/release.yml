@@ -55,7 +55,7 @@ jobs:
           TOTAL=0
 
           while true; do
-            RESPONSE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            RESPONSE=$(curl -s -H "Authorization: token ${{ env.GH_TOKEN }}" \
               "https://api.github.com/repos/$OWNER/$REPO/releases?per_page=$PER_PAGE&page=$PAGE")
 
             COUNT=$(echo "$RESPONSE" | jq '[.[] | .assets[]?.download_count] | add // 0')
