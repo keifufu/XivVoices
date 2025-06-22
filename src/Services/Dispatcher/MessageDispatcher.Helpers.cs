@@ -73,10 +73,19 @@ public partial class MessageDispatcher
     return sb.ToString();
   }
 
+  public bool SentenceHasPlayerName(string sentence, string? playerName)
+  {
+    if (playerName == null) return false;
+    string[] fullname = playerName.Split(" ");
+    if (sentence.Contains(fullname[0])) return true;
+    if (sentence.Contains(fullname[1])) return true;
+    return false;
+  }
+
   // Sanitizes the speaker and sentence. This should preferably NEVER be changed,
   // as that would break a lot of voicelines generated before then.
   // If we do want to add something here, make SURE it will NOT affect existing lines.
-  public async Task<(string speaker, string sentence)> CleanMessage(string _speaker, string _sentence, bool keepName = false)
+  public (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string? playerName, bool legacyNameReplacement, bool keepName)
   {
     string speaker = _speaker;
     string sentence = _sentence;
@@ -118,26 +127,35 @@ public partial class MessageDispatcher
 
       if (!keepName)
       {
-        string? fullLocalName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
-        if (fullLocalName != null)
+        if (playerName != null)
         {
-          string[] fullname = fullLocalName.Split(" ");
+          string[] fullname = playerName.Split(" ");
+          if (legacyNameReplacement)
+          {
+            // Replace 'full name' with 'firstName'
+            pattern = "\\b" + fullname[0] + " " + fullname[1] + "\\b";
+            sentence = Regex.Replace(sentence, pattern, fullname[0]);
 
-          // Replace 'full name' with 'firstName'
-          pattern = "\\b" + fullname[0] + " " + fullname[1] + "\\b";
-          sentence = Regex.Replace(sentence, pattern, fullname[0]);
+            // Replace 'lastName' with 'firstName'
+            pattern = "\\b" + fullname[1] + "\\b";
+            sentence = Regex.Replace(sentence, pattern, fullname[0]);
 
-          // Replace 'lastName' with 'firstName'
-          pattern = "\\b" + fullname[1] + "\\b";
-          sentence = Regex.Replace(sentence, pattern, fullname[0]);
+            // Replace 'firstName' with '_NAME_'
+            // Note: We used to prevent replacing here if the name was followed by "of the".
+            // I can only assume this was because of a few lines saying "Arc of the Worthy",
+            // but a good chunk of WHM and BLM quests call you <name> of the <white/black>.
+            // Old pattern: "(?<!the )\\b" + fullname[0] + "\\b(?! of the)"
+            pattern = "(?<!the )\\b" + fullname[0];
+            sentence = Regex.Replace(sentence, pattern, "_NAME_");
+          }
+          else
+          {
+            pattern = "\\b" + fullname[0] + "\\b";
+            sentence = Regex.Replace(sentence, pattern, "_FIRSTNAME_");
 
-          // Replace 'firstName' with '_NAME_'
-          // Note: We used to prevent replacing here if the name was followed by "of the".
-          // I can only assume this was because of a few lines saying "Arc of the Worthy",
-          // but a good chunk of WHM and BLM quests call you <name> of the <white/black>.
-          // Old pattern: "(?<!the )\\b" + fullname[0] + "\\b(?! of the)"
-          pattern = "(?<!the )\\b" + fullname[0];
-          sentence = Regex.Replace(sentence, pattern, "_NAME_");
+            pattern = "\\b" + fullname[1] + "\\b";
+            sentence = Regex.Replace(sentence, pattern, "_LASTNAME_");
+          }
         }
       }
 

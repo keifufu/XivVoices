@@ -75,20 +75,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // If speaker is ignored, well... ignore it.
     if (_dataService.Manifest.IgnoredSpeakers.Contains(speaker)) return;
 
-    // Clean speaker and sentence only if this is a NPC message.
-    if (source != MessageSource.ChatMessage)
-    {
-      (speaker, sentence) = await CleanMessage(speaker, sentence);
-
-      // Skip if there's nothing meaningful to voice
-      // E.g. if the sentence was "..." or "<sigh>"
-      if (string.IsNullOrEmpty(sentence))
-      {
-        _logger.Debug($"Cleaned sentence is empty: {origSentence}");
-        return;
-      }
-    }
-
     // This one is a bit weird, we try to look up the NpcData directly from the game, that makes sense.
     // But even if we find it, for non-beastmen we prefer the cache? Ok.
     // I belive this is due to solo duties, I was just in one where Korutt had a different appearance
@@ -101,6 +87,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         npcData = _npcData;
     }
 
+    string? playerName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
+    bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
+
     // Cache player npcData to assign a gender to chatmessage tts when they're not near you.
     if (source == MessageSource.ChatMessage && npcData != null)
       _dataService.CachePlayer(origSpeaker, npcData);
@@ -109,21 +98,31 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (source == MessageSource.ChatMessage && npcData == null)
       npcData = _dataService.TryGetCachedPlayer(origSpeaker);
 
-    string? voicelinePath = null;
-    string voice = "Unknown";
-    if (source != MessageSource.ChatMessage)
-      (voicelinePath, voice) = await TryGetVoicelinePath(speaker, sentence, npcData);
+    // Clean message and replace names with new replacement method.
+    (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
 
-    // If this line will be LocalTTS, clean message but keep the player name.
-    if (voicelinePath == null)
-      (speaker, sentence) = await CleanMessage(origSpeaker, origSentence, true);
+    // Try and find a voiceline.
+    (string? voicelinePath, string voice) = await TryGetVoicelinePath(cleanedSpeaker, cleanedSentence, npcData);
+
+    // If no voiceline was found, try again with legacy name replacement method.
+    if (voicelinePath == null && sentenceHasName)
+    {
+      (string legacySpeaker, string legacySentence) = CleanMessage(speaker, sentence, playerName, true, false);
+      (voicelinePath, voice) = await TryGetVoicelinePath(legacySpeaker, legacySentence, npcData);
+      if (voicelinePath == null) _logger.Debug("Did not find legacy name voiceline");
+      else _logger.Debug("Found legacy name voiceline");
+    }
+
+    // If we still haven't found a voiceline, clean the messages again but keep the name for localtts.
+    if (voicelinePath == null && sentenceHasName)
+      (cleanedSpeaker, cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, true);
 
     XivMessage message = new(
-      Md5(voice, speaker, sentence),
+      Md5(voice, cleanedSpeaker, cleanedSentence),
       source,
       voice ?? "",
-      speaker,
-      sentence,
+      cleanedSpeaker,
+      cleanedSentence,
       origSpeaker,
       origSentence,
       npcData,
@@ -136,7 +135,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _reportService.Report(message);
 
     bool allowed = true;
-    bool isSystemMessage = speaker.StartsWith("Addon");
+    bool isSystemMessage = message.Speaker.StartsWith("Addon");
     switch (source)
     {
       case MessageSource.AddonTalk:
