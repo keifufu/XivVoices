@@ -43,6 +43,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     return Task.CompletedTask;
   }
 
+  // Wanted to also use SPACE as a key here, as that's the usual auto-advance button,
+  // but simply typing would then interrupt auto-advance.
   private unsafe bool CanAutoAdvance()
   {
     AtkUnitBase* addon = (AtkUnitBase*)_gameGui.GetAddonByName("TalkAutoMessageSetting");
@@ -50,7 +52,6 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     return !_configuration.MuteEnabled
       && _configuration.AutoAdvanceEnabled
       && !_keyState[VirtualKey.MENU]
-      && !_keyState[VirtualKey.SPACE]
       && _gamepadState.Pressed(GamepadButtons.North) == 0
       && !addonVisible;
   }

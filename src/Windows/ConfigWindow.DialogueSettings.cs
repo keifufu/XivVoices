@@ -80,7 +80,7 @@ public partial class ConfigWindow
     DrawConfigCheckbox("Auto-Advance", ref _configuration.AutoAdvanceEnabled);
     string autoAdvanceHelp = """
     Automatically advances to the next dialogue when audio finishes playing.
-    Hold SPACE or ALT on a keyboard, or Y / Triangle on a controller, to temporarily pause it.
+    Hold ALT on a keyboard, or Y / Triangle on a controller, to temporarily pause it.
     The spinner in the bottom-right of the dialogue box shows the auto-advance status.
     """;
     if (ImGui.IsItemHovered())
