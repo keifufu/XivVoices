@@ -35,7 +35,7 @@ public class AddonBattleTalkProvider(ILogger _logger, IMessageDispatcher _messag
     if (addon == null) return;
 
     string speaker = ReadTextNode(addon->Speaker);
-    if (string.IsNullOrEmpty(speaker)) speaker = "AddonTalk";
+    if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
     string sentence = ReadTextNode(addon->Sentence);
 
     if (LastSpeaker != speaker || LastSentence != sentence)

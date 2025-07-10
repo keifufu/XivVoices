@@ -31,7 +31,7 @@ public partial class ConfigWindow
       ImGui.TableSetupColumn("Source");
       ImGui.TableSetupColumn("Enabled");
       ImGui.TableSetupColumn("TTS        ");
-      ImGui.TableSetupColumn("System Messages");
+      ImGui.TableSetupColumn("Narrator Messages");
       ImGui.TableHeadersRow();
 
       ImGui.TableNextRow();
@@ -45,7 +45,7 @@ public partial class ConfigWindow
       DrawConfigCheckbox("AddonTalkTTSEnabled", ref _configuration.AddonTalkTTSEnabled, false);
 
       ImGui.TableSetColumnIndex(3);
-      DrawConfigCheckbox("AddonTalkSystemEnabled", ref _configuration.AddonTalkSystemEnabled, false);
+      DrawConfigCheckbox("AddonTalkNarratorEnabled", ref _configuration.AddonTalkNarratorEnabled, false);
 
       ImGui.TableNextRow();
       ImGui.TableSetColumnIndex(0);
@@ -58,7 +58,7 @@ public partial class ConfigWindow
       DrawConfigCheckbox("AddonBattleTalkTTSEnabled", ref _configuration.AddonBattleTalkTTSEnabled, false);
 
       ImGui.TableSetColumnIndex(3);
-      DrawConfigCheckbox("AddonBattleTalkSystemEnabled", ref _configuration.AddonBattleTalkSystemEnabled, false);
+      DrawConfigCheckbox("AddonBattleTalkNarratorEnabled", ref _configuration.AddonBattleTalkNarratorEnabled, false);
 
       ImGui.TableNextRow();
       ImGui.TableSetColumnIndex(0);
@@ -88,7 +88,7 @@ public partial class ConfigWindow
         ImGui.TextUnformatted(autoAdvanceHelp);
 
     DrawConfigCheckbox("Retainers Enabled", ref _configuration.RetainersEnabled);
-    DrawConfigCheckbox("Print System Messages", ref _configuration.PrintSystemMessages);
+    DrawConfigCheckbox("Print Narrator Messages", ref _configuration.PrintNarratorMessages);
     DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
   }
 }

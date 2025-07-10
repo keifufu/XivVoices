@@ -38,7 +38,7 @@ public class AddonMiniTalkProvider(ILogger _logger, IPlaybackService _playbackSe
     if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player)
     {
       string speaker = actor->GetName().ExtractText();
-      if (string.IsNullOrEmpty(speaker)) speaker = "AddonMiniTalk";
+      if (string.IsNullOrEmpty(speaker)) speaker = "Bubble";
       string sentence = MemoryHelper.ReadSeStringNullTerminated(textPtr).ToString();
 
       DateTime now = DateTime.UtcNow;

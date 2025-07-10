@@ -27,12 +27,12 @@ public class Configuration : IPluginConfiguration
   public bool AddonBattleTalkTTSEnabled = true;
   public bool AddonMiniTalkTTSEnabled = true;
 
-  public bool AddonTalkSystemEnabled = true;
-  public bool AddonBattleTalkSystemEnabled = true;
+  public bool AddonTalkNarratorEnabled = true;
+  public bool AddonBattleTalkNarratorEnabled = true;
 
   public bool AutoAdvanceEnabled = true;
   public bool RetainersEnabled = true;
-  public bool PrintSystemMessages = true;
+  public bool PrintNarratorMessages = true;
   public bool ReplaceVoicedARRCutscenes = true;
 
   // Audio Settings

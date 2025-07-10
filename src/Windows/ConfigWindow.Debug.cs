@@ -9,22 +9,23 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("Debug Logging", ref _configuration.DebugLogging);
 
-    DrawConfigText("ServerUrl", "ServerUrl", _dataService.ServerUrl, (ok, value) =>
+    DrawConfigText("ServerUrl", "ServerUrl", _dataService.ServerUrl, (value) =>
     {
-      if (!ok) return;
       _dataService.SetServerUrl(value);
     });
 
-    DrawConfigText("LocalTTSVoiceMale", "LocalTTSVoiceMale (needs restart)", _configuration.LocalTTSVoiceMale, (ok, value) =>
+    // TODO: move these to the other local tts settings
+    // make them a dropdown which shows you all options that are in the tools folder ending with .bytes and .config.json
+    // add a reload button next to it so the list updates if you add more voices locally
+    // localttsengine should then also handle voices not being there in case they get deleted
+    DrawConfigText("LocalTTSVoiceMale", "LocalTTSVoiceMale (needs restart)", _configuration.LocalTTSVoiceMale, (value) =>
     {
-      if (!ok) return;
       _configuration.LocalTTSVoiceMale = value;
       _configuration.Save();
     });
 
-    DrawConfigText("LocalTTSVoiceFemale", "LocalTTSVoiceFemale (needs restart)", _configuration.LocalTTSVoiceFemale, (ok, value) =>
+    DrawConfigText("LocalTTSVoiceFemale", "LocalTTSVoiceFemale (needs restart)", _configuration.LocalTTSVoiceFemale, (value) =>
     {
-      if (!ok) return;
       _configuration.LocalTTSVoiceFemale = value;
       _configuration.Save();
     });

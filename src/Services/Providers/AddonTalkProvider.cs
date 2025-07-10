@@ -104,7 +104,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     if (!visible) return;
 
     string speaker = ReadTextNode(addon->AtkTextNode220);
-    if (string.IsNullOrEmpty(speaker)) speaker = "AddonTalk";
+    if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
     string sentence = ReadUtf8String(addon->String268);
 
     if (_lastSpeaker != speaker || _lastSentence != sentence)
@@ -123,6 +123,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     AutoAdvance();
   }
 
+  // TODO this just does what readutf8string could do this is stupid, simplify. here and in the other providers.
   private static unsafe string ReadTextNode(AtkTextNode* textNode)
   {
     if (textNode == null) return "";
@@ -133,13 +134,13 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
       .Replace("\r", "");
   }
 
-  private static unsafe string ReadUtf8String(Utf8String str)
+  private unsafe string ReadUtf8String(Utf8String str)
   {
     return new Lumina.Text.ReadOnly.ReadOnlySeString(str)
-      .ExtractText()
-      .Trim()
-      .Replace("\n", "")
-      .Replace("\r", "");
+        .ExtractText()
+        .Trim()
+        .Replace("\n", "")
+        .Replace("\r", "");
   }
 
   public unsafe void AutoAdvance()

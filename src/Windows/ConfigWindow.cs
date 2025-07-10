@@ -24,7 +24,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
   private bool _promptOpen = false;
   private string _promptDescription = "";
   private string _promptInputBuffer = "";
-  private Action<bool, string>? _promptCallback = null;
+  private Action<string>? _promptCallback = null;
 
   private float ScaledFloat(float value) => value * ImGuiHelpers.GlobalScale;
   private Vector2 ScaledVector2(float x, float? y = null) => new Vector2(x, y ?? x) * ImGuiHelpers.GlobalScale;
@@ -231,14 +231,13 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
             ImGui.Dummy(ScaledVector2(0, 5));
             if (ImGui.Button("Submit"))
             {
-              _promptCallback?.Invoke(true, _promptInputBuffer);
+              _promptCallback?.Invoke(_promptInputBuffer);
               _promptOpen = false;
             }
 
             ImGui.SameLine();
             if (ImGui.Button("Cancel"))
             {
-              _promptCallback?.Invoke(false, _promptInputBuffer);
               _promptOpen = false;
             }
           }
@@ -247,7 +246,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     }
   }
 
-  private void OpenInputPrompt(string description, string defaultValue, Action<bool, string> callback)
+  private void OpenInputPrompt(string description, string defaultValue, Action<string> callback)
   {
     _promptDescription = description;
     _promptInputBuffer = defaultValue;
@@ -255,7 +254,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     _promptOpen = true;
   }
 
-  private void DrawConfigText(string label, string description, string value, Action<bool, string> callback)
+  private void DrawConfigText(string label, string description, string value, Action<string> callback)
   {
     ImGui.Text($"{label}: {value}");
     ImGui.SameLine();

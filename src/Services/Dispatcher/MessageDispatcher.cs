@@ -135,19 +135,19 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _reportService.Report(message);
 
     bool allowed = true;
-    bool isSystemMessage = message.Speaker.StartsWith("Addon");
+    bool isNarrator = message.Speaker == "Narrator";
     switch (source)
     {
       case MessageSource.AddonTalk:
         allowed = _configuration.AddonTalkEnabled
-          && (isSystemMessage
-            ? _configuration.AddonTalkSystemEnabled
+          && (isNarrator
+            ? _configuration.AddonTalkNarratorEnabled
             : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled);
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
-          && (isSystemMessage
-            ? _configuration.AddonBattleTalkSystemEnabled
+          && (isNarrator
+            ? _configuration.AddonTalkNarratorEnabled
             : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled);
         break;
       case MessageSource.AddonMiniTalk:
@@ -155,12 +155,12 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         break;
     }
 
-    if (isSystemMessage && _configuration.PrintSystemMessages)
-      _logger.Chat(message.OriginalSentence, "", "", "System", XivChatType.NPCDialogue, false);
+    if (isNarrator && _configuration.PrintNarratorMessages)
+      _logger.Chat(message.OriginalSentence, "", "", "Narrator", XivChatType.NPCDialogue, false);
 
     if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled))
     {
-      _logger.Debug($"Not playing line due to user configuration: {allowed} {isSystemMessage} {isRetainer} {message.IsLocalTTS}");
+      _logger.Debug($"Not playing line due to user configuration: {allowed} {isNarrator} {isRetainer} {message.IsLocalTTS}");
       return;
     }
 
