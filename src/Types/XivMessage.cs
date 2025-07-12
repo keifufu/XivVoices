@@ -1,10 +1,10 @@
 namespace XivVoices.Types;
 
-public class XivMessage(string id, MessageSource source, string voice, string speaker, string sentence, string originalSpeaker, string originalSentence, NpcData? npcData, string? voicelinePath)
+public class XivMessage(string id, MessageSource source, VoiceEntry? voice, string speaker, string sentence, string originalSpeaker, string originalSentence, NpcEntry? npc, string? voicelinePath)
 {
   public string Id { get; } = id;
   public MessageSource Source { get; } = source;
-  public string Voice { get; } = voice;
+  public VoiceEntry? Voice { get; } = voice;
   public string Speaker { get; } = speaker;
   public string Sentence { get; } = sentence;
 
@@ -14,7 +14,7 @@ public class XivMessage(string id, MessageSource source, string voice, string sp
   [JsonIgnore]
   public string OriginalSentence { get; } = originalSentence;
 
-  public NpcData? NpcData { get; } = npcData;
+  public NpcEntry? Npc { get; } = npc;
 
   [JsonIgnore]
   public string? VoicelinePath => voicelinePath;
@@ -26,7 +26,7 @@ public class XivMessage(string id, MessageSource source, string voice, string sp
   public bool Reported { get; set; } = false;
 
   public override string ToString() =>
-    $"{{ Id:'{Id}' Source:'{Source}' Voice:'{Voice}' Speaker:'{Speaker}' Sentence:'{Sentence}' OriginalSpeaker:'{OriginalSpeaker}' OriginalSentence:'{OriginalSentence}' NpcData:'{NpcData}' VoicelinePath:'{VoicelinePath}' IsLocalTTS:'{IsLocalTTS}' Reported:'{Reported}' }}";
+    JsonSerializer.Serialize(this);
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

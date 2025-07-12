@@ -16,13 +16,13 @@ public interface IDataService : IHostedService
   Task Update(bool forceDownloadManifest = false);
   void CancelUpdate();
   string? TempFilePath(string fileName);
-  NpcData? TryGetCachedPlayer(string speaker);
-  void CachePlayer(string speaker, NpcData npcData);
+  NpcEntry? TryGetCachedPlayer(string speaker);
+  void CachePlayer(string speaker, NpcEntry npc);
 }
 
 public class DataService(ILogger _logger, Configuration _configuration) : IDataService
 {
-  private Dictionary<string, NpcData> _cachedPlayers = [];
+  private Dictionary<string, NpcEntry> _cachedPlayers = [];
   private readonly HttpClient _httpClient = new();
   private CancellationTokenSource? _cts;
   private readonly SemaphoreSlim _semaphore = new(25);
@@ -212,23 +212,57 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       Manifest manifest = new()
       {
         ToolsMd5 = json.ToolsMd5,
+        Voices = [],
+        Npcs = [],
+        Npcs_Generic = [],
         Voicelines = json.Voicelines,
         IgnoredSpeakers = json.IgnoredSpeakers,
-        Voices = [],
-        Nameless = json.Nameless,
-        NpcData = json.NpcData,
-        Retainers = json.Retainers,
-        Lexicon = json.Lexicon,
-        NpcsWithVariedLooks = json.NpcsWithVariedLooks,
-        NpcsWithRetainerLines = json.NpcsWithRetainerLines
+        SpeakerMappings = [],
+        Lexicon = []
       };
 
-      foreach (VoiceEntry mapping in json.Voices)
+      foreach (VoiceEntry entry in json.Voices)
       {
-        foreach (string speaker in mapping.Speakers)
+        manifest.Voices[entry.Id] = entry;
+      }
+
+      foreach (NpcEntry entry in json.Npcs)
+      {
+        manifest.Npcs[entry.Id] = entry;
+        foreach (string speaker in entry.Speakers)
         {
-          manifest.Voices[speaker] = mapping.Name;
+          manifest.Npcs[speaker] = entry;
         }
+      }
+
+      foreach (NpcEntry entry in json.Npcs)
+      {
+        if (!manifest.Voices.TryGetValue(entry.VoiceId, out VoiceEntry? voice)) continue;
+        if (!voice.IsGeneric) continue;
+
+        if (entry.Body == "Beastman")
+        {
+          string key1 = entry.Tribe;
+          if (!manifest.Npcs_Generic.ContainsKey(key1))
+            manifest.Npcs_Generic[key1] = entry;
+
+          string key2 = entry.Tribe + entry.Gender;
+          if (!manifest.Npcs_Generic.ContainsKey(key2))
+            manifest.Npcs_Generic[key2] = entry;
+        }
+        else
+        {
+          string key = entry.Gender + entry.Race + entry.Tribe + entry.Body + entry.Eyes;
+          if (!manifest.Npcs_Generic.ContainsKey(key))
+            manifest.Npcs_Generic[key] = entry;
+        }
+      }
+
+      foreach (SpeakerMappingEntry entry in json.SpeakerMappings)
+        {
+        if (!manifest.SpeakerMappings.ContainsKey(entry.Type))
+          manifest.SpeakerMappings[entry.Type] = [];
+        manifest.SpeakerMappings[entry.Type][entry.Sentence] = entry.NpcId;
       }
 
       Manifest = manifest;
@@ -427,7 +461,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, NpcData> json = JsonSerializer.Deserialize<Dictionary<string, NpcData>>(jsonContent) ?? throw new Exception("Failed to deserialize players.json");
+      Dictionary<string, NpcEntry> json = JsonSerializer.Deserialize<Dictionary<string, NpcEntry>>(jsonContent) ?? throw new Exception("Failed to deserialize players.json");
       _cachedPlayers = json;
     }
     catch (Exception ex)
@@ -457,16 +491,16 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
-  public NpcData? TryGetCachedPlayer(string speaker)
+  public NpcEntry? TryGetCachedPlayer(string speaker)
   {
-    if (_cachedPlayers.TryGetValue(speaker, out NpcData? npcData))
-      return npcData;
+    if (_cachedPlayers.TryGetValue(speaker, out NpcEntry? npcEntry))
+      return npcEntry;
     return null;
   }
 
-  public void CachePlayer(string speaker, NpcData npcData)
+  public void CachePlayer(string speaker, NpcEntry npc)
   {
-    _cachedPlayers[speaker] = npcData;
+    _cachedPlayers[speaker] = npc;
     SaveCachedPlayers();
   }
 }

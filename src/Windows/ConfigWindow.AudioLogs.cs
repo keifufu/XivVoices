@@ -61,9 +61,8 @@ public partial class ConfigWindow
           {
             if (ImGuiComponents.IconButton($"##reportButton-{message.Id}", Dalamud.Interface.FontAwesomeIcon.Flag, new(24)))
             {
-              OpenInputPrompt("Report Reason", "", (ok, value) =>
+              OpenInputPrompt("Report Reason", "", (value) =>
               {
-                if (!ok) return;
                 message.Reported = true;
                 _reportService.ReportWithReason(message, value);
               });

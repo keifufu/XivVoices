@@ -7,35 +7,18 @@ public partial class AudioPostProcessor
     int speed = isLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
 
     bool changeSpeed = speed != 100;
-    string additionalChanges = "";
-    if (message.Voice == "Omicron" || message.Voice == "Node" || message.NpcData != null && message.NpcData.Type.Contains("Robot")) additionalChanges = "robot";
 
     string filterArgs = "";
     bool addEcho = false;
-
-    /* determine a pitch based on string msg.Speaker
-    {
-      int hash = msg.Speaker == "Bubble" ? msg.Sentence.GetHashCode() : msg.Speaker.GetHashCode();
-      float normalized = (hash & 0x7FFFFFFF) / (float)Int32.MaxValue;
-      float pitch = (normalized - 0.5f) * 0.5f;
-      pitch = (float)Math.Round(pitch * 10) / 50;
-      float setRate = 44100 * (1 + pitch);
-      float tempo = 1.0f / (1 + pitch);
-      Logger.Debug($"Pitch for {msg.Speaker} is {pitch}");
-      Logger.Debug($"\"atempo={tempo},asetrate={setRate}\"");
-      if (pitch != 0)
-      {
-        if (filterArgs != "") filterArgs += ",";
-        filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
-      }
-    }
-    */
-
+    bool isRobot = false;
     float setRate = 48000;
     float tempo = 1.0f;
 
+    if (message.Voice?.Name == "Omicron" || message.Voice?.Name == "Node" || message.Npc?.Name == "Omega")
+      isRobot = true;
+
     // Sounds Effects for Age
-    if (message.NpcData != null && message.NpcData.Type == "Old")
+    if (message.Npc?.Body == "Elderly")
     {
       setRate *= 1 - 0.1f;
       tempo /= 1 - 0.1f;
@@ -44,15 +27,15 @@ public partial class AudioPostProcessor
     }
 
     // Sound Effects for Dragons
-    if (message.NpcData != null && message.NpcData.Race.StartsWith("Dragon"))
+    if (message.Npc?.Race.StartsWith("Dragon") ?? false)
     {
-      if (message.NpcData.Type == "Female")
+      if (message.Npc.Gender == "Female")
       {
         setRate *= 1 - 0.1f;
         tempo /= 1 + 0.1f;
       }
       else
-        switch (message.NpcData.Race)
+        switch (message.Npc.Race)
         {
           case "Dragon_Medium":
             setRate *= 1 - 0.1f;
@@ -78,14 +61,14 @@ public partial class AudioPostProcessor
     }
 
     // Sound Effects for Ea
-    if (message.Voice == "Ea")
+    if (message.Voice?.Name == "Ea")
     {
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.90[sc];[oc]rubberband=pitch=1.02[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
       filterArgs += ",\"aecho=0.8:0.88:120:0.4\"";
     }
 
     // Sound Effects for Golems
-    else if (message.NpcData != null && message.NpcData.Race.StartsWith("Golem"))
+    else if (message.Npc?.Race.StartsWith("Golem") ?? false)
     {
       setRate *= 1 - 0.15f;
       tempo /= 1 - 0.15f;
@@ -94,7 +77,7 @@ public partial class AudioPostProcessor
     }
 
     // Sound Effects for Giants
-    else if (message.NpcData != null && message.NpcData.Race.StartsWith("Giant"))
+    else if (message.Npc?.Race.StartsWith("Giant") ?? false)
     {
       setRate *= 1 - 0.25f;
       tempo /= 1 - 0.15f;
@@ -103,10 +86,10 @@ public partial class AudioPostProcessor
     }
 
     // Sound Effects for Primals
-    if (message.NpcData != null && message.NpcData.Type.StartsWith("Primal"))
+    if (message.Npc?.Race == "Primal")
       addEcho = true;
 
-    if (message.NpcData != null && message.NpcData.Type == "Primal M1")
+    if (message.Npc?.Name == "Ifrit")
     {
       setRate *= 1 - 0.15f;
       tempo /= 1 - 0.1f;
@@ -114,7 +97,7 @@ public partial class AudioPostProcessor
       filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
     }
 
-    else if (message.NpcData != null && message.NpcData.Type == "Primal Dual")
+    else if (message.Npc?.Name == "Nald'thal")
     {
       if (message.Speaker == "Thal" || message.Sentence.StartsWith("Nald"))
         filterArgs += "\"rubberband=pitch=0.92\"";
@@ -124,25 +107,11 @@ public partial class AudioPostProcessor
         filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.93[sc];[oc]rubberband=pitch=1.04[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
     }
 
-    // Sound Effects for Bosses
-    if (message.NpcData != null && message.NpcData.Type.StartsWith("Boss"))
-      addEcho = true;
-
-    if (message.NpcData != null && message.NpcData.Type == "Boss F1")
+    if (message.Npc?.Name == "Cloud of Darkness")
     {
       if (filterArgs != "") filterArgs += ",";
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.8[sc];[oc]rubberband=pitch=1.0[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
     }
-
-    /*
-    if (message.NpcData != null && message.NpcData.Race == "Pixie")
-    {
-        setRate *= (1 + 0.15f);
-        tempo /= (1 + 0.1f);
-        if (filterArgs != "") filterArgs += ",";
-        filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
-    }
-    */
 
     if (addEcho)
     {
@@ -156,7 +125,7 @@ public partial class AudioPostProcessor
       filterArgs += $"\"[0:a]apad=pad_dur=0.25,atempo={(speed / 100f).ToString(System.Globalization.CultureInfo.InvariantCulture)}\"";
     }
 
-    if (additionalChanges == "robot")
+    if (isRobot)
     {
       if (filterArgs != "") filterArgs += ",";
       filterArgs += $"\"flanger=depth=10:delay=15,volume=15dB,aphaser=in_gain=0.4\"";

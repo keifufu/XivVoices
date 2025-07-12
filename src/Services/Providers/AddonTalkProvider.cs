@@ -2,8 +2,6 @@ using Dalamud.Game.Addon.Lifecycle;
 using Dalamud.Game.Addon.Lifecycle.AddonArgTypes;
 using Dalamud.Game.ClientState.GamePad;
 using Dalamud.Game.ClientState.Keys;
-using Dalamud.Game.Text.SeStringHandling;
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
@@ -17,7 +15,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -103,9 +101,9 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
     if (!visible) return;
 
-    string speaker = ReadTextNode(addon->AtkTextNode220);
+    string speaker = _gameInteropService.ReadTextNode(addon->AtkTextNode220);
     if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
-    string sentence = ReadUtf8String(addon->String268);
+    string sentence = _gameInteropService.ReadUtf8String(addon->String268);
 
     if (_lastSpeaker != speaker || _lastSentence != sentence)
     {
@@ -121,26 +119,6 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     if (source != MessageSource.AddonTalk) return;
     _logger.Debug("AddonTalk Playback Completed.");
     AutoAdvance();
-  }
-
-  // TODO this just does what readutf8string could do this is stupid, simplify. here and in the other providers.
-  private static unsafe string ReadTextNode(AtkTextNode* textNode)
-  {
-    if (textNode == null) return "";
-    SeString seString = textNode->NodeText.StringPtr.AsDalamudSeString();
-    return seString.TextValue
-      .Trim()
-      .Replace("\n", "")
-      .Replace("\r", "");
-  }
-
-  private unsafe string ReadUtf8String(Utf8String str)
-  {
-    return new Lumina.Text.ReadOnly.ReadOnlySeString(str)
-        .ExtractText()
-        .Trim()
-        .Replace("\n", "")
-        .Replace("\r", "");
   }
 
   public unsafe void AutoAdvance()

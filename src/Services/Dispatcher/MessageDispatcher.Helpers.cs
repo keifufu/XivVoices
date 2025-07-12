@@ -4,61 +4,40 @@ namespace XivVoices.Services;
 
 public partial class MessageDispatcher
 {
-  // We used to sanitize this in this way:
-  // string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
-  // and compare that, but that can lead to some non-retainer lines being
-  // matches as a retainer line. Perhaps Manifest.Retainers will need
-  // updating now.
-  private string GetRetainerSpeaker(string speaker, string sentence)
+  private NpcEntry? GetNpcFromMappings(SpeakerMappingType type, string sentence)
   {
-    if (_dataService.Manifest == null) return speaker;
+    if (_dataService.Manifest == null) return null;
+    string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
 
-    foreach (string? key in _dataService.Manifest.Retainers.Keys)
+    foreach (string key in _dataService.Manifest.SpeakerMappings[type].Keys)
     {
-      if (key.Equals(sentence))
+      if (Regex.Replace(key, @"[^a-zA-Z]", "").Equals(sanitizedSentence))
       {
-        return _dataService.Manifest.Retainers[key];
+        string npcId = _dataService.Manifest.SpeakerMappings[type][key];
+        if (_dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
+          return npc;
       }
     }
 
-    return speaker;
+    return null;
   }
 
-  // Try to get a voiceline filepath given a cleaned speaker and sentence and optionally NpcData.
-  private Task<(string? voicelinePath, string voice)> TryGetVoicelinePath(string speaker, string sentence, NpcData? npcData)
+  private NpcEntry? GetNpc(string speaker)
+  {
+    if (_dataService.Manifest == null) return null;
+    if (_dataService.Manifest.Npcs.TryGetValue(speaker, out NpcEntry? npc))
+      return npc;
+    return null;
+  }
+
+  private Task<(string id, string? path)> TryGetVoiceline(VoiceEntry? voice, NpcEntry? npc, string sentence)
   {
     return Task.Run(() =>
     {
-      string voice = "Unknown";
-      if (_dataService.Manifest == null) return (null, voice);
-
-      if (speaker == "???" && _dataService.Manifest.Nameless.TryGetValue(sentence, out string? v1))
-      {
-        // If the speaker is "???", try getting it from Manifest.Nameless
-        speaker = v1;
-        voice = v1;
-        if (_dataService.Manifest.Voices.TryGetValue(speaker, out string? v2))
-          voice = v2;
-      }
-      else if (_dataService.Manifest.Voices.TryGetValue(speaker, out string? v2))
-      {
-        // Else try to get the voice from Manifest.Voices based on the speaker
-        // This is used for non-generic voies
-        voice = v2;
-      }
-      else
-      {
-        // If no voice was found, get the generic voice from npcData, e.g. "Au_Ra_Raen_Female_05"
-        if (npcData == null) return (null, voice); // If we have no NpcData, ggwp. We can't get a generic voice without npcData.
-        voice = GetGenericVoice(npcData, speaker);
-      }
-
-      _logger.Debug($"voice::{voice} speaker::{speaker} sentence::{sentence}");
-      string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, Md5(voice, speaker, sentence) + ".ogg");
-      _logger.Debug($"voicelinePath::{voicelinePath}");
-
-      if (!File.Exists(voicelinePath)) return (null, voice);
-      return ((string?)voicelinePath, voice);
+      string id = Md5(voice?.Name ?? "Unknown", npc?.Name ?? "Unknown", sentence);
+      string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
+      if (!File.Exists(voicelinePath)) return (id, null);
+      return (id, (string?)voicelinePath);
     });
   }
 
@@ -290,612 +269,36 @@ public partial class MessageDispatcher
     return (speaker, sentence);
   }
 
-  /*
-  This is 'GetOtherVoiceNames' from old xivv. Can't quite clean this up because voices are
-  sometimes "_05_06" where two eyeshapes share a voice, or other such cases.
-  This is what I would do otherwise:
-
-  var validRaces = new string[] { "Au Ra", "Elezen", "Hrothgar", "Hyur", "Lalafell", "Miqo'te", "Roegadyn", "Viera" };
-  var validTribes = new string[] { "Raen", "Xaela", "Duskwight", "Wildwood", "Helions", "The Lost", "Highlander", "Midlander", "Dunesfolk", "Plainsfolk", "Keeper of the Moon", "Seeker of the Sun", "Hellsguard", "Sea Wolf", "Rava", "Veena" };
-
-  if (npcData.Body == "Adult")
+  // This should reasonably only be called for npcs with "HasVariedLooks" set to true.
+  public VoiceEntry? GetGenericVoice(NpcEntry? npc)
   {
-    if (validRaces.Contains(npcData.Race) && validTribes.Contains(npcData.Tribe))
-      return $"{npcData.Race.Replace(" ", "_").Replace("'", "")}_{npcData.Tribe.Replace(" ", "_")_{npcData.Gender}_{npcData.Eyes.Replace("Option ", "0")}}"
-  }
+    if (_dataService.Manifest == null || npc == null) return null;
 
-  ...
-  */
-  public string GetGenericVoice(NpcData npcData, string speaker)
-  {
-    if (npcData.Body == "Adult")
+    // We match lazily for beastmen because old xivv npcdata cache
+    // was very partial. Most beastman only have "Tribe" set.
+    // This shouldn't matter for new npc entries.
+    VoiceEntry? voice = null;
+    if (npc.Body == "Beastman")
     {
-      if (npcData.Race == "Au Ra")
-      {
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Au_Ra_Raen_Female_01";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Au_Ra_Raen_Female_02";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Au_Ra_Raen_Female_03";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Au_Ra_Raen_Female_04";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Au_Ra_Raen_Female_05";
+      string key1 = npc.Tribe;
+      if (_dataService.Manifest.Npcs_Generic.TryGetValue(key1, out NpcEntry? _npc1))
+        if (_dataService.Manifest.Voices.TryGetValue(_npc1.VoiceId, out VoiceEntry? _voice1))
+          voice = _voice1;
 
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Au_Ra_Raen_Male_01";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Au_Ra_Raen_Male_02";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Au_Ra_Raen_Male_03";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Au_Ra_Raen_Male_04";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Au_Ra_Raen_Male_05";
-        if (npcData.Tribe == "Raen" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Au_Ra_Raen_Male_06";
-
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Au_Ra_Xaela_Female_01";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Au_Ra_Xaela_Female_02";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Au_Ra_Xaela_Female_03";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Au_Ra_Xaela_Female_04";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Au_Ra_Xaela_Female_05";
-
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Au_Ra_Xaela_Male_01";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Au_Ra_Xaela_Male_02";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Au_Ra_Xaela_Male_03";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Au_Ra_Xaela_Male_04";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Au_Ra_Xaela_Male_05";
-        if (npcData.Tribe == "Xaela" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Au_Ra_Xaela_Male_06";
-      }
-
-      if (npcData.Race == "Elezen")
-      {
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Elezen_Duskwight_Female_01";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Elezen_Duskwight_Female_02";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Elezen_Duskwight_Female_03";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Elezen_Duskwight_Female_04";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Elezen_Duskwight_Female_05_06";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Elezen_Duskwight_Female_05_06";
-
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Elezen_Duskwight_Male_01";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Elezen_Duskwight_Male_02";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Elezen_Duskwight_Male_03";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Elezen_Duskwight_Male_04";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Elezen_Duskwight_Male_05";
-        if (npcData.Tribe == "Duskwight" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Elezen_Duskwight_Male_06";
-
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Elezen_Wildwood_Female_01";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Elezen_Wildwood_Female_02";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Elezen_Wildwood_Female_03";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Elezen_Wildwood_Female_04";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Elezen_Wildwood_Female_05";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Elezen_Wildwood_Female_06";
-
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Elezen_Wildwood_Male_01";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Elezen_Wildwood_Male_02";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Elezen_Wildwood_Male_03";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Elezen_Wildwood_Male_04";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Elezen_Wildwood_Male_05";
-        if (npcData.Tribe == "Wildwood" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Elezen_Wildwood_Male_06";
-      }
-
-      if (npcData.Race == "Hrothgar")
-      {
-        if (npcData.Tribe == "Helions" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Hrothgar_Helion_01_05";
-        if (npcData.Tribe == "Helions" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Hrothgar_Helion_02";
-        if (npcData.Tribe == "Helions" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Hrothgar_Helion_03";
-        if (npcData.Tribe == "Helions" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Hrothgar_Helion_04";
-        if (npcData.Tribe == "Helions" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Hrothgar_Helion_01_05";
-
-        if (npcData.Tribe == "The Lost" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Hrothgar_The_Lost_01";
-        if (npcData.Tribe == "The Lost" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Hrothgar_The_Lost_02";
-        if (npcData.Tribe == "The Lost" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Hrothgar_The_Lost_03";
-        if (npcData.Tribe == "The Lost" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Hrothgar_The_Lost_04_05";
-        if (npcData.Tribe == "The Lost" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Hrothgar_The_Lost_04_05";
-      }
-
-      if (npcData.Race == "Hyur")
-      {
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Hyur_Highlander_Female_01";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Hyur_Highlander_Female_02";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Hyur_Highlander_Female_03";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Hyur_Highlander_Female_04";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Hyur_Highlander_Female_05";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Hyur_Highlander_Female_06";
-
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Hyur_Highlander_Male_01";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Hyur_Highlander_Male_02";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Hyur_Highlander_Male_03";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Hyur_Highlander_Male_04";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Hyur_Highlander_Male_05";
-        if (npcData.Tribe == "Highlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Hyur_Highlander_Male_06";
-
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Hyur_Midlander_Female_01";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Hyur_Midlander_Female_02";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Hyur_Midlander_Female_03";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Hyur_Midlander_Female_04";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Hyur_Midlander_Female_05";
-
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Hyur_Midlander_Male_01";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Hyur_Midlander_Male_02";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Hyur_Midlander_Male_03";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Hyur_Midlander_Male_04";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Hyur_Midlander_Male_05";
-        if (npcData.Tribe == "Midlander" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Hyur_Midlander_Male_06";
-      }
-
-      if (npcData.Race == "Lalafell")
-      {
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Lalafell_Dunesfolk_Female_01";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Lalafell_Dunesfolk_Female_02";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Lalafell_Dunesfolk_Female_03";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Lalafell_Dunesfolk_Female_04";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Lalafell_Dunesfolk_Female_05";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Lalafell_Dunesfolk_Female_06";
-
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Lalafell_Dunesfolk_Male_01";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Lalafell_Dunesfolk_Male_02";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Lalafell_Dunesfolk_Male_03";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Lalafell_Dunesfolk_Male_04";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Lalafell_Dunesfolk_Male_05";
-        if (npcData.Tribe == "Dunesfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Lalafell_Dunesfolk_Male_06";
-
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Lalafell_Plainsfolk_Female_01";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Lalafell_Plainsfolk_Female_02";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Lalafell_Plainsfolk_Female_03";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Lalafell_Plainsfolk_Female_04";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Lalafell_Plainsfolk_Female_05";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Lalafell_Plainsfolk_Female_06";
-
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Lalafell_Plainsfolk_Male_01";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Lalafell_Plainsfolk_Male_02";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Lalafell_Plainsfolk_Male_03";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Lalafell_Plainsfolk_Male_04";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Lalafell_Plainsfolk_Male_05";
-        if (npcData.Tribe == "Plainsfolk" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Lalafell_Plainsfolk_Male_06";
-      }
-
-      if (npcData.Race == "Miqo'te")
-      {
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Miqote_Keeper_of_the_Moon_Female_01";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Miqote_Keeper_of_the_Moon_Female_02";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Miqote_Keeper_of_the_Moon_Female_03";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Miqote_Keeper_of_the_Moon_Female_04";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Miqote_Keeper_of_the_Moon_Female_05";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Miqote_Keeper_of_the_Moon_Female_06";
-
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Miqote_Keeper_of_the_Moon_Male_01";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Miqote_Keeper_of_the_Moon_Male_02_06";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Miqote_Keeper_of_the_Moon_Male_03";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Miqote_Keeper_of_the_Moon_Male_04";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Miqote_Keeper_of_the_Moon_Male_05";
-        if (npcData.Tribe == "Keeper of the Moon" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Miqote_Keeper_of_the_Moon_Male_02_06";
-
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Miqote_Seeker_of_the_Sun_Female_01";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Miqote_Seeker_of_the_Sun_Female_02";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Miqote_Seeker_of_the_Sun_Female_03";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Miqote_Seeker_of_the_Sun_Female_04";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Miqote_Seeker_of_the_Sun_Female_05";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-          return "Miqote_Seeker_of_the_Sun_Female_06";
-
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Miqote_Seeker_of_the_Sun_Male_01";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Miqote_Seeker_of_the_Sun_Male_02";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Miqote_Seeker_of_the_Sun_Male_03";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Miqote_Seeker_of_the_Sun_Male_04";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Miqote_Seeker_of_the_Sun_Male_05";
-        if (npcData.Tribe == "Seeker of the Sun" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-          return "Miqote_Seeker_of_the_Sun_Male_06";
-
-        //if (npcData.Tribe == "Fat Cat")
-        //    return "Miqote_Fat";
-      }
-
-      if (npcData.Race == "Roegadyn")
-      {
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Roegadyn_Hellsguard_Female_01";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Roegadyn_Hellsguard_Female_02";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Roegadyn_Hellsguard_Female_03";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Roegadyn_Hellsguard_Female_04";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Roegadyn_Hellsguard_Female_05";
-
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Roegadyn_Hellsguard_Male_01";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Roegadyn_Hellsguard_Male_02";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Roegadyn_Hellsguard_Male_03";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Roegadyn_Hellsguard_Male_04";
-        if (npcData.Tribe == "Hellsguard" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Roegadyn_Hellsguard_Male_05";
-
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Roegadyn_Sea_Wolves_Female_01";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Roegadyn_Sea_Wolves_Female_02";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Roegadyn_Sea_Wolves_Female_03";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Roegadyn_Sea_Wolves_Female_04";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Roegadyn_Sea_Wolves_Female_05";
-
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Roegadyn_Sea_Wolves_Male_01";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Roegadyn_Sea_Wolves_Male_02";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Roegadyn_Sea_Wolves_Male_03";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Roegadyn_Sea_Wolves_Male_04";
-        if (npcData.Tribe == "Sea Wolf" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-          return "Roegadyn_Sea_Wolves_Male_05";
-      }
-
-      if (npcData.Race == "Viera")
-      {
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Viera_Rava_Female_01_05";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Viera_Rava_Female_02";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Viera_Rava_Female_03";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Viera_Rava_Female_04";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Viera_Rava_Female_01_05";
-
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-          return "Viera_Rava_Male_01";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Viera_Rava_Male_03";
-        if (npcData.Tribe == "Rava" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-          return "Viera_Rava_Male_04";
-
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-          return "Viera_Veena_Female_01_05";
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-          return "Viera_Veena_Female_02";
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-          return "Viera_Veena_Female_03";
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-          return "Viera_Veena_Female_04";
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-          return "Viera_Veena_Female_01_05";
-
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-          return "Viera_Veena_Male_02";
-        if (npcData.Tribe == "Veena" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-          return "Viera_Veena_Male_03";
-      }
+      string key2 = npc.Tribe + npc.Gender;
+      if (_dataService.Manifest.Npcs_Generic.TryGetValue(key2, out NpcEntry? _npc2))
+        if (_dataService.Manifest.Voices.TryGetValue(_npc2.VoiceId, out VoiceEntry? _voice2))
+          voice = _voice2;
+    }
+    else
+    {
+      string key = npc.Gender + npc.Race + npc.Tribe + npc.Body + npc.Eyes;
+      if (_dataService.Manifest.Npcs_Generic.TryGetValue(key, out NpcEntry? _npc))
+        if (_dataService.Manifest.Voices.TryGetValue(_npc.VoiceId, out VoiceEntry? _voice))
+          voice = _voice;
     }
 
-    if (npcData.Body == "Elderly")
-    {
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male")
-        return "Elderly_Male_Hyur";
-
-      if (npcData.Gender == "Male")
-        return "Elderly_Male";
-
-      if (npcData.Gender == "Female")
-        return "Elderly_Female";
-    }
-
-    if (npcData.Body == "Child")
-    {
-      if (npcData.Race == "Hyur" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-        return "Child_Hyur_Female_1";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-        return "Child_Hyur_Female_2";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-        return "Child_Hyur_Female_3_5";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-        return "Child_Hyur_Female_4";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-        return "Child_Hyur_Female_3_5";
-
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-        return "Child_Hyur_Male_1";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-        return "Child_Hyur_Male_2";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-        return "Child_Hyur_Male_3_6";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-        return "Child_Hyur_Male_4";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-        return "Child_Hyur_Male_5";
-      if (npcData.Race == "Hyur" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-        return "Child_Hyur_Male_3_6";
-
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-        return "Child_Elezen_Female_1_3";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-        return "Child_Elezen_Female_2";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-        return "Child_Elezen_Female_1_3";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-        return "Child_Elezen_Female_4";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-        return "Child_Elezen_Female_5_6";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Female" && npcData.Eyes == "Option 6")
-        return "Child_Elezen_Female_5_6";
-
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-        return "Child_Elezen_Male_1";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-        return "Child_Elezen_Male_2";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-        return "Child_Elezen_Male_3";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-        return "Child_Elezen_Male_4";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-        return "Child_Elezen_Male_5_6";
-      if (npcData.Race == "Elezen" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-        return "Child_Elezen_Male_5_6";
-
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Female" && npcData.Eyes == "Option 1")
-        return "Child_Aura_Female_1_5";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-        return "Child_Aura_Female_2";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-        return "Child_Aura_Female_4";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Female" && npcData.Eyes == "Option 5")
-        return "Child_Aura_Female_1_5";
-
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 1")
-        return "Child_Aura_Male_1";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 2")
-        return "Child_Aura_Male_2";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 3")
-        return "Child_Aura_Male_3";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 4")
-        return "Child_Aura_Male_4";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 5")
-        return "Child_Aura_Male_5_6";
-      if (npcData.Race == "Au Ra" && npcData.Gender == "Male" && npcData.Eyes == "Option 6")
-        return "Child_Aura_Male_5_6";
-
-      if (npcData.Race == "Miqo'te" && npcData.Gender == "Female" && npcData.Eyes == "Option 2")
-        return "Child_Miqote_Female_2";
-      if (npcData.Race == "Miqo'te" && npcData.Gender == "Female" && npcData.Eyes == "Option 3")
-        return "Child_Miqote_Female_3_4";
-      if (npcData.Race == "Miqo'te" && npcData.Gender == "Female" && npcData.Eyes == "Option 4")
-        return "Child_Miqote_Female_3_4";
-    }
-
-    // ARR Beast Tribes
-    if (npcData.Race == "Amalj'aa")
-      return "Amaljaa";
-
-    if (npcData.Race == "Sylph")
-      return "Sylph";
-
-    if (npcData.Race == "Kobold")
-      return "Kobold";
-
-    if (npcData.Race == "Sahagin")
-      return "Sahagin";
-
-    if (npcData.Race == "Ixal")
-      return "Ixal";
-
-    if (npcData.Race == "Qiqirn")
-      return "Qiqirn";
-
-    // HW Beast Tribes
-    if (npcData.Race.StartsWith("Dragon"))
-      return npcData.Race;
-
-    if (npcData.Race == "Goblin")
-    {
-      if (npcData.Gender == "Female")
-        return "Goblin_Female";
-      else
-        return "Goblin_Male";
-    }
-
-    if (npcData.Race == "Vanu Vanu")
-    {
-      if (npcData.Gender == "Female")
-        return "Vanu_Female";
-      else
-        return "Vanu_Male";
-    }
-
-    if (npcData.Race == "Vath")
-      return "Vath";
-
-    if (npcData.Race == "Moogle")
-      return "Moogle";
-
-    if (npcData.Race == "Node")
-      return "Node";
-
-    // SB Beast Tribes
-    if (npcData.Race == "Kojin")
-      return "Kojin";
-
-    if (npcData.Race == "Ananta")
-      return "Ananta";
-
-    if (npcData.Race == "Namazu")
-      return "Namazu";
-
-    if (npcData.Race == "Lupin")
-    {
-      if (speaker == "Hakuro" || speaker == "Hakuro Gunji" || speaker == "Hakuro Whitefang")
-        return "Ranjit";
-
-      int hashValue = speaker.GetHashCode();
-      int result = (Math.Abs(hashValue) % 10) + 1;
-
-      return result switch
-      {
-        1 => "Hrothgar_Helion_03",
-        2 => "Hrothgar_Helion_04",
-        3 => "Hrothgar_The_Lost_02",
-        4 => "Hrothgar_The_Lost_03",
-        5 => "Lalafell_Dunesfolk_Male_06",
-        6 => "Roegadyn_Hellsguard_Male_04",
-        7 => "Others_Widargelt",
-        8 => "Hyur_Highlander_Male_04",
-        9 => "Hrothgar_Helion_02",
-        10 => "Hyur_Highlander_Male_05",
-        _ => "Lupin",
-      };
-    }
-
-    // Shb Beast Tribes
-    if (npcData.Race == "Pixie")
-      return "Pixie";
-
-    // EW Beast Tribes
-    if (npcData.Race == "Matanga")
-    {
-      if (npcData.Gender == "Female")
-        return "Matanga_Female";
-      else
-        return "Matanga_Male";
-    }
-
-    if (npcData.Race == "Loporrit")
-      return "Loporrit";
-
-    if (npcData.Race == "Omicron")
-      return "Omicron";
-
-    if (npcData.Race == "Ea")
-      return "Ea";
-
-    // Bosses
-    if (npcData.Race.StartsWith("Boss"))
-      return npcData.Race;
-
-    _logger.Debug("Cannot find a generic voice for " + speaker);
-    return "Unknown";
+    return voice;
   }
 
   private readonly Dictionary<int, string> _numberRomanDictionary = new()

@@ -21,7 +21,7 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
     // Using .Speaker instead of .Id now as we don't want to
     // lipsync the same character multiple times at once.
     if (!string.IsNullOrEmpty(message.Speaker)) return message.Speaker;
-    if (message.NpcData != null) return message.NpcData.BaseId.ToString();
+    if (message.Npc != null) return message.Npc.BaseId.ToString();
     return message.Id;
   }
 
@@ -31,10 +31,10 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
 
     TryStopLipSync(message);
 
-    IntPtr character = await _gameInteropService.TryFindCharacter(message.Speaker, message.NpcData?.BaseId ?? 0);
+    IntPtr character = await _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
     if (character == IntPtr.Zero)
     {
-      _logger.Debug($"No lipsync target found for speaker {message.Speaker} ({message.NpcData?.BaseId})");
+      _logger.Debug($"No lipsync target found for speaker {message.Speaker} ({message.Npc?.BaseId})");
       return;
     }
 

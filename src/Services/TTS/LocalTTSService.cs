@@ -55,7 +55,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     }
 
     int speaker = _configuration.LocalTTSDefaultVoice == "Male" ? 0 : 1;
-    if (message.NpcData != null) speaker = message.NpcData.Gender == "Male" ? 0 : 1;
+    if (message.Npc != null) speaker = message.Npc.Gender == "Male" ? 0 : 1;
 
     if (_localTTSEngine.Voices[speaker] == null)
     {

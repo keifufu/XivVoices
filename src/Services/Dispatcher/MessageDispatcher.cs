@@ -60,55 +60,64 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
-    // If this sentence matches a sentence in Manifest.Retainers
-    // and the speaker is not in Manifest.NpcsWithRetainerLines,
-    // then replace the speaker with the retainer one.
-    // This needs to be checked before CleanMessage.
-    string retainerSpeaker = GetRetainerSpeaker(speaker, sentence);
-    bool isRetainer = false;
-    if (retainerSpeaker != speaker)
-    {
-      isRetainer = true;
-      speaker = retainerSpeaker;
-    }
-
     // If speaker is ignored, well... ignore it.
     if (_dataService.Manifest.IgnoredSpeakers.Contains(speaker)) return;
 
-    // This one is a bit weird, we try to look up the NpcData directly from the game, that makes sense.
-    // But even if we find it, for non-beastmen we prefer the cache? Ok.
-    // I belive this is due to solo duties, I was just in one where Korutt had a different appearance
-    // inside a duty than outside. Fine.
-    // This can be null and a valid voice can still be found from Manifest.Nameless or Manifest.Voices
-    NpcData? npcData = await _gameInteropService.TryGetNpcData(speaker, speakerBaseId);
-    if (npcData == null || npcData.Body != "Beastman")
+    // If this sentence matches a sentence in Manifest.DirectMappings.Retainer,
+    // then replace the speaker with the retainer one.
+    // This needs to be checked before CleanMessage.
+    NpcEntry? mappedNpc = null;
+    bool isRetainer = false;
+    if (source == MessageSource.AddonTalk)
     {
-      if (_dataService.Manifest.NpcData.TryGetValue(speaker, out NpcData? _npcData))
-        npcData = _npcData;
+      bool isTargetingRetainerBell = await _gameInteropService.IsTargetingRetainerBell();
+      if (isTargetingRetainerBell)
+      {
+        mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
+        if (mappedNpc != null) isRetainer = true;
+      }
+    }
+
+    if (speaker == "???")
+      mappedNpc = GetNpcFromMappings(SpeakerMappingType.Nameless, sentence);
+
+    NpcEntry? npc = mappedNpc ?? GetNpc(speaker);
+    if (npc == null || npc.HasVariedLooks)
+      npc = await _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc);
+
+    VoiceEntry? voice = null;
+    if (!(npc?.HasVariedLooks ?? false) && _dataService.Manifest.Voices.TryGetValue(npc?.VoiceId ?? "", out VoiceEntry? _voice))
+      voice = _voice;
+    else
+    {
+      voice = GetGenericVoice(npc);
+      // Set the VoiceId so the report accurately represents the voice we expect the line to be.
+      if (voice != null && npc != null)
+        npc.VoiceId = voice.Id;
     }
 
     string? playerName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
     bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
-    // Cache player npcData to assign a gender to chatmessage tts when they're not near you.
-    if (source == MessageSource.ChatMessage && npcData != null)
-      _dataService.CachePlayer(origSpeaker, npcData);
+    // Cache player npc to assign a gender to chatmessage tts when they're not near you.
+    if (source == MessageSource.ChatMessage && npc != null)
+      _dataService.CachePlayer(origSpeaker, npc);
 
-    // Try to retrieve said cached npcData if they're not near you.
-    if (source == MessageSource.ChatMessage && npcData == null)
-      npcData = _dataService.TryGetCachedPlayer(origSpeaker);
+    // Try to retrieve said cached npc if they're not near you.
+    if (source == MessageSource.ChatMessage && npc == null)
+      npc = _dataService.TryGetCachedPlayer(origSpeaker);
 
     // Clean message and replace names with new replacement method.
     (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
 
     // Try and find a voiceline.
-    (string? voicelinePath, string voice) = await TryGetVoicelinePath(cleanedSpeaker, cleanedSentence, npcData);
+    (string id, string? voicelinePath) = await TryGetVoiceline(voice, npc, cleanedSentence);
 
     // If no voiceline was found, try again with legacy name replacement method.
     if (voicelinePath == null && sentenceHasName)
     {
-      (string legacySpeaker, string legacySentence) = CleanMessage(speaker, sentence, playerName, true, false);
-      (voicelinePath, voice) = await TryGetVoicelinePath(legacySpeaker, legacySentence, npcData);
+      (_, string legacySentence) = CleanMessage(speaker, sentence, playerName, true, false);
+      (id, voicelinePath) = await TryGetVoiceline(voice, npc, legacySentence);
       if (voicelinePath == null) _logger.Debug("Did not find legacy name voiceline");
       else _logger.Debug("Found legacy name voiceline");
     }
@@ -118,14 +127,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       (cleanedSpeaker, cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, true);
 
     XivMessage message = new(
-      Md5(voice, cleanedSpeaker, cleanedSentence),
+      id,
       source,
-      voice ?? "",
+      voice,
       cleanedSpeaker,
       cleanedSentence,
       origSpeaker,
       origSentence,
-      npcData,
+      npc,
       voicelinePath
     );
 

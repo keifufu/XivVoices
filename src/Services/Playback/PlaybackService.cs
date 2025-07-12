@@ -99,7 +99,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         Camera* camera = CameraManager.Instance()->GetActiveCamera();
         if (camera == null) return;
 
-        Character* speaker = (Character*)_gameInteropService.TryFindCharacter_NoThreadCheck(track.Message.Speaker, track.Message.NpcData?.BaseId ?? 0);
+        Character* speaker = (Character*)_gameInteropService.TryFindCharacter_NoThreadCheck(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
         if (speaker == null) return;
 
         if (_clientState.LocalPlayer == null) return;

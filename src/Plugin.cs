@@ -1,3 +1,4 @@
+using Dalamud.Game.ClientState.Objects;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ILogger = XivVoices.Services.ILogger;
@@ -20,6 +21,7 @@ public sealed class Plugin : IDalamudPlugin
     IDataManager dataManager,
     IObjectTable objectTable,
     IGamepadState gamepadState,
+    ITargetManager targetManager,
     IAddonLifecycle addonLifecycle,
     ICommandManager commandManager,
     ITextureProvider textureProvider,
@@ -47,6 +49,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(dataManager);
         collection.AddSingleton(objectTable);
         collection.AddSingleton(gamepadState);
+        collection.AddSingleton(targetManager);
         collection.AddSingleton(addonLifecycle);
         collection.AddSingleton(commandManager);
         collection.AddSingleton(textureProvider);
