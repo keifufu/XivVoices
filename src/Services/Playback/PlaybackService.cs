@@ -6,8 +6,8 @@ namespace XivVoices.Services;
 
 public interface IPlaybackService : IHostedService
 {
-  event EventHandler<MessageSource>? PlaybackStarted;
-  event EventHandler<MessageSource>? PlaybackCompleted;
+  event EventHandler<XivMessage>? PlaybackStarted;
+  event EventHandler<XivMessage>? PlaybackCompleted;
 
   Task Play(XivMessage message, bool replay = false);
 
@@ -32,8 +32,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   private readonly object _playbackHistoryLock = new();
   private readonly List<XivMessage> _playbackHistory = [];
 
-  public event EventHandler<MessageSource>? PlaybackStarted;
-  public event EventHandler<MessageSource>? PlaybackCompleted;
+  public event EventHandler<XivMessage>? PlaybackStarted;
+  public event EventHandler<XivMessage>? PlaybackCompleted;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -201,10 +201,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _playing.TryRemove(message.Id, out _);
       _logger.Debug($"Finished playing message: {message.Id}");
 
-      PlaybackCompleted?.Invoke(this, message.Source);
+      PlaybackCompleted?.Invoke(this, message);
     };
 
-    PlaybackStarted?.Invoke(this, message.Source);
+    PlaybackStarted?.Invoke(this, message);
     _mixer.AddMixerInput(track);
     _playing[message.Id] = track;
 

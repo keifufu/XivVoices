@@ -81,6 +81,14 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     }
   }
 
+  private unsafe (string, string) GetSpeakerAndSentence(AddonTalk* addon)
+  {
+    string speaker = _gameInteropService.ReadTextNode(addon->AtkTextNode220);
+    if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
+    string sentence = _gameInteropService.ReadUtf8String(addon->String268);
+    return (speaker, sentence);
+  }
+
   private unsafe void OnFrameworkUpdate(IFramework framework)
   {
     AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk");
@@ -101,9 +109,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
     if (!visible) return;
 
-    string speaker = _gameInteropService.ReadTextNode(addon->AtkTextNode220);
-    if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
-    string sentence = _gameInteropService.ReadUtf8String(addon->String268);
+    (string speaker, string sentence) = GetSpeakerAndSentence(addon);
 
     if (_lastSpeaker != speaker || _lastSentence != sentence)
     {
@@ -114,30 +120,35 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     }
   }
 
-  private void OnPlaybackCompleted(object? sender, MessageSource source)
+  private void OnPlaybackCompleted(object? sender, XivMessage message)
   {
-    if (source != MessageSource.AddonTalk) return;
+    if (message.Source != MessageSource.AddonTalk) return;
     _logger.Debug("AddonTalk Playback Completed.");
-    AutoAdvance();
+    AutoAdvance(message);
   }
 
-  public unsafe void AutoAdvance()
+  public unsafe void AutoAdvance(XivMessage message)
   {
     if (!CanAutoAdvance()) return;
 
-    AddonTalk* addonTalk = (AddonTalk*)_gameGui.GetAddonByName("Talk");
-    if (addonTalk == null) return;
-    if (!addonTalk->IsVisible) return;
-
     _framework.RunOnFrameworkThread(() =>
     {
-      AddonTalk* addonTalk = (AddonTalk*)_gameGui.GetAddonByName("Talk");
-      if (addonTalk == null) return;
+      AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk");
+      if (addon == null) return;
+      if (!addon->IsVisible) return;
+
+      (string speaker, string sentence) = GetSpeakerAndSentence(addon);
+      if (speaker != message.OriginalSpeaker || sentence != message.OriginalSentence)
+      {
+        _logger.Debug("addontalk speaker or sentence changed, not auto-advancing.");
+        return;
+      }
+
       AtkEvent* evt = stackalloc AtkEvent[1]
       {
         new()
         {
-          Listener = (AtkEventListener*)addonTalk,
+          Listener = (AtkEventListener*)addon,
           Target = &AtkStage.Instance()->AtkEventTarget,
           State = new()
           {
@@ -150,9 +161,9 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
       {
         ((byte*)data)[i] = 0;
       }
-      addonTalk->ReceiveEvent(AtkEventType.MouseDown, 0, evt, data);
-      addonTalk->ReceiveEvent(AtkEventType.MouseClick, 0, evt, data);
-      addonTalk->ReceiveEvent(AtkEventType.MouseUp, 0, evt, data);
+      addon->ReceiveEvent(AtkEventType.MouseDown, 0, evt, data);
+      addon->ReceiveEvent(AtkEventType.MouseClick, 0, evt, data);
+      addon->ReceiveEvent(AtkEventType.MouseUp, 0, evt, data);
     });
   }
 }

@@ -54,16 +54,16 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
     }
   }
 
-  private void OnPlaybackStarted(object? sender, MessageSource source)
+  private void OnPlaybackStarted(object? sender, XivMessage message)
   {
-    if (source != _messageSource) return;
+    if (message.Source != _messageSource) return;
     _logger.Debug($"{_messageSource} Playback Started.");
     _playbackQueueState = PlaybackQueueState.Playing;
   }
 
-  private void OnPlaybackCompleted(object? sender, MessageSource source)
+  private void OnPlaybackCompleted(object? sender, XivMessage message)
   {
-    if (source != _messageSource) return;
+    if (message.Source != _messageSource) return;
     _logger.Debug($"{_messageSource} Playback Completed.");
     _playbackQueueState = PlaybackQueueState.Stopped;
   }
