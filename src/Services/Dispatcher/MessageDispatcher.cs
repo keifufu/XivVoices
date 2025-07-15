@@ -75,6 +75,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       {
         mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
         if (mappedNpc != null) isRetainer = true;
+        if (speaker == "Feo Ul") isRetainer = true;
       }
     }
 
