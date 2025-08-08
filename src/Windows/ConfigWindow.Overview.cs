@@ -14,6 +14,7 @@ public partial class ConfigWindow
   private Vector4 _yellow = new(0.8f, 0.75f, 0.15f, 1.0f);
   private Vector4 _red = new(0.8f, 0.15f, 0.18f, 1.0f);
   private Vector4 _grey = new(0.25f, 0.25f, 0.25f, 1.0f);
+  private Vector4 _lightgrey = new(0.729f, 0.729f, 0.729f, 1.0f);
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
@@ -28,7 +29,7 @@ public partial class ConfigWindow
     ImGui.TextWrapped(text);
   }
 
-  private void DrawHorizontallyCenteredImage(IntPtr textureId, Vector2 imageSize)
+  private void DrawHorizontallyCenteredImage(ImTextureID textureId, Vector2 imageSize)
   {
     float imageWidth = imageSize.X;
     float imageX = (ImGui.GetContentRegionAvail().X - imageWidth) * 0.5f;
@@ -42,7 +43,7 @@ public partial class ConfigWindow
 
     IDalamudTextureWrap? logo = _textureProvider.GetFromFile(Path.Combine(_pluginInterface.AssemblyLocation.Directory?.FullName!, "logo.png")).GetWrapOrDefault();
     if (logo == null) return;
-    DrawHorizontallyCenteredImage(logo.ImGuiHandle, ScaledVector2(200, 200));
+    DrawHorizontallyCenteredImage(logo.Handle, ScaledVector2(200, 200));
 
     DrawHorizontallyCenteredText("Welcome to XivVoices!");
 

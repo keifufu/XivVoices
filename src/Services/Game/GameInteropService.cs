@@ -2,7 +2,10 @@ using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
+using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
+using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Game.Control;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
@@ -10,22 +13,41 @@ namespace XivVoices.Services;
 
 public interface IGameInteropService
 {
-  Task<IntPtr> TryFindCharacter(string name, uint? baseId);
-  IntPtr TryFindCharacter_NoThreadCheck(string name, uint? baseId);
-  Task<NpcEntry?> TryGetNpc(string name, uint? baseId, NpcEntry? npc);
-  Task<bool> IsTargetingRetainerBell();
+  Task<T> RunOnFrameworkThread<T>(Func<T> func);
+  Task RunOnFrameworkThread(System.Action action);
+  IGameObject? GetTarget();
+  IntPtr TryFindCharacter(string name, uint? baseId);
+  NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npc);
+  bool IsTargetingSummoningBell();
+  string GetLocation();
+  List<string> GetActiveQuests();
+  List<string> GetActiveLeves();
+  CameraView GetCameraView();
   bool IsInCutscene();
   bool IsInDuty();
   string ReadUtf8String(Utf8String str);
   unsafe string ReadTextNode(AtkTextNode* textNode);
 }
 
+public class CameraView
+{
+  public Vector3 Forward;
+  public Vector3 Up;
+  public Vector3 Right;
+}
+
 public partial class GameInteropService(ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
 {
-  public Task<IntPtr> TryFindCharacter(string name, uint? baseId) =>
-    _framework.RunOnFrameworkThread(() => TryFindCharacter_NoThreadCheck(name, baseId));
+  public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
+    _framework.RunOnFrameworkThread(func);
 
-  public unsafe IntPtr TryFindCharacter_NoThreadCheck(string name, uint? baseId)
+  public Task RunOnFrameworkThread(System.Action action) =>
+    _framework.RunOnFrameworkThread(action);
+
+  public IGameObject? GetTarget()
+    => _targetManager.Target;
+
+  public IntPtr TryFindCharacter(string name, uint? baseId)
   {
     IntPtr baseIdCharacter = IntPtr.Zero;
 
@@ -33,6 +55,7 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     {
       if ((gameObject as ICharacter) == null) continue;
 
+      // Dalamud's GameObject has BaseId renamed to DataId
       if (gameObject.DataId == baseId && baseId != 0)
         baseIdCharacter = gameObject.Address;
 
@@ -43,8 +66,9 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     return baseIdCharacter;
   }
 
-  private unsafe NpcEntry? TryGetNpcFromCharacter_Internal(Character* character, NpcEntry? _npc)
+  public unsafe NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? _npc)
   {
+    Character* character = (Character*)TryFindCharacter(name, baseId);
     if (character == null) return null;
 
     string speaker = character->GetName();
@@ -58,9 +82,9 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
 
     NpcEntry npc = new()
     {
-      Id = _npc?.Id ?? "",
+      Id = _npc?.Id,
       Name = _npc?.Name ?? speaker,
-      VoiceId = _npc?.VoiceId ?? "",
+      VoiceId = _npc?.VoiceId,
       Gender = GetGender(gender),
       Race = GetRace(race),
       Tribe = GetTribe(tribe),
@@ -85,27 +109,96 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     return npc;
   }
 
-  public unsafe Task<NpcEntry?> TryGetNpc(string name, uint? baseId, NpcEntry? npc)
+  public bool IsTargetingSummoningBell()
   {
-    return _framework.RunOnFrameworkThread(() =>
-    {
-      Character* character = (Character*)TryFindCharacter_NoThreadCheck(name, baseId);
-      return TryGetNpcFromCharacter_Internal(character, npc);
-    });
+    IGameObject? target = GetTarget();
+    if (target == null) return false;
+    if (target.ObjectKind != ObjectKind.EventObj && target.ObjectKind != ObjectKind.Housing) return false;
+    string name = target.Name.ToString();
+    // We only support English.
+    if (name.Equals("Summoning Bell", StringComparison.OrdinalIgnoreCase)) return true;
+    return false;
   }
 
-  internal string BellName => _dataManager.GetExcelSheet<EObjName>().GetRow(2000401).Singular.ExtractText();
-  public Task<bool> IsTargetingRetainerBell()
+  public string GetLocation()
   {
-    return _framework.RunOnFrameworkThread(() =>
+    string location = $"Unknown:{_clientState.TerritoryType}";
+    if (_dataManager.GetExcelSheet<TerritoryType>().TryGetRow(_clientState.TerritoryType, out TerritoryType territory))
+      location = $"{territory.PlaceName.Value.Name}";
+
+    // If sheets have empty PlaceNames, revert to Unknown:<ID>
+    if (location == "") location = $"Unknown:{_clientState.TerritoryType}";
+
+    string coordinates;
+    if (_clientState.LocalPlayer != null)
     {
-      IGameObject? target = _targetManager.Target;
-      if (target == null) return false;
-      if (target.ObjectKind != ObjectKind.EventObj && target.ObjectKind != ObjectKind.Housing) return false;
-      string name = target.Name.ToString();
-      if (name.Equals(BellName, StringComparison.OrdinalIgnoreCase) || name.Equals("リテイナーベル")) return true;
-      return false;
-    });
+      Vector3 coordsVec3 = MapUtil.GetMapCoordinates(_clientState.LocalPlayer);
+      coordinates = $"({coordsVec3.X:F1}, {coordsVec3.Y:F1})";
+    }
+    else
+    {
+      coordinates = "(0, 0)";
+    }
+
+    return $"{location} {coordinates}";
+  }
+
+  public List<string> GetActiveQuests()
+  {
+    List<string> activeQuests = [];
+
+    unsafe
+    {
+      foreach (QuestWork quest in QuestManager.Instance()->NormalQuests)
+      {
+        if (quest.QuestId is 0) continue;
+        if (_dataManager.GetExcelSheet<Quest>().TryGetRow(quest.QuestId + 65536u, out Quest questData))
+        {
+          string name = Regex.Replace(questData.Name.ToString(), @"^[\uE000-\uF8FF]\s*", string.Empty);
+          activeQuests.Add(name);
+        }
+      }
+    }
+
+    return activeQuests;
+  }
+
+  public List<string> GetActiveLeves()
+  {
+    List<string> activeLeves = [];
+
+    unsafe
+    {
+      foreach (LeveWork leve in QuestManager.Instance()->LeveQuests)
+      {
+        if (leve.LeveId is 0) continue;
+        if (_dataManager.GetExcelSheet<Leve>().TryGetRow(leve.LeveId, out Leve leveData))
+        {
+          string name = Regex.Replace(leveData.Name.ToString(), @"^[\uE000-\uF8FF]\s*", string.Empty);
+          activeLeves.Add(name);
+        }
+      }
+    }
+
+    return activeLeves;
+  }
+
+  public unsafe CameraView GetCameraView()
+  {
+    Camera* camera = CameraManager.Instance()->GetActiveCamera();
+    if (camera == null) return new();
+
+    Matrix4x4 cameraViewMatrix = camera->CameraBase.SceneCamera.ViewMatrix;
+    Vector3 cameraForward = Vector3.Normalize(new Vector3(cameraViewMatrix.M13, cameraViewMatrix.M23, cameraViewMatrix.M33));
+    Vector3 cameraUp = Vector3.Normalize(camera->CameraBase.SceneCamera.Vector_1);
+    Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(cameraUp, cameraForward));
+
+    return new()
+    {
+      Forward = cameraForward,
+      Up = cameraUp,
+      Right = cameraRight
+    };
   }
 
   public bool IsInCutscene() =>
@@ -114,11 +207,10 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
   public bool IsInDuty() =>
     _condition.Any(ConditionFlag.BoundByDuty);
 
-
   public string ReadUtf8String(Utf8String str)
   {
     return new Lumina.Text.ReadOnly.ReadOnlySeString(str)
-      .ExtractText()
+      .ToString()
       .Trim()
       .Replace("\n", "")
       .Replace("\r", "");

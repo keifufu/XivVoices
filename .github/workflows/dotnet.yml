@@ -19,7 +19,7 @@ jobs:
 
       - name: Download Dalamud
         run: |
-          curl -o latest.zip https://goatcorp.github.io/dalamud-distrib/latest.zip
+          curl -o latest.zip https://goatcorp.github.io/dalamud-distrib/stg/latest.zip
           mkdir -p ~/.xlcore/dalamud/Hooks/dev/
           unzip -q latest.zip -d ~/.xlcore/dalamud/Hooks/dev/
 

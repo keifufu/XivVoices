@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string origSpeaker, string origSentence, uint? speakerBaseId = null);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
 }
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
@@ -33,11 +33,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string origSpeaker, string origSentence, uint? speakerBaseId = null)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null)
   {
     if (_dataService.Manifest == null) return;
-    string speaker = origSpeaker;
-    string sentence = origSentence;
+    string speaker = rawSpeaker;
+    string sentence = rawSentence;
 
     if ((source == MessageSource.AddonTalk && _gameInteropService.IsInCutscene()) || source == MessageSource.AddonBattleTalk)
     {
@@ -70,8 +70,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     bool isRetainer = false;
     if (source == MessageSource.AddonTalk)
     {
-      bool isTargetingRetainerBell = await _gameInteropService.IsTargetingRetainerBell();
-      if (isTargetingRetainerBell)
+      bool isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
+      if (isTargetingSummoningBell)
       {
         mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
         if (mappedNpc != null) isRetainer = true;
@@ -82,9 +82,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (speaker == "???")
       mappedNpc = GetNpcFromMappings(SpeakerMappingType.Nameless, sentence);
 
-    NpcEntry? npc = mappedNpc ?? GetNpc(speaker);
+    NpcEntry? npc = mappedNpc ?? GetNpc(source, speaker);
     if (npc == null || npc.HasVariedLooks)
-      npc = await _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc);
+      npc = await _gameInteropService.RunOnFrameworkThread(() => _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc));
 
     VoiceEntry? voice = null;
     if (!(npc?.HasVariedLooks ?? false) && _dataService.Manifest.Voices.TryGetValue(npc?.VoiceId ?? "", out VoiceEntry? _voice))
@@ -92,8 +92,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     else
     {
       voice = GetGenericVoice(npc);
+
       // Set the VoiceId so the report accurately represents the voice we expect the line to be.
-      if (voice != null && npc != null)
+      if (source != MessageSource.ChatMessage && voice != null && npc != null)
         npc.VoiceId = voice.Id;
     }
 
@@ -102,11 +103,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     // Cache player npc to assign a gender to chatmessage tts when they're not near you.
     if (source == MessageSource.ChatMessage && npc != null)
-      _dataService.CachePlayer(origSpeaker, npc);
+      _dataService.CachePlayer(rawSpeaker, npc);
 
     // Try to retrieve said cached npc if they're not near you.
     if (source == MessageSource.ChatMessage && npc == null)
-      npc = _dataService.TryGetCachedPlayer(origSpeaker);
+      npc = _dataService.TryGetCachedPlayer(rawSpeaker);
 
     // Clean message and replace names with new replacement method.
     (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
@@ -133,8 +134,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       voice,
       cleanedSpeaker,
       cleanedSentence,
-      origSpeaker,
-      origSentence,
+      rawSpeaker,
+      rawSentence,
       npc,
       voicelinePath
     );
@@ -165,12 +166,15 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         break;
     }
 
+    if (source == MessageSource.AddonMiniTalk && _configuration.PrintBubbleMessages)
+      _logger.Chat(message.RawSentence, "", "", npc?.Name ?? "Bubble", XivChatType.NPCDialogue, false);
+
     if (isNarrator && _configuration.PrintNarratorMessages)
-      _logger.Chat(message.OriginalSentence, "", "", "Narrator", XivChatType.NPCDialogue, false);
+      _logger.Chat(message.RawSentence, "", "", "Narrator", XivChatType.NPCDialogue, false);
 
     if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled))
     {
-      _logger.Debug($"Not playing line due to user configuration: {allowed} {isNarrator} {isRetainer} {message.IsLocalTTS}");
+      _logger.Debug($"Not playing line due to user configuration. allowed:{allowed} isNarrator:{isNarrator} isRetainer:{isRetainer} isLocalTTS:{message.IsLocalTTS}");
       return;
     }
 

@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
+using InteropGenerator.Runtime;
 
 namespace XivVoices.Services;
 
@@ -11,7 +12,7 @@ public interface ISoundFilter : IHostedService
 // This intercepts all sounds that are loaded and played,
 // allowing us to block XIVV's voices if a line is voiced,
 // and to block ARR's in-game voices.
-public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInteropProvider _interopProvider) : ISoundFilter
+public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IGameInteropProvider _interopProvider) : ISoundFilter
 {
   private const int ResourceDataPointerOffset = 0xB0;
   private readonly ConcurrentDictionary<IntPtr, string> _scds = new();
@@ -82,34 +83,38 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
     return (noSoundPtr, infoPtr);
   }
 
-  private unsafe delegate void* GetResourceSyncDelegate(IntPtr pFileManager, uint* pCategoryId, char* pResourceType, uint* pResourceHash, char* pPath, void* pUnknown);
-  [Signature("E8 ?? ?? ?? ?? 48 8B D8 8B C7", DetourName = nameof(GetResourceSyncDetour))]
+  private unsafe delegate void* GetResourceSyncDelegate(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown);
+  [Signature("E8 ?? ?? ?? ?? 48 8B C8 8B C3 F0 0F C0 81", DetourName = nameof(GetResourceSyncDetour))]
   private readonly Hook<GetResourceSyncDelegate> _getResourceSyncHook = null!;
-  private unsafe void* GetResourceSyncDetour(IntPtr pFileManager, uint* pCategoryId, char* pResourceType, uint* pResourceHash, char* pPath, void* pUnknown)
+  private unsafe void* GetResourceSyncDetour(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown)
   {
-    void* ret = _getResourceSyncHook.Original(pFileManager, pCategoryId, pResourceType, pResourceHash, pPath, pUnknown);
-    GetResourceDetourInner(ret, pPath);
+    void* ret = _getResourceSyncHook.Original(resourceManager, category, type, hash, path, unknown);
+    if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceSync)
+      _selfTestService.Report_SoundFilter_GetResourceSync(path.ToString());
+    GetResourceDetourInner(ret, path);
     return ret;
   }
 
-  private unsafe delegate void* GetResourceAsyncDelegate(IntPtr pFileManager, uint* pCategoryId, char* pResourceType, uint* pResourceHash, char* pPath, void* pUnknown, bool isUnknown);
-  [Signature("E8 ?? ?? ?? ?? 48 8B D8 EB 07 F0 FF 83", DetourName = nameof(GetResourceAsyncDetour))]
+  private unsafe delegate void* GetResourceAsyncDelegate(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown);
+  [Signature("E8 ?? ?? ?? 00 48 8B D8 EB ?? F0 FF 83 ?? ?? 00 00", DetourName = nameof(GetResourceAsyncDetour))]
   private readonly Hook<GetResourceAsyncDelegate> _getResourceAsyncHook = null!;
-  private unsafe void* GetResourceAsyncDetour(IntPtr pFileManager, uint* pCategoryId, char* pResourceType, uint* pResourceHash, char* pPath, void* pUnknown, bool isUnknown)
+  private unsafe void* GetResourceAsyncDetour(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown)
   {
-    void* ret = _getResourceAsyncHook.Original(pFileManager, pCategoryId, pResourceType, pResourceHash, pPath, pUnknown, isUnknown);
-    GetResourceDetourInner(ret, pPath);
+    void* ret = _getResourceAsyncHook.Original(resourceManager, category, type, hash, path, unknown, isUnknown);
+    if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceAsync)
+      _selfTestService.Report_SoundFilter_GetResourceAsync(path.ToString());
+    GetResourceDetourInner(ret, path);
     return ret;
   }
 
-  private unsafe void GetResourceDetourInner(void* ret, char* pPath)
+  private unsafe void GetResourceDetourInner(void* ret, CStringPointer path)
   {
-    if (ret != null && EndsWithDotScd((byte*)pPath))
+    if (ret != null && EndsWithDotScd(path))
     {
       nint scdData = Marshal.ReadIntPtr((IntPtr)ret + ResourceDataPointerOffset);
       // if we immediately have the scd data, cache it, otherwise add it to a waiting list to hopefully be picked up at sound play time
       if (scdData != IntPtr.Zero)
-        _scds[scdData] = ReadTerminatedString((byte*)pPath);
+        _scds[scdData] = path.ToString();
     }
   }
 
@@ -123,6 +128,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
     {
       ResourceHandle* handle = (ResourceHandle*)resourceHandle;
       string name = handle->FileName.ToString();
+      if (_selfTestService.Step == SelfTestStep.SoundFilter_LoadSoundFile)
+        _selfTestService.Report_SoundFilter_LoadSoundFile(name);
       if (name.EndsWith(".scd"))
       {
         nint dataPtr = Marshal.ReadIntPtr(resourceHandle + ResourceDataPointerOffset);
@@ -144,6 +151,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
   {
     try
     {
+      if (_selfTestService.Step == SelfTestStep.SoundFilter_PlaySpecificSound)
+        _selfTestService.Report_SoundFilter_PlaySpecificSound(a1, idx);
       bool shouldFilter = PlaySpecificSoundDetourInner(a1, idx);
       if (shouldFilter)
       {
@@ -193,41 +202,19 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, IGameInt
     return false;
   }
 
-  private unsafe bool EndsWithDotScd(byte* pPath)
+  private unsafe bool EndsWithDotScd(byte* path)
   {
-    if (pPath == null) return false;
+    if (path == null) return false;
 
     int len = 0;
-    while (pPath[len] != 0) len++;
+    while (path[len] != 0) len++;
 
     if (len < 4) return false;
 
-    return pPath[len - 4] == (byte)'.' &&
-      pPath[len - 3] == (byte)'s' &&
-      pPath[len - 2] == (byte)'c' &&
-      pPath[len - 1] == (byte)'d';
-  }
-
-  private unsafe byte[] ReadTerminatedBytes(byte* ptr)
-  {
-    if (ptr == null)
-    {
-      return [];
-    }
-
-    List<byte> bytes = [];
-    while (*ptr != 0)
-    {
-      bytes.Add(*ptr);
-      ptr += 1;
-    }
-
-    return [.. bytes];
-  }
-
-  private unsafe string ReadTerminatedString(byte* ptr)
-  {
-    return Encoding.UTF8.GetString(ReadTerminatedBytes(ptr));
+    return path[len - 4] == (byte)'.' &&
+      path[len - 3] == (byte)'s' &&
+      path[len - 2] == (byte)'c' &&
+      path[len - 1] == (byte)'d';
   }
 }
 
@@ -238,5 +225,5 @@ public class InterceptedSound(bool shouldBlock, string soundPath) : EventArgs
   public bool ShouldBlock { get; set; } = shouldBlock;
   public string SoundPath { get; set; } = soundPath;
 
-  public bool IsValid() => (DateTime.UtcNow - CreationDate).TotalSeconds <= 3;
+  public bool IsValid() => (DateTime.UtcNow - CreationDate).TotalSeconds <= 1;
 }

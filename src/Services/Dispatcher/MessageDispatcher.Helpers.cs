@@ -9,21 +9,16 @@ public partial class MessageDispatcher
     if (_dataService.Manifest == null) return null;
     string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
 
-    foreach (string key in _dataService.Manifest.SpeakerMappings[type].Keys)
-    {
-      if (Regex.Replace(key, @"[^a-zA-Z]", "").Equals(sanitizedSentence))
-      {
-        string npcId = _dataService.Manifest.SpeakerMappings[type][key];
-        if (_dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
-          return npc;
-      }
-    }
+    if (_dataService.Manifest.SpeakerMappings[type].TryGetValue(sanitizedSentence, out string? npcId))
+      if (_dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
+        return npc;
 
     return null;
   }
 
-  private NpcEntry? GetNpc(string speaker)
+  private NpcEntry? GetNpc(MessageSource source, string speaker)
   {
+    if (source == MessageSource.ChatMessage) return null;
     if (_dataService.Manifest == null) return null;
     if (_dataService.Manifest.Npcs.TryGetValue(speaker, out NpcEntry? npc))
       return npc;
@@ -34,9 +29,18 @@ public partial class MessageDispatcher
   {
     return Task.Run(() =>
     {
-      string id = Md5(voice?.Name ?? "Unknown", npc?.Name ?? "Unknown", sentence);
+      string voiceName = voice?.Name ?? "Unknown";
+      string npcName = npc?.Name ?? "Unknown";
+      string id = Md5(voiceName, npcName, sentence);
+      _logger.Debug($"Searching for voiceline: ({voiceName}:{npcName}:{sentence}) ({id})");
       string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
-      if (!File.Exists(voicelinePath)) return (id, null);
+      if (!File.Exists(voicelinePath))
+      {
+        _logger.Debug("Voiceline not found.");
+        return (id, null);
+      }
+
+      _logger.Debug("Voiceline found.");
       return (id, (string?)voicelinePath);
     });
   }
@@ -280,21 +284,21 @@ public partial class MessageDispatcher
     VoiceEntry? voice = null;
     if (npc.Body == "Beastman")
     {
-      string key1 = npc.Tribe;
+      string key1 = npc.Race + npc.Gender;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key1, out NpcEntry? _npc1))
-        if (_dataService.Manifest.Voices.TryGetValue(_npc1.VoiceId, out VoiceEntry? _voice1))
+        if (_npc1.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc1.VoiceId, out VoiceEntry? _voice1))
           voice = _voice1;
 
-      string key2 = npc.Tribe + npc.Gender;
+      string key2 = npc.Race;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key2, out NpcEntry? _npc2))
-        if (_dataService.Manifest.Voices.TryGetValue(_npc2.VoiceId, out VoiceEntry? _voice2))
+        if (_npc2.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc2.VoiceId, out VoiceEntry? _voice2))
           voice = _voice2;
     }
     else
     {
       string key = npc.Gender + npc.Race + npc.Tribe + npc.Body + npc.Eyes;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key, out NpcEntry? _npc))
-        if (_dataService.Manifest.Voices.TryGetValue(_npc.VoiceId, out VoiceEntry? _voice))
+        if (_npc.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc.VoiceId, out VoiceEntry? _voice))
           voice = _voice;
     }
 

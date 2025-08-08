@@ -1,3 +1,5 @@
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+
 namespace XivVoices.Services;
 
 public interface ILipSync
@@ -6,7 +8,7 @@ public interface ILipSync
   void TryStopLipSync(XivMessage message);
 }
 
-public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropService, IFramework _framework) : ILipSync
+public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, IFramework _framework) : ILipSync
 {
   // ActionTimeline exd sheet
   private const ushort SpeakNone = 0;
@@ -31,7 +33,7 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
 
     TryStopLipSync(message);
 
-    IntPtr character = await _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
+    IntPtr character = await _gameInteropService.RunOnFrameworkThread(() => _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0));
     if (character == IntPtr.Zero)
     {
       _logger.Debug($"No lipsync target found for speaker {message.Speaker} ({message.Npc?.BaseId})");
@@ -48,8 +50,8 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
     }
 
     CancellationToken token = cts.Token;
-    CharacterMode initialCharacterMode = TryGetCharacterMode(character);
-    CharacterMode characterMode = CharacterMode.EmoteLoop;
+    CharacterModes initialCharacterMode = TryGetCharacterMode(character);
+    CharacterModes characterMode = CharacterModes.EmoteLoop;
 
     int durationMs = (int)(durationSeconds * 1000);
     int durationRounded = (int)Math.Floor(durationSeconds);
@@ -132,7 +134,7 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
     }
   }
 
-  private async Task AnimateLipSync(IntPtr character, CharacterMode initialMode, CharacterMode targetMode, ushort speakValue, int delayMs, CancellationToken token)
+  private async Task AnimateLipSync(IntPtr character, CharacterModes initialMode, CharacterModes targetMode, ushort speakValue, int delayMs, CancellationToken token)
   {
     if (token.IsCancellationRequested || character == IntPtr.Zero) return;
 
@@ -176,5 +178,26 @@ public partial class LipSync(ILogger _logger, IGameInteropService _gameInteropSe
 
     _logger.Debug($"CalculateAdjustedDelay fell through: {durationMs}, {lipSyncType}");
     return 404;
+  }
+
+  private unsafe void TrySetLipsOverride(IntPtr _character, ushort lipsOverride)
+  {
+    Character* character = (Character*)_character;
+    if (character == null) return;
+    character->Timeline.SetLipsOverrideTimeline(lipsOverride);
+  }
+
+  private unsafe CharacterModes TryGetCharacterMode(IntPtr _character)
+  {
+    Character* character = (Character*)_character;
+    if (character == null) return CharacterModes.None;
+    return character->Mode;
+  }
+
+  private unsafe void TrySetCharacterMode(IntPtr _character, CharacterModes mode)
+  {
+    Character* character = (Character*)_character;
+    if (character == null) return;
+    character->SetMode(mode, 0);
   }
 }

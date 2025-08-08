@@ -35,39 +35,39 @@ public partial class ConfigWindow
       ImGui.TableHeadersRow();
 
       ImGui.TableNextRow();
-      ImGui.TableSetColumnIndex(0);
-      ImGui.TextUnformatted("Dialogue");
+      ImGui.TableNextColumn();
+      ImGui.Text("Dialogue");
 
-      ImGui.TableSetColumnIndex(1);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonTalkEnabled", ref _configuration.AddonTalkEnabled, false);
 
-      ImGui.TableSetColumnIndex(2);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonTalkTTSEnabled", ref _configuration.AddonTalkTTSEnabled, false);
 
-      ImGui.TableSetColumnIndex(3);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonTalkNarratorEnabled", ref _configuration.AddonTalkNarratorEnabled, false);
 
       ImGui.TableNextRow();
-      ImGui.TableSetColumnIndex(0);
-      ImGui.TextUnformatted("Battle Dialogue");
+      ImGui.TableNextColumn();
+      ImGui.Text("Battle Dialogue");
 
-      ImGui.TableSetColumnIndex(1);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonBattleTalkEnabled", ref _configuration.AddonBattleTalkEnabled, false);
 
-      ImGui.TableSetColumnIndex(2);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonBattleTalkTTSEnabled", ref _configuration.AddonBattleTalkTTSEnabled, false);
 
-      ImGui.TableSetColumnIndex(3);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonBattleTalkNarratorEnabled", ref _configuration.AddonBattleTalkNarratorEnabled, false);
 
       ImGui.TableNextRow();
-      ImGui.TableSetColumnIndex(0);
-      ImGui.TextUnformatted("Bubbles");
+      ImGui.TableNextColumn();
+      ImGui.Text("Bubbles");
 
-      ImGui.TableSetColumnIndex(1);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonMiniTalkEnabled", ref _configuration.AddonMiniTalkEnabled, false);
 
-      ImGui.TableSetColumnIndex(2);
+      ImGui.TableNextColumn();
       DrawConfigCheckbox("AddonMiniTalkTTSEnabled", ref _configuration.AddonMiniTalkTTSEnabled, false);
     }
 
@@ -85,9 +85,10 @@ public partial class ConfigWindow
     """;
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted(autoAdvanceHelp);
+        ImGui.Text(autoAdvanceHelp);
 
     DrawConfigCheckbox("Retainers Enabled", ref _configuration.RetainersEnabled);
+    DrawConfigCheckbox("Print Bubble Messages", ref _configuration.PrintBubbleMessages);
     DrawConfigCheckbox("Print Narrator Messages", ref _configuration.PrintNarratorMessages);
     DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
   }

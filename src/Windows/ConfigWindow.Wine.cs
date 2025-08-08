@@ -6,7 +6,7 @@ public partial class ConfigWindow
   {
     if (!Util.IsWine())
     {
-      ImGui.TextUnformatted("You are not using wine.");
+      ImGui.Text("You are not using wine.");
       return;
     }
 
@@ -58,7 +58,7 @@ public partial class ConfigWindow
 
         if (ImGui.IsItemHovered())
           using (ImRaii.Tooltip())
-            ImGui.TextUnformatted("Copies the command to start the ffmpeg-wine daemon manually. Run this in your native linux/macos console.");
+            ImGui.Text("Copies the command to start the ffmpeg-wine daemon manually. Run this in your native linux/macos console.");
       }
 
       if (!_audioPostProcessor.FFmpegWineProcessRunning)

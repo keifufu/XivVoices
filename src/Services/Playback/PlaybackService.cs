@@ -96,29 +96,20 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         (track.Message.Source == MessageSource.ChatMessage && _configuration.DirectionalAudioForChat)
       )
       {
-        Camera* camera = CameraManager.Instance()->GetActiveCamera();
-        if (camera == null) return;
-
-        Character* speaker = (Character*)_gameInteropService.TryFindCharacter_NoThreadCheck(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
-        if (speaker == null) return;
-
         if (_clientState.LocalPlayer == null) return;
-
         if (track.Message.Speaker == _clientState.LocalPlayer.Name.ToString()) return;
-
         Vector3 playerPosition = _clientState.LocalPlayer.Position;
+
+        Character* speaker = (Character*)_gameInteropService.TryFindCharacter(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
+        if (speaker == null) return;
         Vector3 speakerPosition = new(speaker->Position.X, speaker->Position.Y, speaker->Position.Z);
 
-        Matrix4x4 cameraViewMatrix = camera->CameraBase.SceneCamera.ViewMatrix;
-        Vector3 cameraForward = Vector3.Normalize(new Vector3(cameraViewMatrix.M13, cameraViewMatrix.M23, cameraViewMatrix.M33));
-        Vector3 cameraUp = Vector3.Normalize(camera->CameraBase.SceneCamera.Vector_1);
-        Vector3 cameraRight = Vector3.Normalize(Vector3.Cross(cameraUp, cameraForward));
-
         Vector3 relativePosition = speakerPosition - playerPosition;
-
         float distance = relativePosition.Length();
 
-        float dotProduct = Vector3.Dot(relativePosition, cameraRight);
+        CameraView camera = _gameInteropService.GetCameraView();
+
+        float dotProduct = Vector3.Dot(relativePosition, camera.Right);
         float balance = Math.Clamp(dotProduct / 20, -1, 1);
 
         float volume = track.Volume;

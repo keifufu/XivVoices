@@ -14,7 +14,7 @@ public enum ConfigWindowTab
   SelfTest,
 }
 
-public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
+public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
 {
   public ConfigWindowTab SelectedTab { get; set; } = ConfigWindowTab.Overview;
 
@@ -55,7 +55,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         if (_configuration.DebugMode)
         {
           DrawImageButton(ConfigWindowTab.Debug, "Debug", GetImGuiHandleForIconId(28));
-          DrawImageButton(ConfigWindowTab.SelfTest, "Self Test", GetImGuiHandleForIconId(73));
+          DrawImageButton(ConfigWindowTab.SelfTest, "Self-Test", GetImGuiHandleForIconId(73));
         }
       }
     }
@@ -109,7 +109,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     {
       using (ImRaii.Disabled(_dataService.DataDirectory == null))
       {
-        if (ImGui.ImageButton(discord.ImGuiHandle, ScaledVector2(42, 42)))
+        if (ImGui.ImageButton(discord.Handle, ScaledVector2(42, 42)))
         {
           Util.OpenLink("https://discord.gg/jX2vxDRkyq");
         }
@@ -118,7 +118,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.TextUnformatted("Join Our Discord Community");
+        ImGui.Text("Join Our Discord Community");
 
     if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
     {
@@ -142,7 +142,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     }
   }
 
-  private void DrawImageButton(ConfigWindowTab tab, string tabName, IntPtr imageHandle)
+  private void DrawImageButton(ConfigWindowTab tab, string tabName, ImTextureID imageHandle)
   {
     ImGuiStylePtr style = ImGui.GetStyle();
     if (SelectedTab == tab)
@@ -166,14 +166,14 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
       if (ImGui.IsItemHovered())
         using (ImRaii.Tooltip())
-          ImGui.TextUnformatted(tabName);
+          ImGui.Text(tabName);
     }
   }
 
-  private IntPtr GetImGuiHandleForIconId(uint iconId)
+  private ImTextureID GetImGuiHandleForIconId(uint iconId)
   {
     if (_textureProvider.TryGetFromGameIcon(new GameIconLookup(iconId), out ISharedImmediateTexture? icon))
-      return icon.GetWrapOrEmpty().ImGuiHandle;
+      return icon.GetWrapOrEmpty().Handle;
     return 0;
   }
 

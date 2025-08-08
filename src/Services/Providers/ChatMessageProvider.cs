@@ -6,7 +6,7 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, IPlaybackService playbackService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IFramework _framework, IClientState _clientState) : PlaybackQueue(MessageSource.ChatMessage, _logger, playbackService, _messageDispatcher, _framework), IChatMessageProvider
+public class ChatMessageProvider(ILogger _logger, Configuration _configuration, IPlaybackService playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IFramework _framework, IClientState _clientState) : PlaybackQueue(MessageSource.ChatMessage, _logger, playbackService, _messageDispatcher, _framework), IChatMessageProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -47,6 +47,9 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
       }
     }
     catch { }
+
+    if (_selfTestService.Step == SelfTestStep.Provider_Chat)
+      _selfTestService.Report_Provider_Chat(type, speaker, sentence.ToString());
 
     bool allowed = false;
     switch (type)

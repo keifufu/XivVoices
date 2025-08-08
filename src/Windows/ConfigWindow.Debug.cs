@@ -4,8 +4,8 @@ public partial class ConfigWindow
 {
   private void DrawDebugTab()
   {
-    ImGui.TextUnformatted($"Currently Playing: {_playbackService.Debug_GetPlaying().Count()}");
-    ImGui.TextUnformatted($"Mixer Sources: {_playbackService.Debug_GetMixerSourceCount()}");
+    ImGui.Text($"Currently Playing: {_playbackService.Debug_GetPlaying().Count()}");
+    ImGui.Text($"Mixer Sources: {_playbackService.Debug_GetMixerSourceCount()}");
 
     DrawConfigCheckbox("Debug Logging", ref _configuration.DebugLogging);
 
@@ -18,6 +18,9 @@ public partial class ConfigWindow
     // make them a dropdown which shows you all options that are in the tools folder ending with .bytes and .config.json
     // add a reload button next to it so the list updates if you add more voices locally
     // localttsengine should then also handle voices not being there in case they get deleted
+
+    // "custom" models should be stored in another folder to not be overwritten by tools.zip update
+    // localtts should also just fall back to the default models that will likely always exist in tools.
     DrawConfigText("LocalTTSVoiceMale", "LocalTTSVoiceMale (needs restart)", _configuration.LocalTTSVoiceMale, (value) =>
     {
       _configuration.LocalTTSVoiceMale = value;

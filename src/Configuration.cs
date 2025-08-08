@@ -32,6 +32,7 @@ public class Configuration : IPluginConfiguration
 
   public bool AutoAdvanceEnabled = true;
   public bool RetainersEnabled = true;
+  public bool PrintBubbleMessages = true;
   public bool PrintNarratorMessages = true;
   public bool ReplaceVoicedARRCutscenes = true;
 

@@ -11,9 +11,10 @@ public class VoiceEntry
 }
 public class NpcEntry
 {
-  public required string Id { get; set; }
+  // Id and VoiceId are nullable because GameInteropService can set them to be null for new npcs.
+  public required string? Id { get; set; }
   public required string Name { get; set; }
-  public required string VoiceId { get; set; }
+  public required string? VoiceId { get; set; }
   public required string Gender { get; set; }
   public required string Race { get; set; }
   public required string Tribe { get; set; }

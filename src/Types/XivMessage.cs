@@ -1,20 +1,24 @@
 namespace XivVoices.Types;
 
-public class XivMessage(string id, MessageSource source, VoiceEntry? voice, string speaker, string sentence, string originalSpeaker, string originalSentence, NpcEntry? npc, string? voicelinePath)
+public class XivMessage(string id, MessageSource source, VoiceEntry? voice, string speaker, string sentence, string rawSpeaker, string rawSentence, NpcEntry? npc, string? voicelinePath)
 {
   public string Id { get; } = id;
   public MessageSource Source { get; } = source;
-  public VoiceEntry? Voice { get; } = voice;
+
   public string Speaker { get; } = speaker;
   public string Sentence { get; } = sentence;
 
-  // Used for Audio Logs UI and for printing system messages
-  [JsonIgnore]
-  public string OriginalSpeaker { get; } = originalSpeaker;
-  [JsonIgnore]
-  public string OriginalSentence { get; } = originalSentence;
+  public string RawSpeaker { get; } = rawSpeaker;
+  public string RawSentence { get; } = rawSentence;
 
   public NpcEntry? Npc { get; } = npc;
+
+  // Used for AudioPostProcessing right now,
+  // we do some effects based on the voice name.
+  // Can get this from the Manifest via Npc?.VoiceId,
+  // but this is easier.
+  [JsonIgnore]
+  public VoiceEntry? Voice { get; } = voice;
 
   [JsonIgnore]
   public string? VoicelinePath => voicelinePath;

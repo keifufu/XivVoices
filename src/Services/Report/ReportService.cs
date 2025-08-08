@@ -1,6 +1,3 @@
-using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
-using FFXIVClientStructs.FFXIV.Client.Game;
-
 namespace XivVoices.Services;
 
 public interface IReportService : IHostedService
@@ -9,7 +6,7 @@ public interface IReportService : IHostedService
   void ReportWithReason(XivMessage message, string reason);
 }
 
-public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IFramework _framework, IDataManager _dataManager, IDalamudPluginInterface _pluginInterface) : IReportService
+public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IFramework _framework, IDalamudPluginInterface _pluginInterface) : IReportService
 {
   private bool _languageWarningThisSession = false;
   private bool _invalidPluginsWarningsThisSession = false;
@@ -200,50 +197,20 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       return;
     }
 
-    _framework.RunOnFrameworkThread(() =>
+    _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (!CanReport() || !_clientState.IsLoggedIn || _clientState.LocalPlayer == null) return;
 
       if (_configuration.LogReportsToChat)
         _logger.Chat($"Reporting: {message.Speaker}: {message.Sentence}");
 
-      string location = $"Unknown:{_clientState.TerritoryType}";
-      if (_dataManager.GetExcelSheet<TerritoryType>().TryGetRow(_clientState.TerritoryType, out TerritoryType territory))
-        location = $"{territory.PlaceNameRegion.Value.Name.ExtractText()}, {territory.PlaceName.Value.Name.ExtractText()}";
-
-      Vector3 coordsVec3 = MapUtil.GetMapCoordinates(_clientState.LocalPlayer);
-      string coordinates = $"X: {coordsVec3.X} Y: {coordsVec3.Y}";
-
-      List<string> activeQuests = [];
-      unsafe
-      {
-        foreach (QuestWork quest in QuestManager.Instance()->NormalQuests)
-        {
-          if (quest.QuestId is 0) continue;
-          if (_dataManager.GetExcelSheet<Quest>().TryGetRow(quest.QuestId + 65536u, out Quest questData))
-            activeQuests.Add(questData.Name.ExtractText());
-        }
-      }
-
-      List<string> activeLeves = [];
-      unsafe
-      {
-        foreach (LeveWork leve in QuestManager.Instance()->LeveQuests)
-        {
-          if (leve.LeveId is 0) continue;
-          if (_dataManager.GetExcelSheet<Leve>().TryGetRow(leve.LeveId, out Leve leveData))
-            activeLeves.Add(leveData.Name.ExtractText());
-        }
-      }
-
       XivReport report = new(
         message,
-        location,
-        coordinates,
+        _gameInteropService.GetLocation(),
         _gameInteropService.IsInCutscene(),
         _gameInteropService.IsInDuty(),
-        activeQuests,
-        activeLeves
+        _gameInteropService.GetActiveQuests(),
+        _gameInteropService.GetActiveLeves()
       );
 
       _ = SendOrSaveReport(report, _cts?.Token ?? default);

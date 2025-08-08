@@ -23,13 +23,13 @@ public partial class ConfigWindow
       IEnumerable<(XivMessage message, bool isPlaying, float percentage)> history = _playbackService.GetPlaybackHistory();
       if (!history.Any())
       {
-        ImGui.TextUnformatted("There are no voicelines in your history.");
+        ImGui.Text("There are no voicelines in your history.");
         return;
       }
 
       foreach ((XivMessage message, bool isPlaying, float percentage) in history)
       {
-        ImGui.TextWrapped($"{message.OriginalSpeaker}: {message.OriginalSentence}");
+        ImGui.TextWrapped($"{message.RawSpeaker}: {message.RawSentence}");
 
         float progressSize = 245;
         Vector4 plotHistogramColor = _green;

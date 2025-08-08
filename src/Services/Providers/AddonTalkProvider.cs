@@ -15,7 +15,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -45,24 +45,25 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   // but simply typing would then interrupt auto-advance.
   private unsafe bool CanAutoAdvance()
   {
-    AtkUnitBase* addon = (AtkUnitBase*)_gameGui.GetAddonByName("TalkAutoMessageSetting");
-    bool addonVisible = addon != null && addon->IsVisible;
+    AtkUnitBasePtr addon = _gameGui.GetAddonByName("TalkAutoMessageSetting");
     return !_configuration.MuteEnabled
       && _configuration.AutoAdvanceEnabled
       && !_keyState[VirtualKey.MENU]
       && _gamepadState.Pressed(GamepadButtons.North) == 0
-      && !addonVisible;
+      && !addon.IsVisible;
   }
 
   private const uint AdvanceIconNodeId = 8;
   private const uint AutoAdvanceIconNodeId = 9;
   private unsafe void OnAddonTalkPreDraw(AddonEvent _, AddonArgs args)
   {
-    AddonTalk* addon = (AddonTalk*)args.Addon;
+    AddonTalk* addon = (AddonTalk*)args.Addon.Address;
     if (CanAutoAdvance() && _playbackService.IsPlaying(MessageSource.AddonTalk))
     {
       AtkResNode* advanceIconNode = addon->UldManager.SearchNodeById(AdvanceIconNodeId);
       AtkResNode* autoAdvanceIconNode = addon->UldManager.SearchNodeById(AutoAdvanceIconNodeId);
+      if (advanceIconNode == null) return;
+      if (autoAdvanceIconNode == null) return;
 
       if (advanceIconNode->IsVisible())
       {
@@ -91,10 +92,10 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
   private unsafe void OnFrameworkUpdate(IFramework framework)
   {
-    AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk");
+    AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
     if (addon == null) return;
 
-    bool visible = addon->AtkUnitBase.IsVisible;
+    bool visible = addon->IsVisible;
     if (visible != _lastVisible)
     {
       _lastVisible = visible;
@@ -113,6 +114,9 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
     if (_lastSpeaker != speaker || _lastSentence != sentence)
     {
+      if (_selfTestService.Step == SelfTestStep.Provider_Talk)
+        _selfTestService.Report_Provider_Talk(speaker, sentence);
+
       _lastSpeaker = speaker;
       _lastSentence = sentence;
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
@@ -133,12 +137,12 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
     _framework.RunOnFrameworkThread(() =>
     {
-      AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk");
+      AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
       if (addon == null) return;
       if (!addon->IsVisible) return;
 
       (string speaker, string sentence) = GetSpeakerAndSentence(addon);
-      if (speaker != message.OriginalSpeaker || sentence != message.OriginalSentence)
+      if (speaker != message.RawSpeaker || sentence != message.RawSentence)
       {
         _logger.Debug("addontalk speaker or sentence changed, not auto-advancing.");
         return;

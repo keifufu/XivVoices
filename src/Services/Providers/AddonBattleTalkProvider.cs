@@ -7,10 +7,10 @@ namespace XivVoices.Services;
 public interface IAddonBattleTalkProvider : IHostedService;
 
 // PostRefresh is too early here? Guess I'm polling this one too.
-public class AddonBattleTalkProvider(ILogger _logger, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : IAddonBattleTalkProvider
+public class AddonBattleTalkProvider(ILogger _logger, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : IAddonBattleTalkProvider
 {
-  private string LastSpeaker = "";
-  private string LastSentence = "";
+  private string _lastSpeaker = "";
+  private string _lastSentence = "";
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -30,17 +30,20 @@ public class AddonBattleTalkProvider(ILogger _logger, IMessageDispatcher _messag
 
   private unsafe void OnBattleTalkAddonPostDraw(AddonEvent type, AddonArgs args)
   {
-    AddonBattleTalk* addon = (AddonBattleTalk*)args.Addon;
+    AddonBattleTalk* addon = (AddonBattleTalk*)args.Addon.Address;
     if (addon == null) return;
 
     string speaker = _gameInteropService.ReadTextNode(addon->Speaker);
     if (string.IsNullOrEmpty(speaker)) speaker = "Narrator";
     string sentence = _gameInteropService.ReadTextNode(addon->Sentence);
 
-    if (LastSpeaker != speaker || LastSentence != sentence)
+    if (_lastSpeaker != speaker || _lastSentence != sentence)
     {
-      LastSpeaker = speaker;
-      LastSentence = sentence;
+      if (_selfTestService.Step == SelfTestStep.Provider_BattleTalk)
+        _selfTestService.Report_Provider_BattleTalk(speaker, sentence);
+
+      _lastSpeaker = speaker;
+      _lastSentence = sentence;
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
       _ = _messageDispatcher.TryDispatch(MessageSource.AddonBattleTalk, speaker, sentence);
     }

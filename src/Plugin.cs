@@ -66,6 +66,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<ICommandService, CommandService>();
         collection.AddSingleton<ILocalTTSService, LocalTTSService>();
         collection.AddSingleton<IPlaybackService, PlaybackService>();
+        collection.AddSingleton<ISelfTestService, SelfTestService>();
         collection.AddSingleton<IAddonTalkProvider, AddonTalkProvider>();
         collection.AddSingleton<IMessageDispatcher, MessageDispatcher>();
         collection.AddSingleton<IAudioPostProcessor, AudioPostProcessor>();

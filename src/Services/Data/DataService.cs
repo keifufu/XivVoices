@@ -228,25 +228,31 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
 
       foreach (NpcEntry entry in json.Npcs)
       {
-        manifest.Npcs[entry.Id] = entry;
-        foreach (string speaker in entry.Speakers)
+        if (entry.Id != null)
         {
-          manifest.Npcs[speaker] = entry;
+          manifest.Npcs[entry.Id] = entry;
+          foreach (string speaker in entry.Speakers)
+          {
+            manifest.Npcs[speaker] = entry;
+          }
         }
       }
 
       foreach (NpcEntry entry in json.Npcs)
       {
+        if (entry.VoiceId == null) continue;
         if (!manifest.Voices.TryGetValue(entry.VoiceId, out VoiceEntry? voice)) continue;
         if (!voice.IsGeneric) continue;
 
         if (entry.Body == "Beastman")
         {
-          string key1 = entry.Tribe;
+          string key1 = entry.Race;
           if (!manifest.Npcs_Generic.ContainsKey(key1))
+          {
             manifest.Npcs_Generic[key1] = entry;
+          }
 
-          string key2 = entry.Tribe + entry.Gender;
+          string key2 = entry.Race + entry.Gender;
           if (!manifest.Npcs_Generic.ContainsKey(key2))
             manifest.Npcs_Generic[key2] = entry;
         }
@@ -259,10 +265,11 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       }
 
       foreach (SpeakerMappingEntry entry in json.SpeakerMappings)
-        {
+      {
         if (!manifest.SpeakerMappings.ContainsKey(entry.Type))
           manifest.SpeakerMappings[entry.Type] = [];
-        manifest.SpeakerMappings[entry.Type][entry.Sentence] = entry.NpcId;
+        string sanitizedSentence = Regex.Replace(entry.Sentence, @"[^a-zA-Z]", "");
+        manifest.SpeakerMappings[entry.Type][sanitizedSentence] = entry.NpcId;
       }
 
       Manifest = manifest;
