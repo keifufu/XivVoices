@@ -15,7 +15,7 @@
     "IsTestingExclusive": false,
     "RepoUrl": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices",
     "ApplicableVersion": "any",
-    "DalamudApiLevel": 12,
+    "DalamudApiLevel": 13,
     "TestingDalamudApiLevel": 0,
     "DownloadCount": 13,
     "LastUpdate": 1754659251,
