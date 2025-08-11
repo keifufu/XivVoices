@@ -473,6 +473,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
+  private int _subsequentFails = 0;
   private async Task DownloadFile(string filePath, string fileName, CancellationToken token)
   {
     try
@@ -482,11 +483,17 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       response.EnsureSuccessStatusCode();
       byte[] fileBytes = await response.Content.ReadAsByteArrayAsync(token);
       await File.WriteAllBytesAsync(filePath, fileBytes, token);
+      _subsequentFails = 0;
     }
     catch (HttpRequestException httpEx)
     {
-      _logger.Error(httpEx);
-      ServerOnline = false;
+      _subsequentFails++;
+      // Not that critical if a voiceline failed, i guess.
+      if (_subsequentFails > 15 || !fileName.Contains(".ogg"))
+      {
+        _logger.Error(httpEx);
+        ServerOnline = false;
+      }
     }
     catch (OperationCanceledException)
     {
