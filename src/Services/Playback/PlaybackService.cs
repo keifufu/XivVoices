@@ -12,6 +12,7 @@ public interface IPlaybackService : IHostedService
   void StopAll();
   void Stop(MessageSource source);
   void Stop(string id);
+  void Skip();
 
   bool IsPlaying(MessageSource source);
 
@@ -236,6 +237,15 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _ = FadeOutAndStopAsync(track);
     else
       _logger.Debug($"Failed to find playing audio with id {id}");
+  }
+
+  public void Skip()
+  {
+    _logger.Debug("Skipping the most recently playing voiceline.");
+
+    KeyValuePair<string, TrackableSound> lastTrack = _playing.LastOrDefault();
+    if (lastTrack.Value != null)
+      _ = FadeOutAndStopAsync(lastTrack.Value);
   }
 
   public bool IsPlaying(MessageSource source)

@@ -48,6 +48,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat("Available commands:");
         _logger.Chat($"  {command} help - Display this help menu");
         _logger.Chat($"  {command} mute - Toggle the muted state");
+        _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
         _logger.Chat($"  {command} settings - Open the settings window");
         _logger.Chat($"  {command} overview - Open the overview tab");
         _logger.Chat($"  {command} dialogue - Open the dialogue settings tab");
@@ -68,6 +69,9 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _configuration.Save();
         if (mute) _playbackService.StopAll();
         _logger.Chat(mute ? "Muted" : "Unmuted");
+        break;
+      case "skip":
+        _playbackService.Skip();
         break;
       case "settings":
         _configWindow.Toggle();
