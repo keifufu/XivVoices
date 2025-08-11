@@ -49,15 +49,15 @@ public partial class ConfigWindow
     bool completeDisabled = false;
     switch (_selfTestService.Step)
     {
+      case SelfTestStep.Interop_GetActiveQuests:
+      case SelfTestStep.Interop_GetActiveLeves:
+        completeDisabled = _selfTestService.StepState != 2;
+        goto case SelfTestStep.Interop_Camera; // Draw Complete and Skip buttons
       case SelfTestStep.SoundFilter_GetResourceSync:
       case SelfTestStep.SoundFilter_GetResourceAsync:
       case SelfTestStep.SoundFilter_LoadSoundFile:
       case SelfTestStep.SoundFilter_PlaySpecificSound:
       case SelfTestStep.Provider_Talk_AutoAdvance:
-      case SelfTestStep.Interop_GetActiveQuests:
-      case SelfTestStep.Interop_GetActiveLeves:
-        completeDisabled = _selfTestService.StepState != 2;
-        goto case SelfTestStep.Interop_Camera;
       case SelfTestStep.Interop_Camera:
         ImGui.SameLine();
         using (ImRaii.Disabled(completeDisabled))
