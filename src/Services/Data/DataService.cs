@@ -5,6 +5,7 @@ public interface IDataService : IHostedService
   bool ServerOnline { get; set; }
   DataStatus DataStatus { get; }
   Manifest? Manifest { get; }
+  List<string> AvailableDrives { get; }
   string? DataDirectory { get; }
   string? ToolsDirectory { get; }
   string? VoicelinesDirectory { get; }
@@ -46,6 +47,20 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     {
       if (!_dataDirectoryExists) return null;
       return _configuration.DataDirectory;
+    }
+  }
+
+  private List<string> _availableDrives = [];
+  public List<string> AvailableDrives
+  {
+    get
+    {
+      if (_availableDrives.Count > 0) return _availableDrives;
+      _availableDrives = DriveInfo.GetDrives()
+        .Where(drive => drive.IsReady)
+        .Select(drive => drive.Name.Trim('\\'))
+        .ToList();
+      return _availableDrives;
     }
   }
 

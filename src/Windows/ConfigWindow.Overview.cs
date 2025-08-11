@@ -9,6 +9,7 @@ public partial class ConfigWindow
   private string? _selectedPath = null;
   private string? _errorMessage = null;
   private bool _isImport = false;
+  private string? _selectedDrive = null;
 
   // https://rgbcolorpicker.com/0-1
   private Vector4 _green = new(0.2f, 0.8f, 0.15f, 1.0f);
@@ -19,9 +20,18 @@ public partial class ConfigWindow
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
-    { "1.0.0.0", [ "Initial rewrite release" ] },
-  };
-
+    { "1.0.0.0", new[] {
+      "Initial rewrite release!",
+      "Starting from scratch, this plugin is way more maintainable and extendable than the old one.",
+      "The new data architecture has fixed a lot of issues will make voice generation much simpler in the future.",
+      "Improved error handling and logging has been added.",
+      "The UI has been mostly revamped! It features a better setup/updater and more configurable options.",
+      "Automatic reports now include more information to help us generate the voicelines.",
+      "Manual reports are back! You can report any voicelines with a reason in /xivv logs.",
+      "Debug options and self-tests have been added, but can you find how to enable them?",
+      "And there's more to come!"
+    }},
+};
   private void DrawHorizontallyCenteredText(string text, string? calcText = null)
   {
     float textWidth = ImGui.CalcTextSize(calcText ?? text).X;
@@ -66,9 +76,37 @@ public partial class ConfigWindow
 
     if (_dataService.DataDirectory == null)
     {
+      if (Util.IsWine())
+      {
+        ImGui.TextWrapped("Wine Deteted! It is recommended you select an installation directory on Z:, as C: is your wineprefix. Please manually select a folder your user has access to via \"Select Directory\".");
+        ImGui.Dummy(ScaledVector2(0, 10));
+      }
+
+      ImGui.SetNextItemWidth(ScaledFloat(160));
+      using (ImRaii.IEndObject combo = ImRaii.Combo("##Drives", _selectedDrive ?? "Select Drive"))
+      {
+        if (combo)
+        {
+          for (int i = 0; i < _dataService.AvailableDrives.Count; i++)
+          {
+            if (ImGui.Selectable(_dataService.AvailableDrives[i]))
+            {
+              _selectedDrive = _dataService.AvailableDrives[i];
+              _selectedPath = Path.Join(_selectedDrive, "XivVoices").Replace("\\", "/");
+              _isImport = false;
+              _errorMessage = null;
+            }
+          }
+        }
+      }
+
+      ImGui.SameLine();
+      ImGui.Text("OR");
+      ImGui.SameLine();
+
       using (ImRaii.PushColor(ImGuiCol.Button, _grey))
       {
-        if (ImGui.Button("Select Installation Directory", ScaledVector2(350, 40)))
+        if (ImGui.Button("Select Directory", ScaledVector2(160, 22)))
         {
           _fileDialogManager.OpenFolderDialog("Select installation directory", (ok, path) =>
           {
@@ -80,30 +118,33 @@ public partial class ConfigWindow
               _errorMessage = "The installation you selected is incompatible.\nPlease create a new one.";
               _selectedPath = null;
               _isImport = false;
+              _selectedDrive = null;
               return;
             }
 
-            if (File.Exists(Path.Join(path, "manifest.json")))
+            if (File.Exists(Path.Join(path, "manifest.json")) && File.Exists(Path.Join(path, "tools.md5")))
             {
               _errorMessage = null;
               _selectedPath = path;
               _isImport = true;
-              return;
-            }
-
-            if (!_dataService.ServerOnline)
-            {
-              _errorMessage = "You selected a new installation directory,\nbut the server is currently offline.\nPlease try again later or select\nan existing installation.";
-              _selectedPath = null;
-              _isImport = false;
+              _selectedDrive = null;
               return;
             }
 
             _errorMessage = null;
             _isImport = false;
+            _selectedDrive = null;
             _selectedPath = Path.Join(path, "XivVoices").Replace("\\", "/");
           }, "C:");
         }
+      }
+
+      if (_selectedPath != null && !_isImport && !_dataService.ServerOnline)
+      {
+        _errorMessage = "You selected a new installation directory,\nbut the server is currently offline.\nPlease try again later or select an existing installation.";
+        _selectedPath = null;
+        _isImport = false;
+        _selectedDrive = null;
       }
 
       ImGui.Dummy(ScaledVector2(0, 10));
@@ -114,7 +155,7 @@ public partial class ConfigWindow
 
       if (_selectedPath != null)
       {
-        DrawHorizontallyCenteredText($"Selected Path: {_selectedPath}");
+        DrawHorizontallyCenteredText($"Installation Directory: {_selectedPath}");
 
         using (ImRaii.PushColor(ImGuiCol.Button, _grey))
         {

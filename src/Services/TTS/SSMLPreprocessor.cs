@@ -52,6 +52,6 @@ public static class SSMLPreprocessor
       speechUnits.Add(new SpeechUnit { Text = currentUnit.ToString() });
     }
 
-    return [.. speechUnits];
+    return speechUnits.ToArray();
   }
 }
