@@ -88,7 +88,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     get
     {
       if (string.IsNullOrEmpty(_configuration.ServerUrl))
-        return "http://127.0.0.1:6969";
+        return "https://xivv.keifufu.dev";
       return _configuration.ServerUrl;
     }
     private set
@@ -108,7 +108,11 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   public void SetDataDirectory(string dataDirectory)
   {
     _dataDirectoryExists = Directory.Exists(dataDirectory);
-    if (!_dataDirectoryExists) return;
+    if (!_dataDirectoryExists)
+    {
+      Directory.CreateDirectory(dataDirectory);
+      _dataDirectoryExists = Directory.Exists(dataDirectory);
+    }
     _configuration.DataDirectory = dataDirectory;
     _configuration.Save();
 
@@ -370,6 +374,25 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       else
         Interlocked.Increment(ref DataStatus.UpdateSkippedFiles);
     }
+
+    foreach (string file in fileSizeMap.Keys)
+    {
+      if (!Manifest.Voicelines.ContainsKey(file))
+      {
+        try
+        {
+          string filePath = Path.Join(voicelinesDirectory, file);
+          _logger.Debug($"Deleting unknown file: {file}");
+          File.Delete(filePath);
+        }
+        catch (Exception ex)
+        {
+          _logger.Error(ex);
+        }
+      }
+    }
+
+    DataStatus.VoicelinesDownloaded = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Length;
 
     _logger.Debug($"{missingFiles.Count} files need to be updated");
     if (missingFiles.Count == 0)

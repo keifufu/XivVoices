@@ -8,6 +8,7 @@ public partial class ConfigWindow
   private readonly FileDialogManager _fileDialogManager = new();
   private string? _selectedPath = null;
   private string? _errorMessage = null;
+  private bool _isImport = false;
 
   // https://rgbcolorpicker.com/0-1
   private Vector4 _green = new(0.2f, 0.8f, 0.15f, 1.0f);
@@ -69,42 +70,39 @@ public partial class ConfigWindow
       {
         if (ImGui.Button("Select Installation Directory", ScaledVector2(350, 40)))
         {
-          _fileDialogManager.SaveFolderDialog("Select installation directory", "XivVoices", (ok, path) =>
+          _fileDialogManager.OpenFolderDialog("Select installation directory", (ok, path) =>
           {
             if (!ok) return;
             path = path.Replace("\\", "/");
-            if (Directory.EnumerateFileSystemEntries(path).Any())
+
+            if (File.Exists(Path.Join(path, "Data.json")))
             {
-              string legacyPath = Path.Join(path, "Data.json");
-              if (File.Exists(legacyPath))
-              {
-                _errorMessage = "The installation you selected is incompatible.\nPlease create a new one.";
-                _selectedPath = null;
-                return;
-              }
-
-              string manifestPath = Path.Join(path, "manifest.json");
-              if (!File.Exists(manifestPath))
-              {
-                _errorMessage = "The folder you selected is not empty\nand not a valid XivVoices installation.";
-                _selectedPath = null;
-                return;
-              }
-
-              _errorMessage = null;
-              _selectedPath = path;
+              _errorMessage = "The installation you selected is incompatible.\nPlease create a new one.";
+              _selectedPath = null;
+              _isImport = false;
               return;
             }
-            else if (!_dataService.ServerOnline)
+
+            if (File.Exists(Path.Join(path, "manifest.json")))
+            {
+              _errorMessage = null;
+              _selectedPath = path;
+              _isImport = true;
+              return;
+            }
+
+            if (!_dataService.ServerOnline)
             {
               _errorMessage = "You selected a new installation directory,\nbut the server is currently offline.\nPlease try again later or select\nan existing installation.";
               _selectedPath = null;
+              _isImport = false;
               return;
             }
 
             _errorMessage = null;
-            _selectedPath = path;
-          });
+            _isImport = false;
+            _selectedPath = Path.Join(path, "XivVoices").Replace("\\", "/");
+          }, "C:");
         }
       }
 
@@ -120,7 +118,7 @@ public partial class ConfigWindow
 
         using (ImRaii.PushColor(ImGuiCol.Button, _grey))
         {
-          if (ImGui.Button("Install / Import", ScaledVector2(350, 40)))
+          if (ImGui.Button(_isImport ? "Import" : "Install", ScaledVector2(350, 40)))
           {
             _dataService.SetDataDirectory(_selectedPath);
             _selectedPath = null;
