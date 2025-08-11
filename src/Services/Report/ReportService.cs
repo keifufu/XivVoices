@@ -6,7 +6,7 @@ public interface IReportService : IHostedService
   void ReportWithReason(XivMessage message, string reason);
 }
 
-public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IFramework _framework, IDalamudPluginInterface _pluginInterface) : IReportService
+public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IDalamudPluginInterface _pluginInterface) : IReportService
 {
   private bool _languageWarningThisSession = false;
   private bool _invalidPluginsWarningsThisSession = false;
