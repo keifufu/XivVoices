@@ -474,15 +474,37 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   }
 
   private int _subsequentFails = 0;
+  private int _cacheHits = 0;
+  private int _cacheMisses = 0;
+  private int _downloaded = 0;
   private async Task DownloadFile(string filePath, string fileName, CancellationToken token)
   {
     try
     {
-      string url = $"{ServerUrl}/download?filename={fileName}";
+      string url = $"{ServerUrl}/files/{fileName}";
       using HttpResponseMessage response = await _httpClient.GetAsync(url, token);
       response.EnsureSuccessStatusCode();
       byte[] fileBytes = await response.Content.ReadAsByteArrayAsync(token);
       await File.WriteAllBytesAsync(filePath, fileBytes, token);
+
+      bool cacheHit = false;
+      if (response.Headers.TryGetValues("cf-cache-status", out IEnumerable<string>? values))
+      {
+        string? cfCacheStatus = values.FirstOrDefault();
+        if (cfCacheStatus == "HIT") cacheHit = true;
+      }
+
+      if (cacheHit) _cacheHits++;
+      else _cacheMisses++;
+
+      if (++_downloaded >= 500)
+      {
+        _logger.Debug($"Cache Hits: {_cacheHits} | Cache Misses: {_cacheMisses}");
+        _downloaded = 0;
+        _cacheHits = 0;
+        _cacheMisses = 0;
+      }
+
       _subsequentFails = 0;
     }
     catch (HttpRequestException httpEx)
