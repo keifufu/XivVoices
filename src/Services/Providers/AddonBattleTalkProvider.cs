@@ -7,13 +7,15 @@ namespace XivVoices.Services;
 public interface IAddonBattleTalkProvider : IHostedService;
 
 // PostRefresh is too early here? Guess I'm polling this one too.
-public class AddonBattleTalkProvider(ILogger _logger, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : IAddonBattleTalkProvider
+public class AddonBattleTalkProvider(ILogger _logger, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IFramework _framework, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonBattleTalk, _logger, _playbackService, _messageDispatcher, _framework), IAddonBattleTalkProvider
 {
   private string _lastSpeaker = "";
   private string _lastSentence = "";
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
+    QueueStart();
+
     _addonLifecycle.RegisterListener(AddonEvent.PostDraw, "_BattleTalk", OnBattleTalkAddonPostDraw);
 
     _logger.ServiceLifecycle();
@@ -22,6 +24,8 @@ public class AddonBattleTalkProvider(ILogger _logger, ISelfTestService _selfTest
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
+    QueueStop();
+
     _addonLifecycle.UnregisterListener(OnBattleTalkAddonPostDraw);
 
     _logger.ServiceLifecycle();
@@ -45,7 +49,7 @@ public class AddonBattleTalkProvider(ILogger _logger, ISelfTestService _selfTest
       _lastSpeaker = speaker;
       _lastSentence = sentence;
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.AddonBattleTalk, speaker, sentence);
+      EnqueueMessage(speaker, sentence);
     }
   }
 }
