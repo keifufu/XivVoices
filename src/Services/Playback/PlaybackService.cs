@@ -109,7 +109,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         CameraView camera = _gameInteropService.GetCameraView();
 
         float dotProduct = Vector3.Dot(relativePosition, camera.Right);
-        float balance = Math.Clamp(dotProduct / 20, -1, 1);
+        float balance = Math.Clamp(dotProduct / 20, -0.95f, 0.95f);
 
         float volume = track.Volume;
 
@@ -146,7 +146,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         if (volume == track.Volume)
           volume = volumeRanges[^1].volumeEnd;
 
-        // Logger.Debug($"Updating track: volume::{volume} pan::{balance}");
+        // _logger.Debug($"Updating track: volume::{volume} pan::{balance}");
 
         track.Volume = volume;
         track.Pan = balance;
