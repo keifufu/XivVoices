@@ -54,7 +54,7 @@ public partial class ConfigWindow
             _ = _playbackService.Play(message, true);
         }
 
-        if (!message.IsLocalTTS)
+        if (!message.IsLocalTTS || message.RawSpeaker == "???")
         {
           ImGui.SameLine();
           using (ImRaii.Disabled(message.Reported))
