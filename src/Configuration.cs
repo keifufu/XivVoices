@@ -39,6 +39,7 @@ public class Configuration : IPluginConfiguration
   // Audio Settings
   public bool MuteEnabled = false;
   public bool LipSyncEnabled = false;
+  public bool QueueDialogue = false;
 
   public int Speed = 100;
   public int Volume = 100;

@@ -176,10 +176,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       oldTrack.Dispose();
     }
 
-    // We only allow one AddonTalk line to play at a time
-    if (message.Source == MessageSource.AddonTalk)
-      Stop(MessageSource.AddonTalk);
-
     TrackableSound track = new(_logger, message, sourceStream);
     await UpdateTrack(track);
     track.OnPlaybackStopped += t =>
@@ -310,6 +306,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     string key = _playing.FirstOrDefault(kvp => kvp.Value == track).Key;
     if (key != null)
       _playing.TryRemove(key, out _);
+
+    PlaybackCompleted?.Invoke(this, track.Message);
 
     _logger.Debug("Track faded out and stopped.");
   }

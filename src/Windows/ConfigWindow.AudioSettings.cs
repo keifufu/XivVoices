@@ -15,6 +15,12 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("Mute Enabled", ref _configuration.MuteEnabled);
     DrawConfigCheckbox("LipSync Enabled", ref _configuration.LipSyncEnabled);
+
+    DrawConfigCheckbox("Queue Dialogue", ref _configuration.QueueDialogue);
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Queues regular dialogue so it won't get skipped when you click away.");
+
     ImGui.Dummy(ScaledVector2(0, 10));
     DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
     DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);

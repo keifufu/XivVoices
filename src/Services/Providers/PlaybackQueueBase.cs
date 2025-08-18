@@ -21,7 +21,7 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
 {
   public bool QueueEnabled = true;
 
-  private Queue<(string speaker, string sentence, uint? speakerBaseId)> _queue = new();
+  private readonly Queue<(string speaker, string sentence, uint? speakerBaseId)> _queue = new();
   private PlaybackQueueState _playbackQueueState = PlaybackQueueState.Stopped;
   private DateTime _playbackStartTime;
 

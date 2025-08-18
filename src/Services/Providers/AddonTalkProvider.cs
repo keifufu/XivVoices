@@ -15,7 +15,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonTalk, _logger, _playbackService, _messageDispatcher, _framework), IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -23,6 +23,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
+    QueueStart();
+
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
     _addonLifecycle.RegisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
@@ -33,6 +35,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
+    QueueStop();
+
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
     _addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
@@ -102,7 +106,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
       if (visible == false)
       {
         _logger.Debug("AddonTalk was clicked away.");
-        _playbackService.Stop(MessageSource.AddonTalk);
+        if (!_configuration.QueueDialogue)
+          _playbackService.Stop(MessageSource.AddonTalk);
         _lastSpeaker = "";
         _lastSentence = "";
       }
@@ -120,7 +125,17 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
       _lastSpeaker = speaker;
       _lastSentence = sentence;
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence);
+
+      if (_configuration.QueueDialogue)
+      {
+        EnqueueMessage(speaker, sentence);
+      }
+      else
+      {
+        // We only allow one AddonTalk line to play at a time
+        _playbackService.Stop(MessageSource.AddonTalk);
+        _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence);
+      }
     }
   }
 
