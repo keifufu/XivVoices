@@ -75,21 +75,21 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
         {
           int delay = CalculateAdjustedDelay(mouthMovement[6] * 4000, 6);
           _logger.Debug($"Starting 4s lip movement. Delay: {delay}");
-          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalLong, delay, token);
+          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalLong, delay, token);
         }
 
         if (mouthMovement[5] > 0)
         {
           int delay = CalculateAdjustedDelay(mouthMovement[5] * 2000, 5);
           _logger.Debug($"Starting 2s lip movement. Delay: {delay}");
-          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalMiddle, delay, token);
+          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalMiddle, delay, token);
         }
 
         if (mouthMovement[4] > 0)
         {
           int delay = CalculateAdjustedDelay(mouthMovement[4] * 1000, 4);
           _logger.Debug($"Starting 1s lip movement. Delay: {delay}");
-          await AnimateLipSync(character, initialCharacterMode, characterMode, SpeakNormalShort, delay, token);
+          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalShort, delay, token);
         }
 
         _logger.Debug("LipSync completed successfully");
@@ -106,6 +106,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
       {
         await _framework.RunOnFrameworkThread(() =>
         {
+          IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
           TrySetCharacterMode(character, initialCharacterMode);
           TrySetLipsOverride(character, SpeakNone);
         });
@@ -134,22 +135,24 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
     }
   }
 
-  private async Task AnimateLipSync(IntPtr character, CharacterModes initialMode, CharacterModes targetMode, ushort speakValue, int delayMs, CancellationToken token)
+  private async Task AnimateLipSync(XivMessage message, CharacterModes initialMode, CharacterModes targetMode, ushort speakValue, int delayMs, CancellationToken token)
   {
-    if (token.IsCancellationRequested || character == IntPtr.Zero) return;
+    if (token.IsCancellationRequested) return;
 
     await _framework.RunOnFrameworkThread(() =>
     {
+      IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
       TrySetCharacterMode(character, targetMode);
       TrySetLipsOverride(character, speakValue);
     });
 
     await Task.Delay(delayMs, token);
 
-    if (!token.IsCancellationRequested && character != IntPtr.Zero)
+    if (!token.IsCancellationRequested)
     {
       await _framework.RunOnFrameworkThread(() =>
       {
+        IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
         TrySetCharacterMode(character, initialMode);
         TrySetLipsOverride(character, SpeakNone);
       });
