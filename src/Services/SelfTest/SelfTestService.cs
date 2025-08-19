@@ -395,7 +395,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
 
   public void Report_Provider_Chat(XivChatType type, string speaker, string sentence)
   {
-    _framework.RunOnFrameworkThread(() =>
+    _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (_clientState.LocalPlayer == null)
       {

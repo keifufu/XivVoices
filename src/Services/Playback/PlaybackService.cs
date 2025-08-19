@@ -85,7 +85,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private unsafe Task UpdateTrack(TrackableSound track)
   {
-    return _framework.RunOnFrameworkThread(() =>
+    return _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (track.IsStopping) return;
       track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;

@@ -5,7 +5,7 @@ public interface IMessageDispatcher : IHostedService
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
 }
 
-public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
+public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IClientState _clientState) : IMessageDispatcher
 {
   private InterceptedSound? _interceptedSound;
 
@@ -98,7 +98,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         npc.VoiceId = voice.Id;
     }
 
-    string? playerName = await _framework.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
+    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
     bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
     // Cache player npc to assign a gender to chatmessage tts when they're not near you.

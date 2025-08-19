@@ -150,7 +150,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   {
     if (!CanAutoAdvance()) return;
 
-    _framework.RunOnFrameworkThread(() =>
+    _gameInteropService.RunOnFrameworkThread(() =>
     {
       AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
       if (addon == null) return;

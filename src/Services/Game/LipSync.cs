@@ -8,7 +8,7 @@ public interface ILipSync
   void TryStopLipSync(XivMessage message);
 }
 
-public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, IFramework _framework) : ILipSync
+public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) : ILipSync
 {
   // ActionTimeline exd sheet
   private const ushort SpeakNone = 0;
@@ -104,7 +104,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
       }
       finally
       {
-        await _framework.RunOnFrameworkThread(() =>
+        await _gameInteropService.RunOnFrameworkThread(() =>
         {
           IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
           TrySetCharacterMode(character, initialCharacterMode);
@@ -139,7 +139,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
   {
     if (token.IsCancellationRequested) return;
 
-    await _framework.RunOnFrameworkThread(() =>
+    await _gameInteropService.RunOnFrameworkThread(() =>
     {
       IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
       TrySetCharacterMode(character, targetMode);
@@ -150,7 +150,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService, I
 
     if (!token.IsCancellationRequested)
     {
-      await _framework.RunOnFrameworkThread(() =>
+      await _gameInteropService.RunOnFrameworkThread(() =>
       {
         IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
         TrySetCharacterMode(character, initialMode);
