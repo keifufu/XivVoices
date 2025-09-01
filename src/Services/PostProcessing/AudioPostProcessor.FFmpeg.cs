@@ -55,7 +55,7 @@ public partial class AudioPostProcessor
 
   public async Task RefreshFFmpegWineProcessState()
   {
-    FFmpegWineProcessRunning = await SendFFmpegWineCommand("");
+    FFmpegWineProcessRunning = await SendFFmpegWineCommand("alive");
   }
 
   public bool IsMac() =>
@@ -105,6 +105,8 @@ public partial class AudioPostProcessor
 
   (bool success, string str) ResolveWinePaths(string str, string dataDirectory)
   {
+    if (!Util.IsWine()) return (false, "");
+
     str = str.Replace("\\", "/");
     if (!dataDirectory.StartsWith("Z:") && !dataDirectory.StartsWith("C:"))
     {
@@ -139,9 +141,8 @@ public partial class AudioPostProcessor
       string? dataDirectory = _dataService.DataDirectory;
       if (dataDirectory == null) return;
       (bool resolveSuccess, string wineArguments) = ResolveWinePaths(arguments, dataDirectory);
-      if (Util.IsWine() && _configuration.WineUseNativeFFmpeg && resolveSuccess)
+      if (_configuration.WineUseNativeFFmpeg && resolveSuccess)
       {
-        _logger.Debug($"ExecuteFFmpegCommand (Wine): {wineArguments}");
         bool success = await SendFFmpegWineCommand($"ffmpeg {wineArguments}");
         if (!success)
         {
@@ -163,7 +164,6 @@ public partial class AudioPostProcessor
       }
       else
       {
-        _logger.Debug($"ExecuteFFmpegCommand (Windows): {wineArguments}");
         await ExecuteFFmpegCommandWindows(arguments);
       }
     }
@@ -180,6 +180,7 @@ public partial class AudioPostProcessor
 
   private async Task ExecuteFFmpegCommandWindows(string arguments)
   {
+    _logger.Debug(arguments);
     Xabe.FFmpeg.FFmpeg.SetExecutablesPath(_dataService.ToolsDirectory);
     Xabe.FFmpeg.IConversion conversion = Xabe.FFmpeg.FFmpeg.Conversions.New().AddParameter(arguments);
     await conversion.Start();
@@ -187,6 +188,7 @@ public partial class AudioPostProcessor
 
   private async Task<bool> SendFFmpegWineCommand(string command)
   {
+    _logger.Debug(command);
     using CancellationTokenSource cts = new(TimeSpan.FromSeconds(5));
     try
     {

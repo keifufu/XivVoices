@@ -5,7 +5,6 @@ public partial class AudioPostProcessor
   private string GetFFmpegFilterArguments(XivMessage message, bool isLocalTTS)
   {
     int speed = isLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
-
     bool changeSpeed = speed != 100;
 
     string filterArgs = "";
@@ -23,7 +22,7 @@ public partial class AudioPostProcessor
       setRate *= 1 - 0.1f;
       tempo /= 1 - 0.1f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
+      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
     }
 
     // Sound Effects for Dragons
@@ -54,7 +53,7 @@ public partial class AudioPostProcessor
       if (tempo != 1)
       {
         if (filterArgs != "") filterArgs += ",";
-        filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
+        filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
       }
 
       addEcho = true;
@@ -73,7 +72,7 @@ public partial class AudioPostProcessor
       setRate *= 1 - 0.15f;
       tempo /= 1 - 0.15f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
+      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
     }
 
     // Sound Effects for Giants
@@ -82,7 +81,7 @@ public partial class AudioPostProcessor
       setRate *= 1 - 0.25f;
       tempo /= 1 - 0.15f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
+      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
     }
 
     // Sound Effects for Primals
@@ -94,7 +93,7 @@ public partial class AudioPostProcessor
       setRate *= 1 - 0.15f;
       tempo /= 1 - 0.1f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={tempo},asetrate={setRate}\"";
+      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
     }
 
     else if (message.Npc?.Name == "Nald'thal")
@@ -122,7 +121,7 @@ public partial class AudioPostProcessor
     if (changeSpeed)
     {
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"[0:a]apad=pad_dur=0.25,atempo={(speed / 100f).ToString(System.Globalization.CultureInfo.InvariantCulture)}\"";
+      filterArgs += $"\"[0:a]apad=pad_dur=0.25,atempo={fts(speed / 100f)}\"";
     }
 
     if (isRobot)
@@ -133,4 +132,6 @@ public partial class AudioPostProcessor
 
     return filterArgs;
   }
+
+  private string fts(float f) => f.ToString(System.Globalization.CultureInfo.InvariantCulture);
 }

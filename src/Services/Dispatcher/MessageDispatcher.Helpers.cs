@@ -27,11 +27,31 @@ public partial class MessageDispatcher
 
   private Task<(string id, string? path)> TryGetVoiceline(VoiceEntry? voice, NpcEntry? npc, string sentence)
   {
-    return Task.Run(() =>
+    return Task.Run(async () =>
     {
       string voiceName = voice?.Name ?? "Unknown";
       string npcName = npc?.Name ?? "Unknown";
       string id = Md5(voiceName, npcName, sentence);
+
+      bool ForceLocalGen = false;
+      if (ForceLocalGen && npc != null)
+      {
+        using (HttpClient client = new())
+        {
+          if (_dataService.Manifest == null) return (id, null);
+          if (!_dataService.Manifest.Voices.TryGetValue(npc.VoiceId ?? "", out var voice))
+            return (id, null);
+          string requestUri = $"http://localhost:6968/generate_new?voice={Uri.EscapeDataString(voice.Name)}&sentence={Uri.EscapeDataString(sentence)}&id={id}";
+          HttpResponseMessage response = await client.GetAsync(requestUri);
+
+          if (response.IsSuccessStatusCode)
+          {
+            string path = await response.Content.ReadAsStringAsync();
+            return (id, path);
+          }
+        }
+      }
+
       _logger.Debug($"Searching for voiceline: ({voiceName}:{npcName}:{sentence}) ({id})");
       string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
       if (!File.Exists(voicelinePath))
