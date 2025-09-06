@@ -54,13 +54,13 @@ public class TrackableSound : ISampleProvider, IDisposable
     if (read > 0)
     {
       _lastKnownTime = SourceStream.CurrentTime;
-      _lastUpdateTime = DateTime.Now;
+      _lastUpdateTime = DateTime.UtcNow;
     }
 
     if (!_playbackEnded && (read == 0 || SourceStream.Position >= SourceStream.Length))
     {
       _playbackEnded = true;
-      _lastKnownTime = TimeSpan.Zero;
+      _lastKnownTime = TotalTime;
       _lastUpdateTime = null;
       OnPlaybackStopped?.Invoke(this);
     }
@@ -72,10 +72,10 @@ public class TrackableSound : ISampleProvider, IDisposable
   {
     get
     {
-      if (_lastUpdateTime is null)
+      if (_lastUpdateTime is null || _playbackEnded)
         return TimeSpan.Zero;
 
-      TimeSpan elapsed = DateTime.Now - _lastUpdateTime.Value;
+      TimeSpan elapsed = DateTime.UtcNow - _lastUpdateTime.Value;
       TimeSpan estimated = _lastKnownTime + elapsed;
 
       return estimated > TotalTime ? TotalTime : estimated;

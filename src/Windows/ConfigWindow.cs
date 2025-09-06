@@ -256,9 +256,9 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawConfigText(string label, string description, string value, Action<string> callback)
   {
-    ImGui.Text($"{label}: {value}");
-    ImGui.SameLine();
-    if (ImGuiComponents.IconButton($"{label.Replace(" ", "")}", Dalamud.Interface.FontAwesomeIcon.Edit, new(12)))
+    if (ImGuiComponents.IconButton($"{label.Replace(" ", "")}", Dalamud.Interface.FontAwesomeIcon.Edit, new(20)))
       OpenInputPrompt(description, value, callback);
+    ImGui.SameLine();
+    ImGui.Text($"{label}: {value}");
   }
 }

@@ -33,6 +33,8 @@ public partial class AudioPostProcessor(ILogger _logger, Configuration _configur
 
   public async Task<WaveStream?> PostProcessToPCM(string voicelinePath, bool isLocalTTS, XivMessage message)
   {
+    if (message.GenerationToken.IsCancellationRequested) return null;
+
     string filterArguments = GetFFmpegFilterArguments(message, isLocalTTS);
     _logger.Debug($"FFmpeg filter arguments: {filterArguments}");
 
@@ -60,6 +62,7 @@ public partial class AudioPostProcessor(ILogger _logger, Configuration _configur
     WaveStream waveStream = DecodeOggOpusToPCM(tempFilePath);
     File.Delete(tempFilePath);
 
+    if (message.GenerationToken.IsCancellationRequested) return null;
     return waveStream;
   }
 

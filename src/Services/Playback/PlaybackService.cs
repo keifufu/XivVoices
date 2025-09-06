@@ -6,6 +6,7 @@ public interface IPlaybackService : IHostedService
 {
   event EventHandler<XivMessage>? PlaybackStarted;
   event EventHandler<XivMessage>? PlaybackCompleted;
+  event EventHandler<XivMessage>? QueuedLineSkipped;
 
   Task Play(XivMessage message, bool replay = false);
 
@@ -18,11 +19,15 @@ public interface IPlaybackService : IHostedService
 
   IEnumerable<(XivMessage message, bool isPlaying, float percentage)> GetPlaybackHistory();
 
+  void AddQueuedLine(XivMessage message);
+  void SkipQueuedLine(XivMessage message);
+  void RemoveQueuedLine(string id);
+
   IEnumerable<TrackableSound> Debug_GetPlaying();
   int Debug_GetMixerSourceCount();
 }
 
-public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IPlaybackService
+public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IPlaybackService
 {
   private WaveOutEvent? _outputDevice;
   private MixingSampleProvider? _mixer;
@@ -30,9 +35,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   private readonly ConcurrentDictionary<string, TrackableSound> _playing = new();
   private readonly object _playbackHistoryLock = new();
   private readonly List<XivMessage> _playbackHistory = [];
+  private readonly List<XivMessage> _queuedMessages = [];
 
   public event EventHandler<XivMessage>? PlaybackStarted;
   public event EventHandler<XivMessage>? PlaybackCompleted;
+  public event EventHandler<XivMessage>? QueuedLineSkipped;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -163,15 +170,34 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     }
 
     string? voicelinePath = message.VoicelinePath;
-    if (message.IsLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
-    if (voicelinePath == null) return; // LocalTTS generation failed
+
+    message.IsGenerating = true;
+    message.GenerationToken = new();
+    if (_playbackHistory.FirstOrDefault((m) => m.Id == message.Id) == default)
+      _queuedMessages.Add(message);
+
+    bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
+    bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
+
+    if (useLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
+    else if (useLocalGen) await localGen(message);
+    if (voicelinePath == null) // generation failed
+    {
+      _queuedMessages.Remove(message);
+      message.IsGenerating = false;
+      return;
+    }
 
     // Since TTS can take some time to generate, this solves some headaches for now.
     if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
       Stop(MessageSource.AddonTalk);
 
     WaveStream? sourceStream = await _audioPostProcessor.PostProcessToPCM(voicelinePath, message.IsLocalTTS, message);
-    if (message.IsLocalTTS) File.Delete(voicelinePath);
+    if (useLocalTTS) File.Delete(voicelinePath);
+
+    _queuedMessages.Remove(message);
+    message.IsGenerating = false;
+
     if (sourceStream == null) return; // AudioPostProcessor failed
 
     if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
@@ -214,6 +240,33 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
       }
     }
+  }
+
+  private async Task<string?> localGen(XivMessage message)
+  {
+    if (message.GenerationToken.IsCancellationRequested) return null;
+
+    if (message.Voice != null)
+    {
+      using (HttpClient client = new())
+      {
+        if (_dataService.Manifest == null) return null;
+
+        string requestUri = _configuration.LocalGenerationUri
+          .Replace("%v", Uri.EscapeDataString(message.Voice.Name))
+          .Replace("%s", Uri.EscapeDataString(message.Sentence))
+          .Replace("%i", Uri.EscapeDataString(message.Id));
+
+        HttpResponseMessage response = await client.GetAsync(requestUri, message.GenerationToken.Token);
+
+        if (response.IsSuccessStatusCode)
+        {
+          return await response.Content.ReadAsStringAsync();
+        }
+      }
+    }
+
+    return null;
   }
 
   public void StopAll()
@@ -263,14 +316,37 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     lock (_playbackHistoryLock)
     {
+      foreach (XivMessage message in _queuedMessages)
+      {
+        yield return (message, false, 0);
+      }
+
       foreach (XivMessage message in _playbackHistory)
       {
         if (_playing.TryGetValue(message.Id, out TrackableSound? track))
           yield return (message, track.IsPlaying, (float)(track.EstimatedCurrentTime.TotalMilliseconds / track.TotalTime.TotalMilliseconds));
         else
-          yield return (message, false, 100);
+          yield return (message, false, message.IsGenerating ? 0 : 100);
       }
     }
+  }
+
+  public void AddQueuedLine(XivMessage message)
+  {
+    _queuedMessages.Insert(0, message);
+  }
+
+  public void SkipQueuedLine(XivMessage message)
+  {
+    message.GenerationToken.Cancel();
+    _queuedMessages.Remove(message);
+    QueuedLineSkipped?.Invoke(this, message);
+  }
+
+  public void RemoveQueuedLine(string id)
+  {
+    XivMessage? messageToRemove = _queuedMessages.FirstOrDefault(message => message.Id == id);
+    if (messageToRemove != null) _queuedMessages.Remove(messageToRemove);
   }
 
   public IEnumerable<TrackableSound> Debug_GetPlaying()
@@ -288,6 +364,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     if (track.IsStopping) return;
     track.IsStopping = true;
+
+    track.Message.GenerationToken.Cancel();
     _lipSync.TryStopLipSync(track.Message);
 
     const int intervalMs = 25;

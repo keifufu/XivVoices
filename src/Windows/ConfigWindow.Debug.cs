@@ -32,5 +32,13 @@ public partial class ConfigWindow
       _configuration.LocalTTSVoiceFemale = value;
       _configuration.Save();
     });
+
+    DrawConfigCheckbox("Enable Local Generation", ref _configuration.EnableLocalGeneration);
+    DrawConfigCheckbox("Force Local Generation", ref _configuration.ForceLocalGeneration);
+
+    DrawConfigText("LocalGenerationUri", "LocalGenerationUri", _configuration.LocalGenerationUri, (value) =>
+    {
+      _configuration.LocalGenerationUri = value;
+    });
   }
 }

@@ -7,7 +7,7 @@ namespace XivVoices.Services;
 public interface IAddonBattleTalkProvider : IHostedService;
 
 // PostRefresh is too early here? Guess I'm polling this one too.
-public class AddonBattleTalkProvider(ILogger _logger, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IFramework _framework, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonBattleTalk, _logger, _playbackService, _messageDispatcher, _framework), IAddonBattleTalkProvider
+public class AddonBattleTalkProvider(ILogger _logger, Configuration _configuration, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IFramework _framework, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonBattleTalk, _logger, _configuration, _playbackService, _messageDispatcher, _framework), IAddonBattleTalkProvider
 {
   private string _lastSpeaker = "";
   private string _lastSentence = "";

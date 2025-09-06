@@ -11,11 +11,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   public void Dispose()
   {
-    if (_localTTSEngine != null)
-    {
-      _localTTSEngine.Dispose();
-      _localTTSEngine = null;
-    }
+    _localTTSEngine?.Dispose();
+    _localTTSEngine = null;
   }
 
   // returns a path to the temporary .wav output
@@ -23,6 +20,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   // can return null if it failed to generate.
   public async Task<string?> WriteLocalTTSToDisk(XivMessage message)
   {
+    if (message.GenerationToken.IsCancellationRequested) return null;
+
     string? dataDirectory = _dataService.DataDirectory;
     string? toolsDirectory = _dataService.ToolsDirectory;
     if (dataDirectory == null || toolsDirectory == null) return null;
@@ -63,6 +62,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       return null;
     }
 
+    if (message.GenerationToken.IsCancellationRequested) return null;
+
     float[] pcmData = await _localTTSEngine.SpeakTTS(cleanedSentence, _localTTSEngine.Voices[speaker]!);
     if (pcmData.Length == 0) return null;
 
@@ -74,6 +75,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       foreach (float sample in pcmData)
         waveFileWriter.WriteSample(sample);
     }
+
+    if (message.GenerationToken.IsCancellationRequested) return null;
 
     return tempFilePath;
   }

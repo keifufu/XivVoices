@@ -15,7 +15,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonTalk, _logger, _playbackService, _messageDispatcher, _framework), IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : PlaybackQueue(MessageSource.AddonTalk, _logger, _configuration, _playbackService, _messageDispatcher, _framework), IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";

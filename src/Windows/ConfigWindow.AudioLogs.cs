@@ -34,27 +34,16 @@ public partial class ConfigWindow
         float progressSize = 245;
         Vector4 plotHistogramColor = _green;
 
-        if (message.IsLocalTTS)
-        {
-          plotHistogramColor = _yellow;
-          progressSize = 270;
-        }
+        bool allowReports = !message.IsLocalTTS || message.RawSpeaker == "???";
+        if (!allowReports) progressSize = 270;
+        if (message.IsLocalTTS) plotHistogramColor = _yellow;
 
         using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))
         {
-          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), isPlaying ? "playing" : "stopped");
+          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), message.IsQueued ? "queued" : message.IsGenerating ? "generating" : isPlaying ? "playing" : "stopped");
         }
 
-        ImGui.SameLine();
-        if (ImGui.Button(isPlaying ? "Stop" : "Play" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
-        {
-          if (isPlaying)
-            _playbackService.Stop(message.Id);
-          else
-            _ = _playbackService.Play(message, true);
-        }
-
-        if (!message.IsLocalTTS || message.RawSpeaker == "???")
+        if (allowReports)
         {
           ImGui.SameLine();
           using (ImRaii.Disabled(message.Reported))
@@ -67,6 +56,25 @@ public partial class ConfigWindow
                 _reportService.ReportWithReason(message, value);
               });
             }
+          }
+        }
+
+        ImGui.SameLine();
+        if (message.IsGenerating || message.IsQueued)
+        {
+          if (ImGui.Button("Skip" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
+          {
+            _playbackService.SkipQueuedLine(message);
+          }
+        }
+        else
+        {
+          if (ImGui.Button(isPlaying ? "Stop" : "Play" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
+          {
+            if (isPlaying)
+              _playbackService.Stop(message.Id);
+            else
+              _ = _playbackService.Play(message, true);
           }
         }
 

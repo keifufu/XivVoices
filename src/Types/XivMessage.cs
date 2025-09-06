@@ -1,6 +1,6 @@
 namespace XivVoices.Types;
 
-public class XivMessage(string id, MessageSource source, VoiceEntry? voice, string speaker, string sentence, string rawSpeaker, string rawSentence, NpcEntry? npc, string? voicelinePath)
+public class XivMessage(string id, MessageSource source, VoiceEntry? voice, string speaker, string sentence, string rawSpeaker, string rawSentence, NpcEntry? npc, string? voicelinePath, bool isQueued = false)
 {
   public string Id { get; } = id;
   public MessageSource Source { get; } = source;
@@ -25,6 +25,15 @@ public class XivMessage(string id, MessageSource source, VoiceEntry? voice, stri
 
   [JsonIgnore]
   public bool IsLocalTTS => VoicelinePath == null;
+
+  [JsonIgnore]
+  public bool IsQueued = isQueued;
+
+  [JsonIgnore]
+  public bool IsGenerating = false;
+
+  [JsonIgnore]
+  public CancellationTokenSource GenerationToken = new();
 
   [JsonIgnore]
   public bool Reported { get; set; } = false;
