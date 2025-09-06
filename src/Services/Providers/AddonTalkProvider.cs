@@ -126,16 +126,12 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
       _lastSentence = sentence;
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
 
-      if (_configuration.QueueDialogue)
-      {
-        EnqueueMessage(speaker, sentence);
-      }
-      else
-      {
-        // We only allow one AddonTalk line to play at a time
+      // We only allow one AddonTalk line to play at a time
+      if (!_configuration.QueueDialogue)
         _playbackService.Stop(MessageSource.AddonTalk);
-        _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence);
-      }
+
+      QueueEnabled = _configuration.QueueDialogue;
+      EnqueueMessage(speaker, sentence);
     }
   }
 

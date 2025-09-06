@@ -166,6 +166,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     if (message.IsLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
     if (voicelinePath == null) return; // LocalTTS generation failed
 
+    // Since TTS can take some time to generate, this solves some headaches for now.
+    if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
+      Stop(MessageSource.AddonTalk);
+
     WaveStream? sourceStream = await _audioPostProcessor.PostProcessToPCM(voicelinePath, message.IsLocalTTS, message);
     if (message.IsLocalTTS) File.Delete(voicelinePath);
     if (sourceStream == null) return; // AudioPostProcessor failed

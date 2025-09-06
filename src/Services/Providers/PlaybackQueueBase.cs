@@ -42,7 +42,7 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
   private void OnFrameworkUpdate(IFramework framework)
   {
     if (_playbackQueueState == PlaybackQueueState.AwaitingConfirmation)
-      if ((DateTime.Now - _playbackStartTime) >= TimeSpan.FromSeconds(1))
+      if ((DateTime.Now - _playbackStartTime) >= TimeSpan.FromSeconds(3)) // Give it 3 seconds because localtts can take some time.
         _playbackQueueState = PlaybackQueueState.Stopped;
 
     if (_playbackQueueState == PlaybackQueueState.Stopped && _queue.Count > 0)
