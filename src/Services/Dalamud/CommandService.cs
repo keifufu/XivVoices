@@ -77,37 +77,37 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _configWindow.Toggle();
         break;
       case "overview":
-        _configWindow.SelectedTab = ConfigWindowTab.Overview;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.Overview);
         break;
       case "dialogue":
-        _configWindow.SelectedTab = ConfigWindowTab.DialogueSettings;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.DialogueSettings);
         break;
       case "audio":
-        _configWindow.SelectedTab = ConfigWindowTab.AudioSettings;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.AudioSettings);
         break;
       case "logs":
-        _configWindow.SelectedTab = ConfigWindowTab.AudioLogs;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.AudioLogs);
         break;
       case "wine":
-        _configWindow.SelectedTab = ConfigWindowTab.WineSettings;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.WineSettings);
         break;
       case "debug":
-        _configWindow.SelectedTab = ConfigWindowTab.Debug;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.Debug);
         break;
       case "selftest":
-        _configWindow.SelectedTab = ConfigWindowTab.SelfTest;
-        _configWindow.IsOpen = true;
+        SwitchTab(ConfigWindowTab.SelfTest);
         break;
       default:
         _logger.Chat("Invalid command:");
         _logger.Chat($"  {command} {arguments}");
         goto case "help";
     }
+  }
+
+  private void SwitchTab(ConfigWindowTab tab)
+  {
+    bool isDifferentTab = _configWindow.SelectedTab != tab;
+    _configWindow.SelectedTab = tab;
+    _configWindow.IsOpen = isDifferentTab || !_configWindow.IsOpen;
   }
 }
