@@ -10,7 +10,7 @@ public partial class AudioPostProcessor
     string filterArgs = "";
     bool addEcho = false;
     bool isRobot = false;
-    float setRate = 48000;
+    float pitch = 1.0f;
     float tempo = 1.0f;
 
     if (message.Voice?.Name == "Omicron" || message.Voice?.Name == "Node" || message.Npc?.Name == "Omega")
@@ -19,10 +19,10 @@ public partial class AudioPostProcessor
     // Sounds Effects for Age
     if (message.Npc?.Body == "Elderly")
     {
-      setRate *= 1 - 0.1f;
+      pitch -= 0.1f;
       tempo /= 1 - 0.1f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
+      filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
     }
 
     // Sound Effects for Dragons
@@ -30,22 +30,22 @@ public partial class AudioPostProcessor
     {
       if (message.Npc.Gender == "Female")
       {
-        setRate *= 1 - 0.1f;
+        pitch -= 0.1f;
         tempo /= 1 + 0.1f;
       }
       else
         switch (message.Npc.Race)
         {
           case "Dragon_Medium":
-            setRate *= 1 - 0.1f;
+            pitch -= 0.1f;
             tempo /= 1 + 0.1f;
             break;
           case "Dragon_Small":
-            setRate *= 1 - 0.03f;
+            pitch -= 0.03f;
             tempo /= 1 + 0.06f;
             break;
           default:
-            setRate *= 1 - 0.05f;
+            pitch -= 0.05f;
             tempo /= 1 + 0.05f;
             break;
         }
@@ -53,7 +53,7 @@ public partial class AudioPostProcessor
       if (tempo != 1)
       {
         if (filterArgs != "") filterArgs += ",";
-        filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
+        filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
       }
 
       addEcho = true;
@@ -69,19 +69,19 @@ public partial class AudioPostProcessor
     // Sound Effects for Golems
     else if (message.Npc?.Race.StartsWith("Golem") ?? false)
     {
-      setRate *= 1 - 0.15f;
+      pitch -= 0.15f;
       tempo /= 1 - 0.15f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
+      filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
     }
 
     // Sound Effects for Giants
     else if (message.Npc?.Race.StartsWith("Giant") ?? false)
     {
-      setRate *= 1 - 0.25f;
+      pitch -= 0.25f;
       tempo /= 1 - 0.15f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
+      filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
     }
 
     // Sound Effects for Primals
@@ -90,10 +90,10 @@ public partial class AudioPostProcessor
 
     if (message.Npc?.Name == "Ifrit")
     {
-      setRate *= 1 - 0.15f;
+      pitch -= 0.15f;
       tempo /= 1 - 0.1f;
       if (filterArgs != "") filterArgs += ",";
-      filterArgs += $"\"atempo={fts(tempo)},asetrate={fts(setRate)}\"";
+      filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
     }
 
     else if (message.Npc?.Name == "Nald'thal")
