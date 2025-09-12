@@ -17,7 +17,7 @@ public partial class AudioPostProcessor
       isRobot = true;
 
     // Sounds Effects for Age
-    if (message.Npc?.Body == "Elderly")
+    if (message.IsLocalTTS && message.Npc?.Body == "Elderly")
     {
       pitch -= 0.1f;
       tempo /= 1 - 0.1f;
