@@ -1,4 +1,6 @@
+using Dalamud.Interface;
 using Dalamud.Interface.Components;
+using Dalamud.Interface.ManagedFontAtlas;
 using Dalamud.Interface.Textures;
 
 namespace XivVoices.Windows;
@@ -26,14 +28,27 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
   private string _promptInputBuffer = "";
   private Action<string>? _promptCallback = null;
 
+  private readonly IFontHandle _uiFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
+  {
+    e.OnPreBuild(tk =>
+    {
+      float fontPx = UiBuilder.DefaultFontSizePx;
+      SafeFontConfig safeFontConfig = new() { SizePx = fontPx };
+      tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansJpMedium, safeFontConfig);
+      tk.AttachExtraGlyphsForDalamudLanguage(safeFontConfig);
+    });
+  });
+
   private float ScaledFloat(float value) => value * ImGuiHelpers.GlobalScale;
   private Vector2 ScaledVector2(float x, float? y = null) => new Vector2(x, y ?? x) * ImGuiHelpers.GlobalScale;
 
   public override void Draw()
   {
+    using IDisposable _ = _uiFont.Push();
+
     Flags = ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoResize | ImGuiWindowFlags.AlwaysAutoResize;
     SizeCondition = ImGuiCond.Always;
-    Size = new(440, 650);
+    Size = new(440, 700);
     RespectCloseHotkey = _dataService.DataDirectory != null;
 
     Vector2 originPos = ImGui.GetCursorPos();
@@ -63,7 +78,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     ImGui.SameLine();
     ImDrawListPtr drawList = ImGui.GetWindowDrawList();
     Vector2 lineStart = ImGui.GetCursorScreenPos() - new Vector2(0, 10);
-    Vector2 lineEnd = new(lineStart.X, lineStart.Y + ScaledFloat(630));
+    Vector2 lineEnd = new(lineStart.X, lineStart.Y + ScaledFloat(700));
     uint lineColor = ImGui.ColorConvertFloat4ToU32(new Vector4(0.15f, 0.15f, 0.15f, 1));
     drawList.AddLine(lineStart, lineEnd, lineColor, 1f);
     ImGui.SameLine(ScaledFloat(85));
