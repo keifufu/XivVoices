@@ -18,7 +18,7 @@ public partial class AudioPostProcessor
     {
       FFmpegWineScriptPath = Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "ffmpeg-wine.sh").Replace("\\", "/");
       if (FFmpegWineScriptPath.StartsWith("Z:")) FFmpegWineScriptPath = FFmpegWineScriptPath[2..];
-      if (FFmpegWineScriptPath.StartsWith("X:")) FFmpegWineScriptPath = $"/home/{Environment.UserName}{FFmpegWineScriptPath[2..]}";
+      if (FFmpegWineScriptPath.StartsWith("X:")) FFmpegWineScriptPath = $"/home/{_configuration.ProtonUsername}{FFmpegWineScriptPath[2..]}";
       if (Util.IsWine())
       {
         FixWineRegistry();
@@ -126,14 +126,14 @@ public partial class AudioPostProcessor
 
     string hostWinePrefixDriveCDirectory =
       is_proton
-        ? $"/home/{Environment.UserName}{pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/protonprefix/pfx/drive_c")[2..]}"
+        ? $"/home/{_configuration.ProtonUsername}{pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/protonprefix/pfx/drive_c")[2..]}"
         : pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/wineprefix/drive_c")[2..];
 
     string hostDataDirectory =
       dataDirectory.StartsWith("Z:")
         ? dataDirectory[2..]
         : dataDirectory.StartsWith("X:")
-          ? $"/home/{Environment.UserName}{dataDirectory[2..]}"
+          ? $"/home/{_configuration.ProtonUsername}{dataDirectory[2..]}"
           : dataDirectory.Replace("C:", hostWinePrefixDriveCDirectory);
 
     string res = str.Replace(dataDirectory, hostDataDirectory);

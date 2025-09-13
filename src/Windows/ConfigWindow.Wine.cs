@@ -101,6 +101,13 @@ public partial class ConfigWindow
           ImGui.Unindent(ScaledFloat(4));
         }
       }
+
+      ImGui.Dummy(ScaledVector2(0, 20));
+      ImGui.TextWrapped("If you're using proton, you might have to enter your linux username here. (case-sensitive)");
+      DrawConfigText("Proton Username", "Proton Username", _configuration.ProtonUsername, (value) =>
+      {
+        _configuration.ProtonUsername = value;
+      });
     }
   }
 }

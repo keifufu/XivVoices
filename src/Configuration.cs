@@ -60,6 +60,7 @@ public class Configuration : IPluginConfiguration
 
   // Wine Settings
   public bool WineUseNativeFFmpeg = true;
+  public string ProtonUsername = "";
 
   // Debug Settings
   public bool DebugMode = false;
