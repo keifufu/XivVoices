@@ -13,18 +13,18 @@
     "AssemblyVersion": "0.0.0.23",
     "TestingAssemblyVersion": null,
     "IsTestingExclusive": false,
-    "RepoUrl": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices",
+    "RepoUrl": "https://github.com/keifufu/XivVoices",
     "ApplicableVersion": "any",
     "DalamudApiLevel": 13,
     "TestingDalamudApiLevel": 0,
     "DownloadCount": 220,
     "LastUpdate": 1757152392,
-    "DownloadLinkInstall": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
-    "DownloadLinkUpdate": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
-    "DownloadLinkTesting": "https://github.com/Final-Fantasy-XIV-Voices/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
+    "DownloadLinkInstall": "https://github.com/keifufu/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
+    "DownloadLinkUpdate": "https://github.com/keifufu/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
+    "DownloadLinkTesting": "https://github.com/keifufu/XivVoices/releases/download/0.0.0.23/XivVoices.zip",
     "LoadRequiredState": 2,
     "LoadSync": true,
     "LoadPriority": 0,
-    "IconUrl": "https://raw.githubusercontent.com/Final-Fantasy-XIV-Voices/XivVoices/main/data/logo.png"
+    "IconUrl": "https://raw.githubusercontent.com/keifufu/XivVoices/main/data/logo.png"
   }
 ]

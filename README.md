@@ -37,17 +37,17 @@ Follow these steps to install Xiv Voices:
    - Navigate to the System menu in the game, then to Dalamud Settings.
    - In the "Experimental" tab under "Custom Plugin Repositories", add the Xiv Voices Plugin Repo:
      ```
-     https://raw.githubusercontent.com/Final-Fantasy-XIV-Voices/XivVoices/main/repo.json
+     https://xivv.keifufu.dev/repo
      ```
    - Use the images below for guidance:
-     - <img src="https://github.com/Final-Fantasy-XIV-Voices/XivVoices/blob/main/data/1.png" alt="Settings Guide" width="300"/>
-     - <img src="https://github.com/Final-Fantasy-XIV-Voices/XivVoices/blob/main/data/2.png" alt="Add Repository" width="600"/>
+     - <img src="https://github.com/keifufu/XivVoices/blob/main/data/1.png" alt="Settings Guide" width="300"/>
+     - <img src="https://github.com/keifufu/XivVoices/blob/main/data/2.png" alt="Add Repository" width="600"/>
 3. **Install the Plugin**:
    - Open the Dalamud Plugins panel.
    - Navigate to 'All Plugins', search for "xivv", and click 'Install'.
-     - <img src="https://github.com/Final-Fantasy-XIV-Voices/XivVoices/blob/main/data/3.png" alt="Add Repository" width="300"/>
-     - <img src="https://github.com/Final-Fantasy-XIV-Voices/XivVoices/blob/main/data/4.png" alt="Add Repository" width="600"/>
+     - <img src="https://github.com/keifufu/XivVoices/blob/main/data/3.png" alt="Add Repository" width="300"/>
+     - <img src="https://github.com/keifufu/XivVoices/blob/main/data/4.png" alt="Add Repository" width="600"/>
 4. **Setup Plugin**:
    - Upon first launch, you'll be prompted with a setup screen to select a storage location for the plugin’s content.
    - After selecting the appropriate drive, click "Start Downloading".
-     - <img src="https://github.com/Final-Fantasy-XIV-Voices/XivVoices/blob/main/data/5.png" alt="Add Repository" width="300"/>
+     - <img src="https://github.com/keifufu/XivVoices/blob/main/data/5.png" alt="Add Repository" width="300"/>

@@ -48,7 +48,7 @@ jobs:
       - name: Get download count
         id: get_downloads
         run: |
-          OWNER="Final-Fantasy-XIV-Voices"
+          OWNER="keifufu"
           REPO="XivVoices"
           PAGE=1
           PER_PAGE=100

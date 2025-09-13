@@ -4,7 +4,7 @@
     <!-- Keep this version at 0.0.0.0, the CI will replace it. -->
     <Version>0.0.0.0</Version>
     <Description>XivVoices Dalamud Plugin</Description>
-    <PackageProjectUrl>https://github.com/Final-Fantasy-XIV-Voices/XivVoices</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/keifufu/XivVoices</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
