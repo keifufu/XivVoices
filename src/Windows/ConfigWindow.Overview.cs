@@ -22,7 +22,7 @@ public partial class ConfigWindow
   private readonly Dictionary<string, string[]> _changelogs = new() {
     { "1.0.0.0", new[] {
       "Initial rewrite release!",
-      "Starting from scratch, this plugin is way more maintainable and extendable than the old one.",
+      "Starting from scratch, this plugin is way more maintainable and extendable than the old one, while maintaining feature parity.",
       "The new data architecture has fixed a lot of issues will make voice generation much simpler in the future.",
       "Improved error handling and logging has been added.",
       "The UI has been mostly revamped! It features a better setup/updater and more configurable options.",
@@ -31,7 +31,8 @@ public partial class ConfigWindow
       "Debug options and self-tests have been added, but can you find how to enable them?",
       "And there's more to come!"
     }},
-};
+  };
+
   private void DrawHorizontallyCenteredText(string text, string? calcText = null)
   {
     float textWidth = ImGui.CalcTextSize(calcText ?? text).X;
