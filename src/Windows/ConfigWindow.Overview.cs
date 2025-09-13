@@ -79,7 +79,7 @@ public partial class ConfigWindow
     {
       if (Util.IsWine())
       {
-        ImGui.TextWrapped("Wine Deteted! It is recommended you select an installation directory on Z:, as C: is your wineprefix. Please manually select a folder your user has access to via \"Select Directory\".");
+        ImGui.TextWrapped("Wine Detected! It is recommended you select an installation directory on Z: or X:, as C: is your wineprefix. Please manually select a folder your user has access to via \"Select Directory\".");
         ImGui.Dummy(ScaledVector2(0, 10));
       }
 

@@ -17,7 +17,8 @@ public partial class AudioPostProcessor
     try
     {
       FFmpegWineScriptPath = Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "ffmpeg-wine.sh").Replace("\\", "/");
-      FFmpegWineScriptPath = FFmpegWineScriptPath[2..]; // strip Z: or whatever drive maybe used.
+      if (FFmpegWineScriptPath.StartsWith("Z:")) FFmpegWineScriptPath = FFmpegWineScriptPath[2..];
+      if (FFmpegWineScriptPath.StartsWith("X:")) FFmpegWineScriptPath = $"/home/{Environment.UserName}{FFmpegWineScriptPath[2..]}";
       if (Util.IsWine())
       {
         FixWineRegistry();
@@ -108,24 +109,32 @@ public partial class AudioPostProcessor
     if (!Util.IsWine()) return (false, "");
 
     str = str.Replace("\\", "/");
-    if (!dataDirectory.StartsWith("Z:") && !dataDirectory.StartsWith("C:"))
+    if (!dataDirectory.StartsWith("Z:") && !dataDirectory.StartsWith("X:") && !dataDirectory.StartsWith("C:"))
     {
-      _logger.Debug($"DataDirectory not on Z or C drive: {dataDirectory}");
+      _logger.Debug($"DataDirectory not on Z or X or C drive: {dataDirectory}");
       return (false, "");
     }
 
     string pluginConfigDirectory = _pluginInterface.ConfigDirectory.ToString().Replace("\\", "/");
-    if (!pluginConfigDirectory.StartsWith("Z:"))
+    if (!pluginConfigDirectory.StartsWith("Z:") && !pluginConfigDirectory.StartsWith("X:"))
     {
       _logger.Debug($"Unexpected pluginConfigDirectory: {pluginConfigDirectory}");
       return (false, "");
     }
 
-    string hostWinePrefixDriveCDirectory = pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/wineprefix/drive_c")[2..];
+    bool is_proton = pluginConfigDirectory.StartsWith("X:"); // Not sure this is always the case, but seems to be so for now.
+
+    string hostWinePrefixDriveCDirectory =
+      is_proton
+        ? $"/home/{Environment.UserName}{pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/protonprefix/pfx/drive_c")[2..]}"
+        : pluginConfigDirectory.Replace($"/pluginConfigs/{_pluginInterface.InternalName}", "/wineprefix/drive_c")[2..];
+
     string hostDataDirectory =
       dataDirectory.StartsWith("Z:")
-        ? dataDirectory[2..] // Just strip Z:, the rest should be the regular host path
-        : dataDirectory.Replace("C:", hostWinePrefixDriveCDirectory);
+        ? dataDirectory[2..]
+        : dataDirectory.StartsWith("X:")
+          ? $"/home/{Environment.UserName}{dataDirectory[2..]}"
+          : dataDirectory.Replace("C:", hostWinePrefixDriveCDirectory);
 
     string res = str.Replace(dataDirectory, hostDataDirectory);
 
