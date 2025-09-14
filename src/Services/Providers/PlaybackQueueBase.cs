@@ -14,14 +14,14 @@ public interface IPlaybackQueueBase
   void QueueStart();
   void QueueStop();
 
-  void EnqueueMessage(string speaker, string sentence, uint? speakerBaseId = null);
+  Task EnqueueMessage(string speaker, string sentence, uint? speakerBaseId = null);
 }
 
-public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IFramework _framework)
+public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IFramework _framework)
 {
   public bool QueueEnabled = true;
 
-  private readonly Queue<(string speaker, string sentence, uint? speakerBaseId)> _queue = new();
+  private readonly Queue<(string speaker, string sentence, uint? speakerBaseId, bool? isTargetingSummoningBell)> _queue = new();
   private PlaybackQueueState _playbackQueueState = PlaybackQueueState.Stopped;
   private DateTime _playbackStartTime;
 
@@ -51,8 +51,8 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
 
     if (_playbackQueueState == PlaybackQueueState.Stopped && _queue.Count > 0)
     {
-      (string speaker, string sentence, uint? speakerBaseId) = _queue.Dequeue();
-      _ = _messageDispatcher.TryDispatch(_messageSource, speaker, sentence, speakerBaseId);
+      (string speaker, string sentence, uint? speakerBaseId, bool? isTargetingSummoningBell) = _queue.Dequeue();
+      _ = _messageDispatcher.TryDispatch(_messageSource, speaker, sentence, speakerBaseId, isTargetingSummoningBell);
       _playbackService.RemoveQueuedLine($"{speaker}+{sentence}");
       _playbackStartTime = DateTime.Now;
       _playbackQueueState = PlaybackQueueState.AwaitingConfirmation;
@@ -75,13 +75,13 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
 
   private void OnQueuedLineSkipped(object? sender, XivMessage message)
   {
-    (string speaker, string sentence, uint? speakerBaseId) itemToRemove = _queue.FirstOrDefault(item => $"{item.speaker}+{item.sentence}" == message.Id);
+    (string speaker, string sentence, uint? speakerBaseId, bool? isTargetingSummoningBell) itemToRemove = _queue.FirstOrDefault(item => $"{item.speaker}+{item.sentence}" == message.Id);
 
     if (itemToRemove != default)
     {
-      Queue<(string speaker, string sentence, uint? speakerBaseId)> newQueue = new(_queue.Where(item => item != itemToRemove));
+      Queue<(string speaker, string sentence, uint? speakerBaseId, bool? isTargetingSummoningBell)> newQueue = new(_queue.Where(item => item != itemToRemove));
       _queue.Clear();
-      foreach ((string speaker, string sentence, uint? speakerBaseId) item in newQueue)
+      foreach ((string speaker, string sentence, uint? speakerBaseId, bool? isTargetingSummoningBell) item in newQueue)
       {
         _queue.Enqueue(item);
       }
@@ -90,12 +90,15 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
     }
   }
 
-  public void EnqueueMessage(string speaker, string sentence, uint? speakerBaseId = null)
+  public async Task EnqueueMessage(string speaker, string sentence, uint? speakerBaseId = null)
   {
     if (QueueEnabled)
     {
+      bool? isTargetingSummoningBell = null;
+      if (_messageSource == MessageSource.AddonTalk)
+        isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
       _playbackService.AddQueuedLine(new XivMessage($"{speaker}+{sentence}", _messageSource, null, speaker, sentence, speaker, sentence, null, null, true));
-      _queue.Enqueue((speaker, sentence, speakerBaseId));
+      _queue.Enqueue((speaker, sentence, speakerBaseId, isTargetingSummoningBell));
     }
     else
       _ = _messageDispatcher.TryDispatch(_messageSource, speaker, sentence, speakerBaseId);

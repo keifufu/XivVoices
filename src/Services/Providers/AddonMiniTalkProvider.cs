@@ -4,7 +4,7 @@ namespace XivVoices.Services;
 
 public interface IAddonMiniTalkProvider : IHostedService;
 
-public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropProvider _gameInteropProvider, IFramework _framework) : PlaybackQueue(MessageSource.AddonMiniTalk, _logger, _configuration, _playbackService, _messageDispatcher, _framework), IAddonMiniTalkProvider
+public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropProvider _gameInteropProvider, IFramework _framework) : PlaybackQueue(MessageSource.AddonMiniTalk, _logger, _configuration, _playbackService, _messageDispatcher, _gameInteropService, _framework), IAddonMiniTalkProvider
 {
   private readonly ConcurrentDictionary<string, DateTime> _recentSentences = new();
   private readonly TimeSpan _sentenceCooldown = TimeSpan.FromSeconds(30);
@@ -53,7 +53,7 @@ public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration
       {
         _recentSentences[sentence] = now;
         _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-        EnqueueMessage(speaker, sentence, actor->BaseId);
+        _ = EnqueueMessage(speaker, sentence, actor->BaseId);
       }
     }
 

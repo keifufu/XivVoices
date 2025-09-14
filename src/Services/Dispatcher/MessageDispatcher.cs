@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? isTargetingSummoningBell = false);
 }
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IClientState _clientState) : IMessageDispatcher
@@ -33,7 +33,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? _isTargetingSummoningBell = null)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -70,7 +70,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     bool isRetainer = false;
     if (source == MessageSource.AddonTalk)
     {
-      bool isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
+      bool isTargetingSummoningBell = _isTargetingSummoningBell ?? await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
       if (isTargetingSummoningBell)
       {
         mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
