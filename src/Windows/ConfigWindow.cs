@@ -126,7 +126,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
       {
         if (ImGui.ImageButton(discord.Handle, ScaledVector2(42, 42)))
         {
-          Util.OpenLink("https://discord.gg/a5kRGDWDmN");
+          Util.OpenLink("https://discord.gg/yWb2kSYKK8");
         }
       }
     }
