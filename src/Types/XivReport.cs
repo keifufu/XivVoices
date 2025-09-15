@@ -18,16 +18,13 @@ public class XivReport
   // Manual report reason
   public string? Reason { get; }
 
-  private string GetPluginVersion() =>
-    Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
-
   private string GetDate() =>
     DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
 
-  public XivReport(XivMessage message, string location, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
+  public XivReport(string pluginVersion, XivMessage message, string location, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
   {
     Type = ReportType.Automatic;
-    PluginVersion = GetPluginVersion();
+    PluginVersion = pluginVersion;
     Date = GetDate();
 
     Message = message;
@@ -38,10 +35,10 @@ public class XivReport
     ActiveLeves = activeLeves;
   }
 
-  public XivReport(XivMessage message, string reason)
+  public XivReport(string pluginVersion, XivMessage message, string reason)
   {
     Type = ReportType.Manual;
-    PluginVersion = GetPluginVersion();
+    PluginVersion = pluginVersion;
     Date = GetDate();
 
     Message = message;

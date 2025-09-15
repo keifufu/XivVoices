@@ -10,6 +10,8 @@ public interface IDataService : IHostedService
   string? ToolsDirectory { get; }
   string? VoicelinesDirectory { get; }
   string ServerUrl { get; }
+  string Version { get; }
+  string LatestVersion { get; }
   event EventHandler<string>? OnDataDirectoryChanged;
   JsonSerializerOptions JsonWriteOptions { get; }
   void SetDataDirectory(string dataDirectory);
@@ -113,6 +115,13 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     }
   }
 
+  public string Version
+  {
+    get => Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
+  }
+
+  public string LatestVersion { get; private set; } = "0.0.0.0";
+
   public string? TempFilePath(string fileName)
   {
     string? dataDirectory = DataDirectory;
@@ -150,6 +159,8 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     _ = Update();
     LoadCachedPlayers();
 
+    _logger.Debug($"XivVoices v{Version}");
+
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
   }
@@ -161,6 +172,34 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  private async Task SetLatestVersion()
+  {
+    if (!ServerOnline)
+    {
+      _logger.Debug("Server is not online, cannot check for latest plugin version.");
+      LatestVersion = Version;
+      return;
+    }
+
+    HttpResponseMessage response = await _httpClient.GetAsync($"{ServerUrl}/repo");
+    if (response.StatusCode == System.Net.HttpStatusCode.OK)
+    {
+      string jsonResponse = await response.Content.ReadAsStringAsync();
+      using JsonDocument doc = JsonDocument.Parse(jsonResponse);
+
+      if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+      {
+        string assemblyVersion = doc.RootElement[0].GetProperty("AssemblyVersion").GetString() ?? "0.0.0.0";
+        LatestVersion = Version == "0.0.0.0" ? Version : assemblyVersion;
+      }
+    }
+    else
+    {
+      _logger.Debug($"Failed to retrieve latest plugin version with code: {response.StatusCode}");
+      LatestVersion = Version;
+    }
   }
 
   private async Task UpdateServerStatus(CancellationToken token)
@@ -193,6 +232,8 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       _logger.Debug($"UpdateServerStatus failed to reach server: {ServerUrl}");
       ServerOnline = false;
     }
+
+    _ = SetLatestVersion();
   }
 
   private async Task LoadManifest(bool forceDownload, CancellationToken token)

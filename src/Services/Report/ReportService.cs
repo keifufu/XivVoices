@@ -205,6 +205,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
         _logger.Chat($"Reporting: {message.Speaker}: {message.Sentence}");
 
       XivReport report = new(
+        _dataService.Version,
         message,
         _gameInteropService.GetLocation(),
         _gameInteropService.IsInCutscene(),
@@ -222,6 +223,6 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     if (!CanReport()) return;
     _logger.Chat($"Report submitted with reason: {reason}");
 
-    _ = SendOrSaveReport(new(message, reason), _cts?.Token ?? default);
+    _ = SendOrSaveReport(new(_dataService.Version, message, reason), _cts?.Token ?? default);
   }
 }

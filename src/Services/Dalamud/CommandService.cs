@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface ICommandService : IHostedService;
 
-public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, ICommandManager _commandManager, IPlaybackService _playbackService) : ICommandService
+public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, ICommandManager _commandManager, IPlaybackService _playbackService, IDataService _dataService) : ICommandService
 {
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
@@ -47,6 +47,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
       case "help":
         _logger.Chat("Available commands:");
         _logger.Chat($"  {command} help - Display this help menu");
+        _logger.Chat($"  {command} version - Print the plugin's version");
         _logger.Chat($"  {command} mute - Toggle the muted state");
         _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
         _logger.Chat($"  {command} settings - Open the settings window");
@@ -62,6 +63,9 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
           _logger.Chat($"  {command} selftest - Open the self-test tab");
         }
         _logger.Chat($"  {command}");
+        break;
+      case "version":
+        _logger.Chat($"v{_dataService.Version} / v{_dataService.LatestVersion}");
         break;
       case "mute":
         bool mute = !_configuration.MuteEnabled;

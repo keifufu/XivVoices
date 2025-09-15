@@ -73,6 +73,13 @@ public partial class ConfigWindow
     using (ImRaii.PushColor(ImGuiCol.Text, voicelineColor))
       ImGui.Text(_dataService.DataStatus.VoicelinesDownloaded.ToString());
 
+    bool isUpToDate = _dataService.Version == _dataService.LatestVersion;
+    DrawHorizontallyCenteredText("Version:", $"Version: {_dataService.Version}");
+    ImGui.SameLine();
+    Vector4 versionColor = isUpToDate ? _green : _red;
+    using (ImRaii.PushColor(ImGuiCol.Text, versionColor))
+      ImGui.Text(_dataService.Version);
+
     ImGui.Dummy(ScaledVector2(0, 10));
 
     if (_dataService.DataDirectory == null)
