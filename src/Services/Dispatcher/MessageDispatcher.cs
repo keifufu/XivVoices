@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? isTargetingSummoningBell = false);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? isTargetingSummoningBell = null);
 }
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IClientState _clientState) : IMessageDispatcher
@@ -71,11 +71,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (source == MessageSource.AddonTalk)
     {
       bool isTargetingSummoningBell = _isTargetingSummoningBell ?? await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
+
       if (isTargetingSummoningBell)
       {
         mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
-        if (mappedNpc != null) isRetainer = true;
-        if (speaker == "Feo Ul") isRetainer = true;
+
+        // Previously would only set this if a mappedNpc was actually found or
+        // the speaker was "Feo Ul", but this bool is just used to toggle retainer speech.
+        // I can't see a case where a non-retainer line would be triggered by AddonTalk while
+        // targeting a summoning bell.
+        isRetainer = true;
       }
     }
 
