@@ -31,7 +31,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
     return Task.CompletedTask;
   }
 
-  private void OnCommand(string command, string arguments)
+  private async void OnCommand(string command, string arguments)
   {
     _logger.Debug($"command::'{command}' arguments::'{arguments}'");
 
@@ -48,6 +48,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat("Available commands:");
         _logger.Chat($"  {command} help - Display this help menu");
         _logger.Chat($"  {command} version - Print the plugin's version");
+        _logger.Chat($"  {command} upload-logs - Uploads plugin logs to help with bug-reports");
         _logger.Chat($"  {command} mute - Toggle the muted state");
         _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
         _logger.Chat($"  {command} settings - Open the settings window");
@@ -66,6 +67,20 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         break;
       case "version":
         _logger.Chat($"v{_dataService.Version} / v{_dataService.LatestVersion}");
+        break;
+      case "upload-logs":
+        _logger.Chat("Uploading logs...");
+        (bool success, string body) = await _dataService.UploadLogs();
+        if (success)
+        {
+          string url = $"{_dataService.ServerUrl}/{body}";
+          ImGui.SetClipboardText(url);
+          _logger.Chat($"Uploaded logs to: '{url}'. Copied to clipboard!");
+        }
+        else
+        {
+          _logger.Chat($"Failed to upload logs. Reason: {body}");
+        }
         break;
       case "mute":
         bool mute = !_configuration.MuteEnabled;

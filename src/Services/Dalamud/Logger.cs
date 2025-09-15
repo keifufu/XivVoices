@@ -5,6 +5,8 @@ namespace XivVoices.Services;
 
 public interface ILogger
 {
+  List<string> LogHistory { get; }
+
   void SetConfiguration(Configuration configuration);
 
   void Toast(string pre, string italic = "", string post = "");
@@ -39,6 +41,7 @@ public interface ILogger
 public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGui) : ILogger
 {
   private Configuration _configuration { get; set; } = new Configuration();
+  public List<string> LogHistory { get; } = [];
 
   public void SetConfiguration(Configuration configuration)
   {
@@ -81,16 +84,27 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   private string FormatCallsite(string callerPath = "", string callerName = "", int lineNumber = -1) =>
     $"[{Path.GetFileName(callerPath)}:{callerName}:{lineNumber}]";
 
-  public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1) =>
-    _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+  public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  {
+    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
+    _pluginLog.Error(logEntry);
+    LogHistory.Add(logEntry);
+  }
 
-  public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1) =>
-    _pluginLog.Error($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
+  public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  {
+    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}";
+    _pluginLog.Error(logEntry);
+    LogHistory.Add(logEntry);
+  }
 
   public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
     if (!_configuration.DebugLogging) return;
-    _pluginLog.Debug($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
+
+    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
+    _pluginLog.Debug(logEntry);
+    LogHistory.Add(logEntry);
   }
 
   public void DebugObj<T>(T obj, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)

@@ -21,6 +21,7 @@ public interface IDataService : IHostedService
   string? TempFilePath(string fileName);
   NpcEntry? TryGetCachedPlayer(string speaker);
   void CachePlayer(string speaker, NpcEntry npc);
+  Task<(bool success, string path)> UploadLogs();
 }
 
 public class DataService(ILogger _logger, Configuration _configuration) : IDataService
@@ -617,5 +618,31 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   {
     _cachedPlayers[speaker] = npc;
     SaveCachedPlayers();
+  }
+
+  public async Task<(bool success, string path)> UploadLogs()
+  {
+    try
+    {
+      if (!ServerOnline)
+      {
+        _logger.Debug("Sever is not online, can't upload logs.");
+        return (false, "Server is offline");
+      }
+
+      string logHistoryString = string.Join("\n", _logger.LogHistory);
+      StringContent content = new(logHistoryString, Encoding.UTF8, "text/plain");
+
+      HttpResponseMessage response = await _httpClient.PostAsync($"{ServerUrl}/logs", content);
+
+      bool success = response.StatusCode == System.Net.HttpStatusCode.OK;
+      string responseBody = await response.Content.ReadAsStringAsync();
+      return (success, success ? responseBody : response.StatusCode.ToString());
+    }
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+      return (false, "I don't know. Check /xllogs.");
+    }
   }
 }
