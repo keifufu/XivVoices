@@ -427,7 +427,11 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       if (token.IsCancellationRequested) break;
       string filePath = Path.Join(voicelinesDirectory, voiceline.Key);
       if (!fileSizeMap.TryGetValue(voiceline.Key, out long size) || size != voiceline.Value)
+      {
+        if (size != voiceline.Value)
+          Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
         missingFiles.Add((filePath, voiceline.Key));
+      }
       else
         Interlocked.Increment(ref DataStatus.UpdateSkippedFiles);
     }
@@ -441,6 +445,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
           string filePath = Path.Join(voicelinesDirectory, file);
           _logger.Debug($"Deleting unknown file: {file}");
           File.Delete(filePath);
+          Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
         }
         catch (Exception ex)
         {
@@ -448,8 +453,6 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
         }
       }
     }
-
-    DataStatus.VoicelinesDownloaded = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Length;
 
     _logger.Debug($"{missingFiles.Count} files need to be updated");
     if (missingFiles.Count == 0)
