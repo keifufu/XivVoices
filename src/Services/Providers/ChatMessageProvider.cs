@@ -38,7 +38,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
           break;
         }
 
-        if (item is TextPayload text && text.Text != null)
+        if (item is TextPayload text && text.Text != null && text.Text.ToString().Trim().Contains(' '))
         {
           speaker = text.Text;
           break;
