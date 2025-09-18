@@ -59,11 +59,11 @@ public partial class ConfigWindow
 
     DrawHorizontallyCenteredText("Welcome to XivVoices!");
 
-    DrawHorizontallyCenteredText("Server Status:", "Server Status: " + (_dataService.ServerOnline ? "ONLINE" : "OFFLINE"));
+    DrawHorizontallyCenteredText("Server Status:", $"Server Status: {_dataService.ServerStatus}");
     ImGui.SameLine();
-    Vector4 serverStatusColor = _dataService.ServerOnline ? _green : _red;
+    Vector4 serverStatusColor = _dataService.ServerStatus == ServerStatus.ONLINE ? _green : _red;
     using (ImRaii.PushColor(ImGuiCol.Text, serverStatusColor))
-      ImGui.Text(_dataService.ServerOnline ? "ONLINE" : "OFFLINE");
+      ImGui.Text(_dataService.ServerStatus.ToString());
 
     DrawHorizontallyCenteredText("Voicelines:", $"Voicelines: {_dataService.DataStatus.VoicelinesDownloaded}");
     ImGui.SameLine();
@@ -82,7 +82,24 @@ public partial class ConfigWindow
 
     ImGui.Dummy(ScaledVector2(0, 10));
 
-    if (_dataService.DataDirectory == null)
+    if (_dataService.ServerStatus == ServerStatus.UNAUTHORIZED)
+    {
+      using (ImRaii.PushColor(ImGuiCol.Button, _grey))
+      {
+        using (ImRaii.Disabled(_dataService.IsLoggingIn))
+        {
+          if (ImGui.Button(_dataService.IsLoggingIn ? "Awaiting Login" : "Login with Discord", new(ImGui.GetContentRegionAvail().X - ScaledFloat(8), ScaledFloat(40))))
+          {
+            _dataService.Login();
+          }
+        }
+      }
+
+      ImGui.Dummy(ScaledVector2(0, 10));
+      using (ImRaii.PushColor(ImGuiCol.Text, _lightgrey))
+        DrawHorizontallyCenteredText("Login is required to ensure our security standards are met.");
+    }
+    else if (_dataService.DataDirectory == null)
     {
       if (Util.IsWine())
       {
@@ -147,7 +164,7 @@ public partial class ConfigWindow
         }
       }
 
-      if (_selectedPath != null && !_isImport && !_dataService.ServerOnline)
+      if (_selectedPath != null && !_isImport && _dataService.ServerStatus != ServerStatus.ONLINE)
       {
         _errorMessage = "You selected a new installation directory,\nbut the server is currently offline.\nPlease try again later or select an existing installation.";
         _selectedPath = null;

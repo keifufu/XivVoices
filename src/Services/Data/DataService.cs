@@ -1,8 +1,7 @@
 namespace XivVoices.Services;
 
-public interface IDataService : IHostedService
+public partial interface IDataService : IHostedService
 {
-  bool ServerOnline { get; set; }
   DataStatus DataStatus { get; }
   Manifest? Manifest { get; }
   List<string> AvailableDrives { get; }
@@ -13,6 +12,7 @@ public interface IDataService : IHostedService
   string Version { get; }
   string LatestVersion { get; }
   event EventHandler<string>? OnDataDirectoryChanged;
+  event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
   JsonSerializerOptions JsonWriteOptions { get; }
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
@@ -24,18 +24,17 @@ public interface IDataService : IHostedService
   Task<(bool success, string path)> UploadLogs();
 }
 
-public class DataService(ILogger _logger, Configuration _configuration) : IDataService
+public partial class DataService(ILogger _logger, Configuration _configuration) : IDataService
 {
   private Dictionary<string, NpcEntry> _cachedPlayers = [];
-  private readonly HttpClient _httpClient = new();
-  private CancellationTokenSource? _cts;
-  private readonly SemaphoreSlim _semaphore = new(25);
+  private CancellationTokenSource? _updateCts;
+  private readonly SemaphoreSlim _updateSemaphore = new(25);
 
-  public bool ServerOnline { get; set; } = false;
   public DataStatus DataStatus { get; private set; } = new();
   public Manifest? Manifest { get; private set; } = null;
 
   public event EventHandler<string>? OnDataDirectoryChanged;
+  public event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
 
   public JsonSerializerOptions JsonWriteOptions { get; } = new()
   {
@@ -145,6 +144,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     LoadCachedPlayers();
     OnDataDirectoryChanged?.Invoke(this, dataDirectory); // Used in ReportService for localReports.json
 
+    SaveCookies();
     _ = Update();
   }
 
@@ -157,6 +157,9 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   public Task StartAsync(CancellationToken cancellationToken)
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
+    if (DataDirectory == null) OnOpenConfigWindow?.Invoke(this, ConfigWindowTab.Overview);
+
+    AuthStart();
     _ = Update();
     LoadCachedPlayers();
 
@@ -170,6 +173,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   {
     CancelUpdate();
     SaveCachedPlayers();
+    AuthStop();
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -177,14 +181,14 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
 
   private async Task SetLatestVersion()
   {
-    if (!ServerOnline)
+    if (ServerStatus != ServerStatus.ONLINE)
     {
-      _logger.Debug("Server is not online, cannot check for latest plugin version.");
+      _logger.Debug($"ServerStatus is {ServerStatus}, cannot check for latest plugin version.");
       LatestVersion = Version;
       return;
     }
 
-    HttpResponseMessage response = await _httpClient.GetAsync($"{ServerUrl}/repo");
+    HttpResponseMessage response = await HttpClient.GetAsync($"{ServerUrl}/repo");
     if (response.StatusCode == System.Net.HttpStatusCode.OK)
     {
       string jsonResponse = await response.Content.ReadAsStringAsync();
@@ -201,40 +205,6 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       _logger.Debug($"Failed to retrieve latest plugin version with code: {response.StatusCode}");
       LatestVersion = Version;
     }
-  }
-
-  private async Task UpdateServerStatus(CancellationToken token)
-  {
-    try
-    {
-      string statusEndpoint = $"{ServerUrl}/_status";
-      HttpResponseMessage response = await _httpClient.GetAsync(statusEndpoint, token);
-
-      if (response.IsSuccessStatusCode)
-      {
-        string content = await response.Content.ReadAsStringAsync(token);
-        if (content.Trim().Equals("xivv", StringComparison.OrdinalIgnoreCase))
-        {
-          _logger.Debug("Server is online");
-          ServerOnline = true;
-        }
-        else
-        {
-          _logger.Debug($"'{statusEndpoint}' returned invalid response '{content}'");
-        }
-      }
-    }
-    catch (OperationCanceledException)
-    {
-      _logger.Debug("UpdateServerStatus was cancelled");
-    }
-    catch
-    {
-      _logger.Debug($"UpdateServerStatus failed to reach server: {ServerUrl}");
-      ServerOnline = false;
-    }
-
-    _ = SetLatestVersion();
   }
 
   private async Task LoadManifest(bool forceDownload, CancellationToken token)
@@ -259,7 +229,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       }
     }
 
-    if (shouldDownload && ServerOnline)
+    if (shouldDownload && ServerStatus == ServerStatus.ONLINE)
       await DownloadFile(manifestPath, "manifest.json", token);
 
     // If no new manifest was downloaded and it was already loaded, don't load it again.
@@ -348,14 +318,14 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   {
     await Task.Delay(1); // hopefully get us off the main thread
 
-    if (_cts != null)
+    if (_updateCts != null)
     {
-      _cts.Cancel();
-      _cts.Dispose();
+      _updateCts.Cancel();
+      _updateCts.Dispose();
     }
 
-    _cts = new CancellationTokenSource();
-    CancellationToken token = _cts.Token;
+    _updateCts = new CancellationTokenSource();
+    CancellationToken token = _updateCts.Token;
     DataStatus.UpdateInProgress = true;
 
     await UpdateServerStatus(token);
@@ -385,9 +355,9 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     DataStatus.UpdateSkippedFiles = 0;
     DataStatus.UpdateCompletedFiles = 0;
 
-    if (!ServerOnline)
+    if (ServerStatus != ServerStatus.ONLINE)
     {
-      _logger.Debug("Server is not online, can't update.");
+      _logger.Debug($"ServerStatus is {ServerStatus}, can't update.");
       DataStatus.UpdateInProgress = false;
       return;
     }
@@ -468,7 +438,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     {
       try
       {
-        await _semaphore.WaitAsync(token);
+        await _updateSemaphore.WaitAsync(token);
       }
       catch (OperationCanceledException)
       {
@@ -476,9 +446,9 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
         break;
       }
 
-      if (!ServerOnline)
+      if (ServerStatus != ServerStatus.ONLINE)
       {
-        _logger.Debug("Server went offline during Update loop, breaking.");
+        _logger.Debug($"ServerStatus turned {ServerStatus} during Update loop, breaking.");
         break;
       }
 
@@ -492,7 +462,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
         }
         finally
         {
-          _semaphore.Release();
+          _updateSemaphore.Release();
         }
       }, token));
     }
@@ -510,11 +480,11 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
 
   public void CancelUpdate()
   {
-    if (_cts != null)
+    if (_updateCts != null)
     {
-      _cts.Cancel();
-      _cts.Dispose();
-      _cts = null;
+      _updateCts.Cancel();
+      _updateCts.Dispose();
+      _updateCts = null;
     }
   }
 
@@ -527,7 +497,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
     try
     {
       string url = $"{ServerUrl}/files/{fileName}";
-      using HttpResponseMessage response = await _httpClient.GetAsync(url, token);
+      using HttpResponseMessage response = await HttpClient.GetAsync(url, token);
       response.EnsureSuccessStatusCode();
       byte[] fileBytes = await response.Content.ReadAsByteArrayAsync(token);
       await File.WriteAllBytesAsync(filePath, fileBytes, token);
@@ -559,7 +529,7 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
       if (_subsequentFails > 15 || !fileName.Contains(".ogg"))
       {
         _logger.Error(httpEx);
-        ServerOnline = false;
+        ServerStatus = ServerStatus.OFFLINE;
       }
     }
     catch (OperationCanceledException)
@@ -627,16 +597,16 @@ public class DataService(ILogger _logger, Configuration _configuration) : IDataS
   {
     try
     {
-      if (!ServerOnline)
+      if (ServerStatus != ServerStatus.ONLINE)
       {
-        _logger.Debug("Sever is not online, can't upload logs.");
-        return (false, "Server is offline");
+        _logger.Debug($"SeverStatus is {ServerStatus}, can't upload logs.");
+        return (false, $"Server is {ServerStatus}");
       }
 
       string logHistoryString = string.Join("\n", _logger.LogHistory);
       StringContent content = new(logHistoryString, Encoding.UTF8, "text/plain");
 
-      HttpResponseMessage response = await _httpClient.PostAsync($"{ServerUrl}/logs", content);
+      HttpResponseMessage response = await HttpClient.PostAsync($"{ServerUrl}/logs", content);
 
       bool success = response.StatusCode == System.Net.HttpStatusCode.OK;
       string responseBody = await response.Content.ReadAsStringAsync();

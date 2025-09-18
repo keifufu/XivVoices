@@ -12,7 +12,6 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private bool _invalidPluginsWarningsThisSession = false;
 
   private Dictionary<string, XivReport> _reports = [];
-  private readonly HttpClient _httpClient = new();
   private CancellationTokenSource? _cts;
 
   public Task StartAsync(CancellationToken cancellationToken)
@@ -86,6 +85,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private async Task TryUploadReports(CancellationToken token)
   {
     await Task.Delay(5000, token); // Give DataService some time to wake up.
+    if (_dataService.ServerStatus != ServerStatus.ONLINE || _reports.Count == 0) return;
 
     List<string> keysToRemove = [];
     foreach ((string key, XivReport report) in _reports)
@@ -111,7 +111,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       StringContent content = new(json, Encoding.UTF8, "application/json");
 
       string url = $"{_dataService.ServerUrl}/report";
-      using HttpResponseMessage response = await _httpClient.PostAsync(url, content, token);
+      using HttpResponseMessage response = await _dataService.HttpClient.PostAsync(url, content, token);
       response.EnsureSuccessStatusCode();
 
       _logger.Debug($"Report successfully uploaded: {report.Message.Id}");
@@ -120,7 +120,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     catch (HttpRequestException httpEx)
     {
       _logger.Error(httpEx);
-      _dataService.ServerOnline = false;
+      _ = _dataService.UpdateServerStatus(default);
       return false;
     }
     catch (TaskCanceledException)
@@ -138,7 +138,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private async Task SendOrSaveReport(XivReport report, CancellationToken token)
   {
     bool wasUploaded = false;
-    if (_dataService.ServerOnline)
+    if (_dataService.ServerStatus == ServerStatus.ONLINE)
       wasUploaded = await TryUploadReport(report, token);
 
     if (!wasUploaded)

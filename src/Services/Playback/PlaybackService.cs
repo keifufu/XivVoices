@@ -248,21 +248,18 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     if (message.Voice != null)
     {
-      using (HttpClient client = new())
+      if (_dataService.Manifest == null) return null;
+
+      string requestUri = _configuration.LocalGenerationUri
+        .Replace("%v", Uri.EscapeDataString(message.Voice.Name))
+        .Replace("%s", Uri.EscapeDataString(message.Sentence))
+        .Replace("%i", Uri.EscapeDataString(message.Id));
+
+      HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
+
+      if (response.IsSuccessStatusCode)
       {
-        if (_dataService.Manifest == null) return null;
-
-        string requestUri = _configuration.LocalGenerationUri
-          .Replace("%v", Uri.EscapeDataString(message.Voice.Name))
-          .Replace("%s", Uri.EscapeDataString(message.Sentence))
-          .Replace("%i", Uri.EscapeDataString(message.Id));
-
-        HttpResponseMessage response = await client.GetAsync(requestUri, message.GenerationToken.Token);
-
-        if (response.IsSuccessStatusCode)
-        {
-          return await response.Content.ReadAsStringAsync();
-        }
+        return await response.Content.ReadAsStringAsync();
       }
     }
 
