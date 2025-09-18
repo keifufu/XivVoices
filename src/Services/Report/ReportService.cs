@@ -85,7 +85,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
   private async Task TryUploadReports(CancellationToken token)
   {
-    if (!_dataService.ServerOnline || _reports.Count == 0) return;
+    await Task.Delay(5000, token); // Give DataService some time to wake up.
 
     List<string> keysToRemove = [];
     foreach ((string key, XivReport report) in _reports)

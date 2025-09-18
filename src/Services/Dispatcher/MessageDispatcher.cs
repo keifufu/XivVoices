@@ -136,12 +136,12 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     XivMessage message = new(
       id,
       source,
-      voice,
       cleanedSpeaker,
       cleanedSentence,
       rawSpeaker,
       rawSentence,
       npc,
+      voice,
       voicelinePath
     );
 

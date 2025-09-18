@@ -97,7 +97,7 @@ public abstract class PlaybackQueue(MessageSource _messageSource, ILogger _logge
       bool? isTargetingSummoningBell = null;
       if (_messageSource == MessageSource.AddonTalk)
         isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
-      _playbackService.AddQueuedLine(new XivMessage($"{speaker}+{sentence}", _messageSource, null, speaker, sentence, speaker, sentence, null, null, true));
+      _playbackService.AddQueuedLine(new($"{speaker}+{sentence}", _messageSource, speaker, sentence, speaker, sentence, null, null, null, true));
       _queue.Enqueue((speaker, sentence, speakerBaseId, isTargetingSummoningBell));
     }
     else

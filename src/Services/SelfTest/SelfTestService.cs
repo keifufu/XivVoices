@@ -450,6 +450,6 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   {
     IGameObject? target = _gameInteropService.GetTarget();
     string targetName = target?.Name.ToString() ?? "";
-    _lipSync.TryLipSync(new("_selfTestService.LipSyncTarget", MessageSource.AddonTalk, null, targetName, "", targetName, "", null, null), 10);
+    _lipSync.TryLipSync(new("_selfTestService.LipSyncTarget", MessageSource.AddonTalk, targetName, "", targetName, "", null, null, null), 10);
   }
 }
