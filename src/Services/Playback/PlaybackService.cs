@@ -127,8 +127,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           (5f, 20f, volume * 0.3f, volume * 0.05f) // 5 to 20 units: 30% to 5%
         ];
 
-        // Can't let bubbles get too quiet in duties.
-        if (_gameInteropService.IsInDuty())
+        // Can't let bubbles get too quiet in duties, or for directional chat messages.
+        if (_gameInteropService.IsInDuty() || track.Message.Source == MessageSource.ChatMessage)
         {
           volumeRanges[0].volumeStart = 0.65f;
           volumeRanges[0].volumeEnd = 0.63f; // 0 to 3 units: 65% to 63%
