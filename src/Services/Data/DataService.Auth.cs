@@ -121,7 +121,7 @@ public partial class DataService
     if (cookiesPath != null && File.Exists(cookiesPath))
     {
       string json = File.ReadAllText(cookiesPath);
-      List<SerializableCookie>? serializableCookies = JsonSerializer.Deserialize<List<SerializableCookie>>(json);
+      List<SerializableCookie>? serializableCookies = JsonSerializer.Deserialize<List<SerializableCookie>>(json, JsonOptions.Read);
 
       if (serializableCookies != null)
       {
@@ -165,7 +165,7 @@ public partial class DataService
       });
     }
 
-    string json = JsonSerializer.Serialize(serializableCookies);
+    string json = JsonSerializer.Serialize(serializableCookies, JsonOptions.Write);
     File.WriteAllText(cookiesPath, json);
   }
 
@@ -184,10 +184,10 @@ public partial class DataService
 
         if (response.IsSuccessStatusCode)
         {
-          string content = await response.Content.ReadAsStringAsync(cts.Token);
           _logger.Debug("Logged in successfully!");
           IsLoggingIn = false;
           _ = UpdateServerStatus(default);
+          SaveCookies();
           return;
         }
         else

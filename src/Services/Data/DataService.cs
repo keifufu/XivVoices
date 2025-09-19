@@ -13,7 +13,6 @@ public partial interface IDataService : IHostedService
   string LatestVersion { get; }
   event EventHandler<string>? OnDataDirectoryChanged;
   event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
-  JsonSerializerOptions JsonWriteOptions { get; }
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
   Task Update(bool forceDownloadManifest = false);
@@ -35,12 +34,6 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
   public event EventHandler<string>? OnDataDirectoryChanged;
   public event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
-
-  public JsonSerializerOptions JsonWriteOptions { get; } = new()
-  {
-    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
-    WriteIndented = true
-  };
 
   private bool _dataDirectoryExists;
   public string? DataDirectory
@@ -238,7 +231,16 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     try
     {
       string jsonContent = File.ReadAllText(manifestPath);
-      ManifestJson json = JsonSerializer.Deserialize<ManifestJson>(jsonContent) ?? throw new Exception("Failed to deserialize manifest.json");
+      ManifestJson json;
+      try
+      {
+        json = JsonSerializer.Deserialize<ManifestJson>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize manifest.json");
+      }
+      catch
+      {
+        // TODO: Remove this Deserialize in a few days, when everyone has the new manifest format.
+        json = JsonSerializer.Deserialize<ManifestJson>(jsonContent) ?? throw new Exception("Failed to deserialize manifest.json");
+      }
 
       Manifest manifest = new()
       {
@@ -550,7 +552,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, NpcEntry> json = JsonSerializer.Deserialize<Dictionary<string, NpcEntry>>(jsonContent) ?? throw new Exception("Failed to deserialize players.json");
+      Dictionary<string, NpcEntry> json = JsonSerializer.Deserialize<Dictionary<string, NpcEntry>>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize players.json");
       _cachedPlayers = json;
     }
     catch (Exception ex)
@@ -571,7 +573,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       }
 
       string filePath = Path.Join(dataDirectory, "players.json");
-      string json = JsonSerializer.Serialize(_cachedPlayers, JsonWriteOptions);
+      string json = JsonSerializer.Serialize(_cachedPlayers, JsonOptions.Write);
       File.WriteAllText(filePath, json);
     }
     catch (Exception ex)
@@ -619,3 +621,21 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 }
+
+public static class JsonOptions
+{
+  public static JsonSerializerOptions Read { get; } = new()
+  {
+    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+  };
+
+  public static JsonSerializerOptions Write { get; } = new()
+  {
+    Converters = { new JsonStringEnumConverter(JsonNamingPolicy.SnakeCaseLower) },
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    WriteIndented = true
+  };
+}
+

@@ -39,7 +39,7 @@ public class XivMessage
   public bool Reported { get; set; } = false;
 
   public override string ToString() =>
-    JsonSerializer.Serialize(this);
+    JsonSerializer.Serialize(this, JsonOptions.Write);
 
   public XivMessage(
     string id,

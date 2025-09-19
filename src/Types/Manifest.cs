@@ -7,7 +7,7 @@ public class VoiceEntry
   public required bool IsGeneric { get; set; }
 
   public override string ToString() =>
-    JsonSerializer.Serialize(this);
+    JsonSerializer.Serialize(this, JsonOptions.Write);
 }
 public class NpcEntry
 {
@@ -25,7 +25,7 @@ public class NpcEntry
   public required bool HasVariedLooks { get; set; }
 
   public override string ToString() =>
-    JsonSerializer.Serialize(this);
+    JsonSerializer.Serialize(this, JsonOptions.Write);
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

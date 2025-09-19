@@ -51,7 +51,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent) ?? throw new Exception("Failed to deserialize reports.json");
+      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize reports.json");
       _reports = json;
       _logger.Debug($"Loaded {_reports.Count} reports");
     }
@@ -73,7 +73,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       }
 
       string filePath = Path.Join(dataDirectory, "reports.json");
-      string json = JsonSerializer.Serialize(_reports, _dataService.JsonWriteOptions);
+      string json = JsonSerializer.Serialize(_reports, JsonOptions.Write);
       File.WriteAllText(filePath, json);
     }
     catch (Exception ex)
@@ -107,7 +107,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   {
     try
     {
-      string json = JsonSerializer.Serialize(report, _dataService.JsonWriteOptions);
+      string json = JsonSerializer.Serialize(report, JsonOptions.Write);
       StringContent content = new(json, Encoding.UTF8, "application/json");
 
       string url = $"{_dataService.ServerUrl}/report";
