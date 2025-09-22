@@ -10,7 +10,7 @@ public partial class MessageDispatcher
     string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
 
     if (_dataService.Manifest.SpeakerMappings[type].TryGetValue(sanitizedSentence, out string? npcId))
-      if (_dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
+      if (npcId != null && _dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
         return npc;
 
     return null;
