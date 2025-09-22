@@ -79,6 +79,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(new WindowSystem(pluginInterface.InternalName));
 
         // The order of these matters, somewhat.
+        collection.AddHostedService(sp => sp.GetRequiredService<ILogger>());
         collection.AddHostedService(sp => sp.GetRequiredService<IDataService>());
         collection.AddHostedService(sp => sp.GetRequiredService<ISoundFilter>());
         collection.AddHostedService(sp => sp.GetRequiredService<IWindowService>());

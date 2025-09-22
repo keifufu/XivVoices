@@ -3,7 +3,7 @@ using Dalamud.Game.Text.SeStringHandling;
 
 namespace XivVoices.Services;
 
-public interface ILogger
+public interface ILogger : IHostedService
 {
   List<string> LogHistory { get; }
 
@@ -43,9 +43,31 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   private Configuration _configuration { get; set; } = new Configuration();
   public List<string> LogHistory { get; } = [];
 
+  public Task StartAsync(CancellationToken cancellationToken)
+  {
+    TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+    ServiceLifecycle();
+    return Task.CompletedTask;
+  }
+
+  public Task StopAsync(CancellationToken cancellationToken)
+  {
+    TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
+
+    ServiceLifecycle();
+    return Task.CompletedTask;
+  }
+
   public void SetConfiguration(Configuration configuration)
   {
     _configuration = configuration;
+  }
+
+  private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
+  {
+    if (!args.Observed)
+      Error(args.Exception);
   }
 
   public void Toast(string pre, string italic = "", string post = "")
