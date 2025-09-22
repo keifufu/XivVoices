@@ -45,6 +45,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
     switch (args[0])
     {
       case "help":
+      case "?":
         _logger.Chat("Available commands:");
         _logger.Chat($"  {command} help - Display this help menu");
         _logger.Chat($"  {command} version - Print the plugin's version");
