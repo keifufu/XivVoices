@@ -29,11 +29,13 @@ public partial class MessageDispatcher
   {
     return Task.Run(() =>
     {
-      string voiceName = voice?.Name ?? "Unknown";
-      string npcName = npc?.Name ?? "Unknown";
-      string id = Md5(voiceName, npcName, sentence);
+      bool npcExists = npc?.Id != null;
 
-      _logger.Debug($"Searching for voiceline: ({voiceName}:{npcName}:{sentence}) ({id})");
+      string voiceId = npcExists ? voice?.Id ?? "Unknown" : "Unknown";
+      string npcId = npcExists ? npc?.Id ?? "Unknown" : "Unknown";
+      string id = Md5(voiceId, npcId, sentence);
+
+      _logger.Debug($"Searching for voiceline: ({voiceId}:{npcId}:{sentence}) ({id})");
       string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
       if (!File.Exists(voicelinePath))
       {

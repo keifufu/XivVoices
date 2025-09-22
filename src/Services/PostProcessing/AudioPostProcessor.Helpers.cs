@@ -13,7 +13,7 @@ public partial class AudioPostProcessor
     float pitch = 1.0f;
     float tempo = 1.0f;
 
-    if (message.Voice?.Name == "Omicron" || message.Voice?.Name == "Node" || message.Npc?.Name == "Omega")
+    if (message.Voice?.Id == "Omicron" || message.Voice?.Id == "Node" || message.Npc?.Id == "Omega")
       isRobot = true;
 
     // Sounds Effects for Age
@@ -60,7 +60,7 @@ public partial class AudioPostProcessor
     }
 
     // Sound Effects for Ea
-    if (message.Voice?.Name == "Ea")
+    if (message.Voice?.Id == "Ea")
     {
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.90[sc];[oc]rubberband=pitch=1.02[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
       filterArgs += ",\"aecho=0.8:0.88:120:0.4\"";
@@ -88,7 +88,7 @@ public partial class AudioPostProcessor
     if (message.Npc?.Race == "Primal")
       addEcho = true;
 
-    if (message.Npc?.Name == "Ifrit")
+    if (message.Npc?.Id == "Ifrit")
     {
       pitch -= 0.15f;
       tempo /= 1 - 0.1f;
@@ -96,7 +96,7 @@ public partial class AudioPostProcessor
       filterArgs += $"\"atempo={fts(tempo)},rubberband=pitch={fts(pitch)}\"";
     }
 
-    else if (message.Npc?.Name == "Nald'thal")
+    else if (message.Npc?.Id == "Nald'thal")
     {
       if (message.Speaker == "Thal" || message.Sentence.StartsWith("Nald"))
         filterArgs += "\"rubberband=pitch=0.92\"";
@@ -106,7 +106,7 @@ public partial class AudioPostProcessor
         filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.93[sc];[oc]rubberband=pitch=1.04[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
     }
 
-    if (message.Npc?.Name == "Cloud of Darkness")
+    if (message.Npc?.Id == "Cloud of Darkness")
     {
       if (filterArgs != "") filterArgs += ",";
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.8[sc];[oc]rubberband=pitch=1.0[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";

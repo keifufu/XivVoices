@@ -3,7 +3,6 @@ namespace XivVoices.Types;
 public class VoiceEntry
 {
   public required string Id { get; set; }
-  public required string Name { get; set; }
   public required bool IsGeneric { get; set; }
 
   public override string ToString() =>
@@ -13,7 +12,6 @@ public class NpcEntry
 {
   // Id and VoiceId are nullable because GameInteropService can set them to be null for new npcs.
   public required string? Id { get; set; }
-  public required string Name { get; set; }
   public required string? VoiceId { get; set; }
   public required string Gender { get; set; }
   public required string Race { get; set; }

@@ -83,7 +83,6 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     NpcEntry npc = new()
     {
       Id = _npc?.Id,
-      Name = _npc?.Name ?? speaker,
       VoiceId = _npc?.VoiceId,
       Gender = GetGender(gender),
       Race = GetRace(race),

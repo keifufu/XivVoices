@@ -211,7 +211,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     string manifestPath = Path.Join(DataDirectory, "manifest.json");
     bool manifestExists = File.Exists(manifestPath);
-    bool shouldDownload = forceDownload || !manifestExists;
+    // bool shouldDownload = forceDownload || !manifestExists;
+    bool shouldDownload = true; // TODO: Remove in a day
     if (manifestExists)
     {
       DateTime lastModified = File.GetLastWriteTime(manifestPath);
@@ -231,16 +232,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     try
     {
       string jsonContent = File.ReadAllText(manifestPath);
-      ManifestJson json;
-      try
-      {
-        json = JsonSerializer.Deserialize<ManifestJson>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize manifest.json");
-      }
-      catch
-      {
-        // TODO: Remove this Deserialize in a few days, when everyone has the new manifest format.
-        json = JsonSerializer.Deserialize<ManifestJson>(jsonContent) ?? throw new Exception("Failed to deserialize manifest.json");
-      }
+      ManifestJson json = JsonSerializer.Deserialize<ManifestJson>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize manifest.json");
 
       Manifest manifest = new()
       {

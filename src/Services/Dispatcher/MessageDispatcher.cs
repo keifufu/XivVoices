@@ -172,7 +172,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
 
     if (source == MessageSource.AddonMiniTalk && _configuration.PrintBubbleMessages)
-      _logger.Chat(message.RawSentence, "", "", npc?.Name ?? "Bubble", XivChatType.NPCDialogue, false);
+      _logger.Chat(message.RawSentence, "", "", npc?.Id ?? "Bubble", XivChatType.NPCDialogue, false);
 
     if (isNarrator && _configuration.PrintNarratorMessages)
       _logger.Chat(message.RawSentence, "", "", "Narrator", XivChatType.NPCDialogue, false);

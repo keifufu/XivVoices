@@ -251,7 +251,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (_dataService.Manifest == null) return null;
 
       string requestUri = _configuration.LocalGenerationUri
-        .Replace("%v", Uri.EscapeDataString(message.Voice.Name))
+        .Replace("%v", Uri.EscapeDataString(message.Voice.Id))
         .Replace("%s", Uri.EscapeDataString(message.Sentence))
         .Replace("%i", Uri.EscapeDataString(message.Id));
 
