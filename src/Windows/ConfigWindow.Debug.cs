@@ -33,12 +33,29 @@ public partial class ConfigWindow
       _configuration.Save();
     });
 
+    DrawConfigCheckbox("UseStreamElementsLocalTTS", ref _configuration.UseStreamElementsLocalTTS);
+
+    // See https://lazypy.ro/tts for all available StreamElements voices.
+    // Some have different names than what the api expects, check network traffic for those.
+    DrawConfigText("StreamElementsMaleVoice", "StreamElementsMaleVoice", _configuration.StreamElementsMaleVoice, (value) =>
+    {
+      _configuration.StreamElementsMaleVoice = value;
+      _configuration.Save();
+    });
+
+    DrawConfigText("StreamElementsFemaleVoice", "StreamElementsFemaleVoice", _configuration.StreamElementsFemaleVoice, (value) =>
+    {
+      _configuration.StreamElementsFemaleVoice = value;
+      _configuration.Save();
+    });
+
     DrawConfigCheckbox("Enable Local Generation", ref _configuration.EnableLocalGeneration);
     DrawConfigCheckbox("Force Local Generation", ref _configuration.ForceLocalGeneration);
 
     DrawConfigText("LocalGenerationUri", "LocalGenerationUri", _configuration.LocalGenerationUri, (value) =>
     {
       _configuration.LocalGenerationUri = value;
+      _configuration.Save();
     });
   }
 }

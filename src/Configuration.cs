@@ -68,6 +68,9 @@ public class Configuration : IPluginConfiguration
   public string? ServerUrl = null;
   public string LocalTTSVoiceMale = "en-gb-northern_english_male-medium";
   public string LocalTTSVoiceFemale = "en-gb-jenny_dioco-medium";
+  public bool UseStreamElementsLocalTTS = false;
+  public string StreamElementsMaleVoice = "Brian";
+  public string StreamElementsFemaleVoice = "Emma";
   public bool EnableLocalGeneration = false;
   public bool ForceLocalGeneration = false;
   public string LocalGenerationUri = "http://127.0.0.1:6969/generate?voice=%v&sentence=%s&id=%i";

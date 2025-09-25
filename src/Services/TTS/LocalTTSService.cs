@@ -15,6 +15,29 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     _localTTSEngine = null;
   }
 
+  private async Task<string?> WriteStreamElementsTTSToDisk(XivMessage message, int speaker, string cleanedSentence)
+  {
+    if (message.GenerationToken.IsCancellationRequested) return null;
+
+    string voice = speaker == 0 ? _configuration.StreamElementsMaleVoice : _configuration.StreamElementsFemaleVoice;
+    string requestUri = $"https://api.streamelements.com/kappa/v2/speech?voice={voice}&text={cleanedSentence}";
+
+    HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
+
+    if (response.IsSuccessStatusCode)
+    {
+      string? tempFilePath = _dataService.TempFilePath($"localtts-se-{Guid.NewGuid()}.mp3");
+      if (tempFilePath == null) return null;
+
+      using (FileStream fileStream = new(tempFilePath, FileMode.Create, FileAccess.Write, FileShare.None))
+        await response.Content.CopyToAsync(fileStream);
+
+      return tempFilePath;
+    }
+
+    return null;
+  }
+
   // returns a path to the temporary .wav output
   // this path should be deleted once you're done with it.
   // can return null if it failed to generate.
@@ -40,6 +63,15 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       cleanedSentence = await ProcessPlayerChat(cleanedSentence, message.Speaker);
     cleanedSentence = ApplyLexicon(cleanedSentence);
 
+    int speaker = _configuration.LocalTTSDefaultVoice == "Male" ? 0 : 1;
+    if (message.Npc != null) speaker = message.Npc.Gender == "Male" ? 0 : 1;
+
+    if (_configuration.UseStreamElementsLocalTTS)
+    {
+      string? seFilePath = await WriteStreamElementsTTSToDisk(message, speaker, cleanedSentence);
+      if (seFilePath != null) return seFilePath;
+    }
+
     if (_localTTSEngine == null)
     {
       try
@@ -52,9 +84,6 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
         return null;
       }
     }
-
-    int speaker = _configuration.LocalTTSDefaultVoice == "Male" ? 0 : 1;
-    if (message.Npc != null) speaker = message.Npc.Gender == "Male" ? 0 : 1;
 
     if (_localTTSEngine.Voices[speaker] == null)
     {
