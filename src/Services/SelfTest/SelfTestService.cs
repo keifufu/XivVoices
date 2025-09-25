@@ -240,7 +240,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
           }
         }
 
-        Check(npc.Id, "Nenebaru", "Id");
+        Check(npc.Id, null, "Id");
         Check(npc.Gender, "Male", "Gender");
         Check(npc.Race, "Lalafell", "Race");
         Check(npc.Tribe, "Dunesfolk", "Tribe");
