@@ -66,8 +66,8 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
 
   private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
   {
-    if (!args.Observed)
-      Error(args.Exception);
+    if (!args.Observed && args.Exception.ToString().Contains("XivVoices"))
+      LogHistory.Add($"Uncaught Exception: {args.Exception}");
   }
 
   public void Toast(string pre, string italic = "", string post = "")
