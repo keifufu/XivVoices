@@ -20,14 +20,14 @@ public partial class ConfigWindow
     {
       if (!child.Success) return;
 
-      IEnumerable<(XivMessage message, bool isPlaying, float percentage)> history = _playbackService.GetPlaybackHistory();
+      IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> history = _playbackService.GetPlaybackHistory();
       if (!history.Any())
       {
         ImGui.Text("There are no voicelines in your history.");
         return;
       }
 
-      foreach ((XivMessage message, bool isPlaying, float percentage) in history)
+      foreach ((XivMessage message, bool isPlaying, float percentage, bool isQueued) in history)
       {
         ImGui.TextWrapped($"{message.RawSpeaker}: {message.RawSentence}");
 
@@ -40,7 +40,7 @@ public partial class ConfigWindow
 
         using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))
         {
-          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), message.IsQueued ? "queued" : message.IsGenerating ? "generating" : isPlaying ? "playing" : "stopped");
+          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), isQueued ? "queued" : message.IsGenerating ? "generating" : isPlaying ? "playing" : "stopped");
         }
 
         if (allowReports)
@@ -60,7 +60,7 @@ public partial class ConfigWindow
         }
 
         ImGui.SameLine();
-        if (message.IsGenerating || message.IsQueued)
+        if (message.IsGenerating || isQueued)
         {
           if (ImGui.Button("Skip" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
           {

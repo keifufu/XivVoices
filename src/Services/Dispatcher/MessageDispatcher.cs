@@ -2,16 +2,40 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? isTargetingSummoningBell = null);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
 }
 
-public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IClientState _clientState) : IMessageDispatcher
+public enum PlaybackQueueState
+{
+  AwaitingConfirmation,
+  Playing,
+  Stopped
+}
+
+public class PlaybackQueue
+{
+  public ConcurrentQueue<XivMessage> Queue { get; set; } = new();
+  public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
+  public DateTime PlaybackStartTime { get; set; }
+}
+
+public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
 {
   private InterceptedSound? _interceptedSound;
 
+  private Dictionary<MessageSource, PlaybackQueue> _queues = [];
+
   public Task StartAsync(CancellationToken cancellationToken)
   {
+    foreach (MessageSource source in Enum.GetValues<MessageSource>())
+      _queues[source] = new();
+
     _soundFilter.OnCutsceneAudioDetected += SoundFilter_OnCutSceneAudioDetected;
+
+    _framework.Update += OnFrameworkUpdate;
+    _playbackService.PlaybackStarted += OnPlaybackStarted;
+    _playbackService.PlaybackCompleted += OnPlaybackCompleted;
+    _playbackService.QueuedLineSkipped += OnQueuedLineSkipped;
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -21,8 +45,70 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   {
     _soundFilter.OnCutsceneAudioDetected -= SoundFilter_OnCutSceneAudioDetected;
 
+    _framework.Update -= OnFrameworkUpdate;
+    _playbackService.PlaybackStarted -= OnPlaybackStarted;
+    _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
+    _playbackService.QueuedLineSkipped -= OnQueuedLineSkipped;
+
+    _queues = [];
+
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  private void OnFrameworkUpdate(IFramework framework)
+  {
+    int timeoutSec = (_configuration.ForceLocalGeneration || _configuration.EnableLocalGeneration) ? 45 : 3;
+
+    foreach (PlaybackQueue playbackQueue in _queues.Values)
+    {
+      if (playbackQueue.PlaybackQueueState == PlaybackQueueState.AwaitingConfirmation)
+        if ((DateTime.Now - playbackQueue.PlaybackStartTime) >= TimeSpan.FromSeconds(timeoutSec))
+          playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
+
+
+      if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !playbackQueue.Queue.IsEmpty)
+      {
+        if (playbackQueue.Queue.TryDequeue(out XivMessage? message))
+        {
+          _logger.Debug($"Playing queued message: {message.Id}");
+          _playbackService.RemoveQueuedLine(message);
+          _ = _playbackService.Play(message);
+          playbackQueue.PlaybackStartTime = DateTime.Now;
+          playbackQueue.PlaybackQueueState = PlaybackQueueState.AwaitingConfirmation;
+        }
+      }
+    }
+  }
+
+  private void OnPlaybackStarted(object? sender, XivMessage message)
+  {
+    _logger.Debug($"{message.Source} Playback Started.");
+    _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Playing;
+  }
+
+  private void OnPlaybackCompleted(object? sender, XivMessage message)
+  {
+    _logger.Debug($"{message.Source} Playback Completed.");
+    _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Stopped;
+  }
+
+  private void OnQueuedLineSkipped(object? sender, XivMessage message)
+  {
+    XivMessage? itemToRemove = _queues[message.Source].Queue.FirstOrDefault(item => item.Id == message.Id);
+
+    if (itemToRemove != null)
+    {
+      ConcurrentQueue<XivMessage> newQueue = new();
+
+      foreach (XivMessage item in _queues[message.Source].Queue)
+        if (item.Id != message.Id)
+          newQueue.Enqueue(item);
+
+      _queues[message.Source].Queue = newQueue;
+
+      _logger.Debug($"Removed queued line: {message.Id}");
+    }
   }
 
   private void SoundFilter_OnCutSceneAudioDetected(object? sender, InterceptedSound sound)
@@ -33,7 +119,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool? _isTargetingSummoningBell = null)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -70,7 +156,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     bool isRetainer = false;
     if (source == MessageSource.AddonTalk)
     {
-      bool isTargetingSummoningBell = _isTargetingSummoningBell ?? await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
+      bool isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
 
       if (isTargetingSummoningBell)
       {
@@ -151,6 +237,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _reportService.Report(message);
 
     bool allowed = true;
+    bool queued = false;
     bool isNarrator = message.Speaker == "Narrator";
     switch (source)
     {
@@ -159,15 +246,21 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled
             : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled);
+        queued = _configuration.QueueDialogue;
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled
             : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled);
+        queued = true;
         break;
       case MessageSource.AddonMiniTalk:
         allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled);
+        queued = true;
+        break;
+      case MessageSource.ChatMessage:
+        queued = _configuration.QueueChatMessages;
         break;
     }
 
@@ -183,6 +276,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       return;
     }
 
-    await _playbackService.Play(message);
+    if (queued)
+    {
+      _logger.Debug($"Queueing message: {message.Id}");
+      _queues[message.Source].Queue.Enqueue(message);
+      _playbackService.AddQueuedLine(message);
+    }
+    else
+    {
+      _logger.Debug($"Playing message: {message.Id}");
+      _ = _playbackService.Play(message);
+    }
   }
 }

@@ -27,9 +27,6 @@ public class XivMessage
   public bool IsLocalTTS => VoicelinePath == null;
 
   [JsonIgnore]
-  public bool IsQueued = false;
-
-  [JsonIgnore]
   public bool IsGenerating = false;
 
   [JsonIgnore]
@@ -50,8 +47,7 @@ public class XivMessage
     string rawSentence,
     NpcEntry? npc,
     VoiceEntry? voice,
-    string? voicelinePath,
-    bool isQueued = false)
+    string? voicelinePath)
   {
     Id = id;
     Source = source;
@@ -62,7 +58,6 @@ public class XivMessage
     Npc = npc;
     Voice = voice;
     VoicelinePath = voicelinePath;
-    IsQueued = isQueued;
   }
 
   [JsonConstructor]

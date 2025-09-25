@@ -4,15 +4,13 @@ namespace XivVoices.Services;
 
 public interface IAddonMiniTalkProvider : IHostedService;
 
-public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration, IGameInteropService _gameInteropService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropProvider _gameInteropProvider, IFramework _framework) : PlaybackQueue(MessageSource.AddonMiniTalk, _logger, _configuration, _playbackService, _messageDispatcher, _gameInteropService, _framework), IAddonMiniTalkProvider
+public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInteropService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropProvider _gameInteropProvider) : IAddonMiniTalkProvider
 {
   private readonly ConcurrentDictionary<string, DateTime> _recentSentences = new();
   private readonly TimeSpan _sentenceCooldown = TimeSpan.FromSeconds(30);
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    QueueStart();
-
     _gameInteropProvider.InitializeFromAttributes(this);
     _openBubbleHook.Enable();
 
@@ -22,8 +20,6 @@ public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
-    QueueStop();
-
     _openBubbleHook?.Dispose();
 
     _logger.ServiceLifecycle();
@@ -53,7 +49,7 @@ public class AddonMiniTalkProvider(ILogger _logger, Configuration _configuration
       {
         _recentSentences[sentence] = now;
         _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-        _ = EnqueueMessage(speaker, sentence, actor->BaseId);
+        _ = _messageDispatcher.TryDispatch(MessageSource.AddonMiniTalk, speaker, sentence, actor->BaseId);
       }
     }
 

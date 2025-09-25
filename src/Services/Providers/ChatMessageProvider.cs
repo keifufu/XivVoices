@@ -5,11 +5,10 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, IPlaybackService playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IFramework _framework, IClientState _clientState) : PlaybackQueue(MessageSource.ChatMessage, _logger, _configuration, playbackService, _messageDispatcher, _gameInteropService, _framework), IChatMessageProvider
+public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IClientState _clientState) : IChatMessageProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
-    QueueStart();
     _chatGui.ChatMessage += OnChatMessage;
 
     _logger.ServiceLifecycle();
@@ -18,7 +17,6 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
-    QueueStop();
     _chatGui.ChatMessage -= OnChatMessage;
 
     _logger.ServiceLifecycle();
@@ -105,8 +103,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     if (allowed)
     {
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-      QueueEnabled = _configuration.QueueChatMessages;
-      _ = EnqueueMessage(speaker, sentence.ToString());
+      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, sentence.ToString());
     }
   }
 }

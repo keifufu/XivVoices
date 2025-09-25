@@ -17,11 +17,11 @@ public interface IPlaybackService : IHostedService
 
   bool IsPlaying(MessageSource source);
 
-  IEnumerable<(XivMessage message, bool isPlaying, float percentage)> GetPlaybackHistory();
+  IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> GetPlaybackHistory();
 
   void AddQueuedLine(XivMessage message);
   void SkipQueuedLine(XivMessage message);
-  void RemoveQueuedLine(string id);
+  void RemoveQueuedLine(XivMessage message);
 
   IEnumerable<TrackableSound> Debug_GetPlaying();
   int Debug_GetMixerSourceCount();
@@ -44,7 +44,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public Task StartAsync(CancellationToken cancellationToken)
   {
     _framework.Update += FrameworkOnUpdate;
-    _clientState.TerritoryChanged += OnTerritoryChanged;
 
     _outputDevice = new WaveOutEvent();
     _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(48000, 2))
@@ -62,7 +61,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _framework.Update -= FrameworkOnUpdate;
-    _clientState.TerritoryChanged -= OnTerritoryChanged;
 
     foreach (TrackableSound track in _playing.Values)
     {
@@ -83,11 +81,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     foreach (TrackableSound track in _playing.Values)
       UpdateTrack(track);
-  }
-
-  private void OnTerritoryChanged(ushort _)
-  {
-    StopAll();
   }
 
   private unsafe Task UpdateTrack(TrackableSound track)
@@ -309,21 +302,21 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return false;
   }
 
-  public IEnumerable<(XivMessage message, bool isPlaying, float percentage)> GetPlaybackHistory()
+  public IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> GetPlaybackHistory()
   {
     lock (_playbackHistoryLock)
     {
       foreach (XivMessage message in _queuedMessages)
       {
-        yield return (message, false, 0);
+        yield return (message, false, 0, true);
       }
 
       foreach (XivMessage message in _playbackHistory)
       {
         if (_playing.TryGetValue(message.Id, out TrackableSound? track))
-          yield return (message, track.IsPlaying, (float)(track.EstimatedCurrentTime.TotalMilliseconds / track.TotalTime.TotalMilliseconds));
+          yield return (message, track.IsPlaying, (float)(track.EstimatedCurrentTime.TotalMilliseconds / track.TotalTime.TotalMilliseconds), false);
         else
-          yield return (message, false, message.IsGenerating ? 0 : 100);
+          yield return (message, false, message.IsGenerating ? 0 : 100, false);
       }
     }
   }
@@ -340,10 +333,9 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     QueuedLineSkipped?.Invoke(this, message);
   }
 
-  public void RemoveQueuedLine(string id)
+  public void RemoveQueuedLine(XivMessage message)
   {
-    XivMessage? messageToRemove = _queuedMessages.FirstOrDefault(message => message.Id == id);
-    if (messageToRemove != null) _queuedMessages.Remove(messageToRemove);
+    _queuedMessages.Remove(message);
   }
 
   public IEnumerable<TrackableSound> Debug_GetPlaying()
