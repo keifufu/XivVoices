@@ -4,16 +4,22 @@ namespace XivVoices.Services;
 
 public partial class MessageDispatcher
 {
-  private NpcEntry? GetNpcFromMappings(SpeakerMappingType type, string sentence)
+  private (bool found, NpcEntry? npc) GetNpcFromMappings(SpeakerMappingType type, string sentence)
   {
-    if (_dataService.Manifest == null) return null;
+    if (_dataService.Manifest == null) return (false, null);
     string sanitizedSentence = Regex.Replace(sentence, @"[^a-zA-Z]", "");
 
     if (_dataService.Manifest.SpeakerMappings[type].TryGetValue(sanitizedSentence, out string? npcId))
-      if (npcId != null && _dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
-        return npc;
+    {
+      if (npcId == null) return (true, null);
 
-    return null;
+      if (_dataService.Manifest.Npcs.TryGetValue(npcId, out NpcEntry? npc))
+        return (true, npc);
+
+      return (true, null);
+    }
+
+    return (false, null);
   }
 
   private NpcEntry? GetNpc(MessageSource source, string speaker)

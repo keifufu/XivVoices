@@ -152,26 +152,34 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // If this sentence matches a sentence in Manifest.DirectMappings.Retainer,
     // then replace the speaker with the retainer one.
     // This needs to be checked before CleanMessage.
+    bool mappedNpcFound = false;
     NpcEntry? mappedNpc = null;
     bool isRetainer = false;
-    if (source == MessageSource.AddonTalk)
+    if (source == MessageSource.AddonTalk && _gameInteropService.IsOccupiedBySummoningBell())
     {
-      bool isTargetingSummoningBell = await _gameInteropService.RunOnFrameworkThread(_gameInteropService.IsTargetingSummoningBell);
+      _logger.Debug("AddonTalk message is from a retainer");
+      isRetainer = true;
 
-      if (isTargetingSummoningBell)
-      {
-        mappedNpc = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
-
-        // Previously would only set this if a mappedNpc was actually found or
-        // the speaker was "Feo Ul", but this bool is just used to toggle retainer speech.
-        // I can't see a case where a non-retainer line would be triggered by AddonTalk while
-        // targeting a summoning bell.
-        isRetainer = true;
-      }
+      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
+      if (mappedNpcFound) _logger.Debug("Found mapped retainer npc");
+      else _logger.Debug("Failed to find mapped retainer npc");
     }
 
+    // NOTE: This might want to support more than "???" speakers in the future.
+    // For now though, all our nameless mappings are "???" speakers so this is fine.
+    // Would have to map speaker+sentence if this is expanded.
     if (speaker == "???")
-      mappedNpc = GetNpcFromMappings(SpeakerMappingType.Nameless, sentence);
+    {
+      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, sentence);
+      if (mappedNpcFound) _logger.Debug("Found mapped nameless npc");
+      else _logger.Debug("Failed to find mapped nameless npc");
+    }
+
+    if (mappedNpcFound && mappedNpc == null)
+    {
+      _logger.Debug("Mapped npc returned null. Skipping this voiceline");
+      return;
+    }
 
     NpcEntry? npc = mappedNpc ?? GetNpc(source, speaker);
     if (npc == null || npc.HasVariedLooks)

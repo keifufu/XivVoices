@@ -34,7 +34,7 @@ public partial class ConfigWindow
         float progressSize = 245;
         Vector4 plotHistogramColor = _green;
 
-        bool allowReports = !message.IsLocalTTS || message.RawSpeaker == "???";
+        bool allowReports = message.Source != MessageSource.ChatMessage;
         if (!allowReports) progressSize = 270;
         if (message.IsLocalTTS) plotHistogramColor = _yellow;
 

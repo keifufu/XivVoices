@@ -51,7 +51,7 @@ public enum SelfTestStep : long
   Provider_MiniTalk = 1L << 10,
   Interop_GetLocation = 1L << 11,
 
-  Interop_IsTargetingSummoningBell = 1L << 12,
+  Interop_IsOccupiedBySummoningBell = 1L << 12,
   Interop_GetActiveQuests = 1L << 13,
   Interop_GetActiveLeves = 1L << 14,
   Interop_Camera = 1L << 15,
@@ -149,10 +149,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Interop_GetLocation;
         break;
       case SelfTestStep.Interop_GetLocation:
-        CurrentInstruction = "Target a Summoning Bell";
-        Step = SelfTestStep.Interop_IsTargetingSummoningBell;
+        CurrentInstruction = "Interact with a Summoning Bell";
+        Step = SelfTestStep.Interop_IsOccupiedBySummoningBell;
         break;
-      case SelfTestStep.Interop_IsTargetingSummoningBell:
+      case SelfTestStep.Interop_IsOccupiedBySummoningBell:
         CurrentInstruction = "Accept a Quest";
         Step = SelfTestStep.Interop_GetActiveQuests;
         break;
@@ -257,27 +257,27 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         else
           AddLog($"Unexpected location: {location}");
         break;
-      case SelfTestStep.Interop_IsTargetingSummoningBell:
+      case SelfTestStep.Interop_IsOccupiedBySummoningBell:
         switch (StepState)
         {
           case 0:
-            if (_gameInteropService.IsTargetingSummoningBell())
+            if (_gameInteropService.IsOccupiedBySummoningBell())
             {
               StepState = 1;
-              AddLog("Summoning Bell targeted");
-              CurrentInstruction = "Stop targeting the Summining Bell";
+              AddLog("Occupied by Summoning Bell");
+              CurrentInstruction = "Stop interacting with the Summoning Bell";
             }
             break;
           case 1:
-            if (!_gameInteropService.IsTargetingSummoningBell())
+            if (!_gameInteropService.IsOccupiedBySummoningBell())
             {
               StepState = 2;
-              AddLog("Summining Bell untargeted");
-              CurrentInstruction = "Target the Summining Bell again";
+              AddLog("Unoccupied by Summoning Bell");
+              CurrentInstruction = "Interact with the Summoning Bell again";
             }
             break;
           case 2:
-            if (_gameInteropService.IsTargetingSummoningBell())
+            if (_gameInteropService.IsOccupiedBySummoningBell())
               Next(true, false);
             break;
         }

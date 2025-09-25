@@ -27,7 +27,7 @@ public partial class ConfigWindow
       DrawStep(SelfTestStep.LipSync);
       DrawStep(SelfTestStep.Provider_MiniTalk);
       DrawStep(SelfTestStep.Interop_GetLocation);
-      DrawStep(SelfTestStep.Interop_IsTargetingSummoningBell);
+      DrawStep(SelfTestStep.Interop_IsOccupiedBySummoningBell);
       DrawStep(SelfTestStep.Interop_GetActiveQuests);
       DrawStep(SelfTestStep.Interop_GetActiveLeves);
       DrawStep(SelfTestStep.Interop_Camera);

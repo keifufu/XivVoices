@@ -18,13 +18,13 @@ public interface IGameInteropService
   IGameObject? GetTarget();
   IntPtr TryFindCharacter(string name, uint? baseId);
   NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npc);
-  bool IsTargetingSummoningBell();
   string GetLocation();
   List<string> GetActiveQuests();
   List<string> GetActiveLeves();
   CameraView GetCameraView();
   bool IsInCutscene();
   bool IsInDuty();
+  bool IsOccupiedBySummoningBell();
   string ReadUtf8String(Utf8String str);
   unsafe string ReadTextNode(AtkTextNode* textNode);
 }
@@ -106,17 +106,6 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     }
 
     return npc;
-  }
-
-  public bool IsTargetingSummoningBell()
-  {
-    IGameObject? target = GetTarget();
-    if (target == null) return false;
-    if (target.ObjectKind != ObjectKind.EventObj && target.ObjectKind != ObjectKind.Housing) return false;
-    string name = target.Name.ToString();
-    // We only support English.
-    if (name.Equals("Summoning Bell", StringComparison.OrdinalIgnoreCase)) return true;
-    return false;
   }
 
   public string GetLocation()
@@ -205,6 +194,9 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
 
   public bool IsInDuty() =>
     _condition.Any(ConditionFlag.BoundByDuty);
+
+  public bool IsOccupiedBySummoningBell() =>
+    _condition.Any(ConditionFlag.OccupiedSummoningBell);
 
   public string ReadUtf8String(Utf8String str)
   {
