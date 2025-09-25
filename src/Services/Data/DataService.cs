@@ -211,8 +211,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     string manifestPath = Path.Join(DataDirectory, "manifest.json");
     bool manifestExists = File.Exists(manifestPath);
-    // bool shouldDownload = forceDownload || !manifestExists;
-    bool shouldDownload = true; // TODO: Remove in a day
+    bool shouldDownload = forceDownload || !manifestExists;
     if (manifestExists)
     {
       DateTime lastModified = File.GetLastWriteTime(manifestPath);
