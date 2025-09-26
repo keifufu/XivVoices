@@ -15,7 +15,7 @@ public interface IPlaybackService : IHostedService
   void Stop(string id);
   void Skip();
 
-  bool IsPlaying(MessageSource source);
+  int CountPlaying(MessageSource source);
 
   IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> GetPlaybackHistory();
 
@@ -291,15 +291,14 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _ = FadeOutAndStopAsync(lastTrack.Value);
   }
 
-  public bool IsPlaying(MessageSource source)
+  public int CountPlaying(MessageSource source)
   {
+    int count = 0;
     foreach (TrackableSound track in _playing.Values)
-    {
       if (track.Message.Source == source)
-        return true;
-    }
+        count++;
 
-    return false;
+    return count;
   }
 
   public IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> GetPlaybackHistory()

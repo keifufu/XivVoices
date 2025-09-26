@@ -21,9 +21,8 @@ public class PlaybackQueue
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
 {
-  private InterceptedSound? _interceptedSound;
-
   private Dictionary<MessageSource, PlaybackQueue> _queues = [];
+  private InterceptedSound? _interceptedSound;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -63,9 +62,13 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     foreach (PlaybackQueue playbackQueue in _queues.Values)
     {
       if (playbackQueue.PlaybackQueueState == PlaybackQueueState.AwaitingConfirmation)
+      {
         if ((DateTime.UtcNow - playbackQueue.PlaybackStartTime) >= TimeSpan.FromSeconds(timeoutSec))
+        {
+          _logger.Debug($"Queue timed out. Setting playback state to stopped.");
           playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
-
+        }
+      }
 
       if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !playbackQueue.Queue.IsEmpty)
       {
@@ -75,6 +78,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
           _playbackService.RemoveQueuedLine(message);
           playbackQueue.PlaybackStartTime = DateTime.UtcNow;
           playbackQueue.PlaybackQueueState = PlaybackQueueState.AwaitingConfirmation;
+          _ = _playbackService.Play(message);
         }
       }
     }
@@ -88,8 +92,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
   {
-    _logger.Debug($"{message.Source} Playback Completed.");
-    _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Stopped;
+    int count = _playbackService.CountPlaying(message.Source);
+    if (count == 0)
+    {
+      _logger.Debug($"{message.Source} Playback Completed.");
+      _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Stopped;
+    }
+    else
+    {
+      _logger.Debug($"{message.Source} Playback Completed, but {count} are still playing.");
+    }
   }
 
   private void OnQueuedLineSkipped(object? sender, XivMessage message)

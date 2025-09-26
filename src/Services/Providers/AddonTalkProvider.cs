@@ -58,7 +58,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
   private unsafe void OnAddonTalkPreDraw(AddonEvent _, AddonArgs args)
   {
     AddonTalk* addon = (AddonTalk*)args.Addon.Address;
-    if (CanAutoAdvance() && _playbackService.IsPlaying(MessageSource.AddonTalk))
+    if (CanAutoAdvance() && _playbackService.CountPlaying(MessageSource.AddonTalk) > 0)
     {
       AtkResNode* advanceIconNode = addon->UldManager.SearchNodeById(AdvanceIconNodeId);
       AtkResNode* autoAdvanceIconNode = addon->UldManager.SearchNodeById(AutoAdvanceIconNodeId);
