@@ -214,8 +214,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     bool shouldDownload = forceDownload || !manifestExists;
     if (manifestExists)
     {
-      DateTime lastModified = File.GetLastWriteTime(manifestPath);
-      if (DateTime.Now - lastModified > TimeSpan.FromHours(24))
+      DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
+      if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(24))
       {
         _logger.Debug("Manifest file is older than 24 hours, redownloading.");
         shouldDownload = true;

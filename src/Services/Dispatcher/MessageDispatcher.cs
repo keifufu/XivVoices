@@ -63,7 +63,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     foreach (PlaybackQueue playbackQueue in _queues.Values)
     {
       if (playbackQueue.PlaybackQueueState == PlaybackQueueState.AwaitingConfirmation)
-        if ((DateTime.Now - playbackQueue.PlaybackStartTime) >= TimeSpan.FromSeconds(timeoutSec))
+        if ((DateTime.UtcNow - playbackQueue.PlaybackStartTime) >= TimeSpan.FromSeconds(timeoutSec))
           playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
 
 
@@ -73,8 +73,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         {
           _logger.Debug($"Playing queued message: {message.Id}");
           _playbackService.RemoveQueuedLine(message);
-          _ = _playbackService.Play(message);
-          playbackQueue.PlaybackStartTime = DateTime.Now;
+          playbackQueue.PlaybackStartTime = DateTime.UtcNow;
           playbackQueue.PlaybackQueueState = PlaybackQueueState.AwaitingConfirmation;
         }
       }

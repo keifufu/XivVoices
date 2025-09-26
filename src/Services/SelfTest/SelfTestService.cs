@@ -203,7 +203,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
 
   private void AddLog(string log)
   {
-    DateTime now = DateTime.Now;
+    DateTime now = DateTime.UtcNow;
     if (_logTimestamps.TryGetValue(log, out DateTime lastLogged) && (now - lastLogged).TotalMilliseconds < LogDebounceTime)
       return;
 
