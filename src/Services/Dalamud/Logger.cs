@@ -64,10 +64,16 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     _configuration = configuration;
   }
 
+  private void AddLogHistory(string logEntry)
+  {
+    string timestamp = DateTime.UtcNow.ToString("HH:mm:ss.fff");
+    LogHistory.Add($"[{timestamp}] {logEntry}");
+  }
+
   private void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs args)
   {
     if (!args.Observed && args.Exception.ToString().Contains("XivVoices"))
-      LogHistory.Add($"Uncaught Exception: {args.Exception}");
+      AddLogHistory($"Uncaught Exception: {args.Exception}");
   }
 
   public void Toast(string pre, string italic = "", string post = "")
@@ -110,14 +116,14 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   {
     string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
     _pluginLog.Error(logEntry);
-    LogHistory.Add(logEntry);
+    AddLogHistory(logEntry);
   }
 
   public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
     string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}";
     _pluginLog.Error(logEntry);
-    LogHistory.Add(logEntry);
+    AddLogHistory(logEntry);
   }
 
   public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
@@ -126,7 +132,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
 
     string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
     _pluginLog.Debug(logEntry);
-    LogHistory.Add(logEntry);
+    AddLogHistory(logEntry);
   }
 
   public void DebugObj<T>(T obj, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
