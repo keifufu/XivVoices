@@ -389,14 +389,19 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     {
       if (token.IsCancellationRequested) break;
       string filePath = Path.Join(voicelinesDirectory, voiceline.Key);
-      if (!fileSizeMap.TryGetValue(voiceline.Key, out long size) || size != voiceline.Value)
+      if (!fileSizeMap.TryGetValue(voiceline.Key, out long size))
       {
-        if (size != voiceline.Value)
-          Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
+        missingFiles.Add((filePath, voiceline.Key));
+      }
+      else if (size != voiceline.Value)
+      {
+        Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
         missingFiles.Add((filePath, voiceline.Key));
       }
       else
+      {
         Interlocked.Increment(ref DataStatus.UpdateSkippedFiles);
+      }
     }
 
     foreach (string file in fileSizeMap.Keys)
