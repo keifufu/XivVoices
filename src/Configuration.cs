@@ -87,9 +87,6 @@ public class Configuration : IPluginConfiguration
 
     Logger.SetConfiguration(this);
     ConfigurationMigrator.Migrate(this, Logger!);
-
-    if (MuteEnabled)
-      Logger.Chat("Plugin is muted. \"/xivv mute\" to unmute.");
   }
 
   public void Save() => PluginInterface!.SavePluginConfig(this);

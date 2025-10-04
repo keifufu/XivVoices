@@ -70,6 +70,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<IAddonTalkProvider, AddonTalkProvider>();
         collection.AddSingleton<IMessageDispatcher, MessageDispatcher>();
         collection.AddSingleton<IAudioPostProcessor, AudioPostProcessor>();
+        collection.AddSingleton<IClientStateService, ClientStateService>();
         collection.AddSingleton<IGameInteropService, GameInteropService>();
         collection.AddSingleton<IChatMessageProvider, ChatMessageProvider>();
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
@@ -88,6 +89,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<IPlaybackService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IMessageDispatcher>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAudioPostProcessor>());
+        collection.AddHostedService(sp => sp.GetRequiredService<IClientStateService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonTalkProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IChatMessageProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonMiniTalkProvider>());
