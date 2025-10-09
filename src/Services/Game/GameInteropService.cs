@@ -55,8 +55,7 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     {
       if ((gameObject as ICharacter) == null) continue;
 
-      // Dalamud's GameObject has BaseId renamed to DataId
-      if (gameObject.DataId == baseId && baseId != 0)
+      if (gameObject.BaseId == baseId && baseId != 0)
         baseIdCharacter = gameObject.Address;
 
       if (!string.IsNullOrEmpty(name) && gameObject.Name.TextValue == name)
