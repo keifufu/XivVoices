@@ -29,7 +29,8 @@ public interface IPlaybackService : IHostedService
 
 public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IPlaybackService
 {
-  private WaveOutEvent? _outputDevice;
+  private WaveOutEvent? _waveOutputDevice;
+  private DirectSoundOut? _directSoundOutputDevice;
   private MixingSampleProvider? _mixer;
 
   private readonly ConcurrentDictionary<string, TrackableSound> _playing = new();
@@ -45,25 +46,43 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     _framework.Update += FrameworkOnUpdate;
 
-    int devices = WaveOut.DeviceCount;
-    _logger.Debug($"Available audio devices: {devices}");
-
-    for (int i = -1; i < devices; i++)
-    {
-      WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
-      _logger.Debug($"Device {i} ({deviceInfo.ProductName})");
-    }
-
-    _outputDevice = new WaveOutEvent();
     _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(48000, 2))
     {
       ReadFully = true
     };
 
-    _logger.Debug($"Initializing WaveOutEvent with Device {_outputDevice.DeviceNumber}");
+    try
+    {
+      int devices = WaveOut.DeviceCount;
+      _logger.Debug($"[Wave] Available audio devices: {devices}");
 
-    _outputDevice.Init(_mixer);
-    _outputDevice.Play();
+      for (int i = -1; i < devices; i++)
+      {
+        WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
+        _logger.Debug($"[Wave] Device {i} ({deviceInfo.ProductName})");
+      }
+
+      _waveOutputDevice = new WaveOutEvent();
+      _logger.Debug($"[Wave] Initializing WaveOutEvent with Device {_waveOutputDevice.DeviceNumber}");
+      _waveOutputDevice.Init(_mixer);
+      _waveOutputDevice.Play();
+    }
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+      _logger.Debug("Failed to initialize WaveOutEvent, attempting DirectSoundOut.");
+
+      _directSoundOutputDevice = new DirectSoundOut();
+
+      foreach (DirectSoundDeviceInfo? device in DirectSoundOut.Devices)
+      {
+        _logger.Debug($"[DirectSound] Device {device.Guid} ({device.Description})");
+      }
+
+      _logger.Debug($"[DirectSound] Initializing DirectSoundOut with Device {DirectSoundOut.DSDEVID_DefaultPlayback} (DSDEVID_DefaultPlayback)");
+      _directSoundOutputDevice.Init(_mixer);
+      _directSoundOutputDevice.Play();
+    }
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -80,9 +99,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     }
 
     _playing.Clear();
-    _outputDevice?.Stop();
-    _outputDevice?.Dispose();
-    _outputDevice = null;
+    _waveOutputDevice?.Stop();
+    _waveOutputDevice?.Dispose();
+    _waveOutputDevice = null;
+    _directSoundOutputDevice?.Stop();
+    _directSoundOutputDevice?.Dispose();
+    _directSoundOutputDevice = null;
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -167,7 +189,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   public async Task Play(XivMessage message, bool replay = false)
   {
-    if (_mixer == null || _outputDevice == null)
+    if (_mixer == null || (_waveOutputDevice == null && _directSoundOutputDevice == null))
     {
       _logger.Error("Mixer or OutputDevice were not initialited.");
       return;
