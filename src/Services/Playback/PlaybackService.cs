@@ -45,11 +45,22 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     _framework.Update += FrameworkOnUpdate;
 
+    int devices = WaveOut.DeviceCount;
+    _logger.Debug($"Available audio devices: {devices}");
+
+    for (int i = -1; i < devices; i++)
+    {
+      WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
+      _logger.Debug($"Device {i} ({deviceInfo.ProductName})");
+    }
+
     _outputDevice = new WaveOutEvent();
     _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(48000, 2))
     {
       ReadFully = true
     };
+
+    _logger.Debug($"Initializing WaveOutEvent with Device {_outputDevice.DeviceNumber}");
 
     _outputDevice.Init(_mixer);
     _outputDevice.Play();
