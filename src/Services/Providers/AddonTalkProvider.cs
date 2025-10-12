@@ -26,6 +26,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
     _addonLifecycle.RegisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
+    _addonLifecycle.RegisterListener(AddonEvent.PreReceiveEvent, "Talk", OnTalkAddonReceiveEvent);
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
@@ -36,9 +37,25 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
     _addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
+    _addonLifecycle.UnregisterListener(AddonEvent.PreReceiveEvent, "Talk", OnTalkAddonReceiveEvent);
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  private unsafe void OnTalkAddonReceiveEvent(AddonEvent type, AddonArgs args)
+  {
+    if (!_configuration.PreventAccidentalDialogueAdvance || _configuration.MuteEnabled) return;
+    if (args is not AddonReceiveEventArgs eventArgs || (AtkEventType)eventArgs.AtkEventType is not AtkEventType.MouseClick) return;
+
+    AddonTalk* addon = (AddonTalk*)args.Addon.Address;
+    AtkEventData.AtkMouseData mouseData = ((AtkEventData*)eventArgs.Data)->MouseData;
+    bool ignore = mouseData.PosX == 0 && mouseData.PosY == 0;
+
+    if (!addon->RootNode->CheckCollisionAtCoords(mouseData.PosX, mouseData.PosY, true) && !ignore)
+    {
+      eventArgs.AtkEventType = 0;
+    }
   }
 
   // Wanted to also use SPACE as a key here, as that's the usual auto-advance button,

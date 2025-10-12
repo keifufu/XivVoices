@@ -91,5 +91,9 @@ public partial class ConfigWindow
     DrawConfigCheckbox("Print Bubble Messages", ref _configuration.PrintBubbleMessages);
     DrawConfigCheckbox("Print Narrator Messages", ref _configuration.PrintNarratorMessages);
     DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
+    DrawConfigCheckbox("Prevent Accidental Dialogue Advance", ref _configuration.PreventAccidentalDialogueAdvance);
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Prevents advancing dialogue when left-clicking unless hovering over the actual dialogue box. (Disabled while plugin is muted)");
   }
 }

@@ -35,6 +35,7 @@ public class Configuration : IPluginConfiguration
   public bool PrintBubbleMessages = true;
   public bool PrintNarratorMessages = true;
   public bool ReplaceVoicedARRCutscenes = true;
+  public bool PreventAccidentalDialogueAdvance = false;
 
   // Audio Settings
   public bool MuteEnabled = false;
