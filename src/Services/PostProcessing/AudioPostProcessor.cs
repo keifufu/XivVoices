@@ -44,7 +44,7 @@ public partial class AudioPostProcessor(ILogger _logger, Configuration _configur
     string? tempFilePath = _dataService.TempFilePath($"ffmpeg-{Guid.NewGuid()}.ogg");
     if (tempFilePath == null) return null;
 
-    string filterComplexFlag = string.IsNullOrEmpty(filterArguments) ? "" : $"-filter_complex \"{filterArguments}\"";
+    string filterComplexFlag = string.IsNullOrEmpty(filterArguments) ? "" : $"-filter_complex {filterArguments}";
     string ffmpegArguments = $"-i \"{voicelinePath}\" {filterComplexFlag} -ar 48000 -c:a libopus \"{tempFilePath}\"";
 
     await ExecuteFFmpegCommand(ffmpegArguments);
@@ -68,9 +68,9 @@ public partial class AudioPostProcessor(ILogger _logger, Configuration _configur
 
   public static WaveStream DecodeOggOpusToPCM(string filePath)
   {
-    using FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+    using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read);
     IOpusDecoder decoder = OpusCodecFactory.CreateDecoder(48000, 1);
-    OpusOggReadStream oggStream = new OpusOggReadStream(decoder, fileStream);
+    OpusOggReadStream oggStream = new(decoder, fileStream);
 
     List<float> pcmSamples = [];
 

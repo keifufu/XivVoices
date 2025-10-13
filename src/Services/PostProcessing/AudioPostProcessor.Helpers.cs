@@ -62,6 +62,7 @@ public partial class AudioPostProcessor
     // Sound Effects for Ea
     if (message.Voice?.Id == "Ea")
     {
+      if (filterArgs != "") filterArgs += ",";
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.90[sc];[oc]rubberband=pitch=1.02[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
       filterArgs += ",\"aecho=0.8:0.88:120:0.4\"";
     }
