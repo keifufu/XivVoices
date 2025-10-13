@@ -80,6 +80,8 @@ public class Configuration : IPluginConfiguration
   private ILogger? Logger;
   [NonSerialized]
   private IDalamudPluginInterface? PluginInterface;
+  [NonSerialized]
+  private Dictionary<string, object?>? _previousConfig;
 
   public void Initialize(ILogger logger, IDalamudPluginInterface pluginInterface)
   {
@@ -88,9 +90,30 @@ public class Configuration : IPluginConfiguration
 
     Logger.SetConfiguration(this);
     ConfigurationMigrator.Migrate(this, Logger!);
+
+    _previousConfig = GetAllFields();
+    Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.Write));
   }
 
-  public void Save() => PluginInterface!.SavePluginConfig(this);
+  public void Save()
+  {
+    Dictionary<string, object?> currentConfig = GetAllFields();
+    foreach (KeyValuePair<string, object?> field in GetAllFields())
+    {
+      if (_previousConfig != null &&
+          _previousConfig.TryGetValue(field.Key, out object? oldValue) &&
+          !Equals(oldValue, field.Value))
+      {
+        Logger?.Debug($"Changed {field.Key}: from '{oldValue}' to '{field.Value}'");
+      }
+    }
+
+    PluginInterface!.SavePluginConfig(this);
+    _previousConfig = currentConfig;
+  }
+
+  private Dictionary<string, object?> GetAllFields() =>
+    GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).ToDictionary(x => x.Name, x => x.GetValue(this));
 }
 
 public static class ConfigurationMigrator

@@ -128,10 +128,8 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
 
   public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
-    if (!_configuration.DebugLogging) return;
-
     string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
-    _pluginLog.Debug(logEntry);
+    if (_configuration.DebugLogging) _pluginLog.Debug(logEntry);
     AddLogHistory(logEntry);
   }
 
