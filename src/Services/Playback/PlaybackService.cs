@@ -199,8 +199,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     message.IsGenerating = true;
     message.GenerationToken = new();
-    if (_playbackHistory.FirstOrDefault((m) => m.Id == message.Id) == default)
-      _queuedMessages.Add(message);
+    lock (_playbackHistoryLock)
+    {
+      if (_playbackHistory.FirstOrDefault((m) => m.Id == message.Id) == default)
+        _queuedMessages.Add(message);
+    }
 
     bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
     bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
@@ -262,8 +265,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           _playbackHistory.RemoveAt(existingIndex);
 
         _playbackHistory.Insert(0, message);
-        if (_playbackHistory.Count > 100)
-          _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
+        // if (_playbackHistory.Count > 100)
+        //   _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
       }
     }
   }
