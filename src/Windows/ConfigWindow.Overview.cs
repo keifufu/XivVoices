@@ -20,6 +20,21 @@ public partial class ConfigWindow
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
+    { "1.1.0.0", new[] {
+      "Added option to prevent accidental dialogue advance.",
+      "Added a fallback DirectSound audio device in case WaveOut fails.",
+      "Added a warning in chat if the plugin is muted during login.",
+      "Added an experimental option to use StreamElements for local TTS.",
+      "Added a preliminary authentication flow to support upcoming backend features.",
+      "Added a version indicator to the plugin window.",
+      "Added the command '/xivv upload-logs'.",
+      "Added the command '/xivv version'.",
+      "Fixed ffmpeg-wine failing to start on some systems and exiting unexpectedly.",
+      "Fixed own chat messages always using the default voice, regardless of gender.",
+      "Fixed the updater showing an incorrect number of voicelines downloaded.",
+      "Fixed concurrency issues with 'Queue Dialogue' enabled.",
+      "Fixed directional chat messages becoming too quiet.",
+    }},
     { "1.0.0.0", new[] {
       "Initial rewrite release!",
       "Starting from scratch, this plugin is way more maintainable and extendable than the old one, while maintaining feature parity.",
