@@ -27,11 +27,6 @@ check_dependencies() {
   command -v grep >/dev/null 2>&1 || should_exit=1
   command -v ncat >/dev/null 2>&1 || should_exit=1
   command -v wc >/dev/null 2>&1 || should_exit=1
-
-  if is_port_in_use $PORT; then
-    echo "Port $PORT is already in use"
-    should_exit=1
-  fi
 }
 
 kill_orphaned_ncat() {
@@ -39,7 +34,7 @@ kill_orphaned_ncat() {
   # instances of ffmpeg-wine.sh (this one and another running nc)
   instances_of_ffmpeg_wine=$(pgrep -f "ffmpeg-wine.sh" | grep -v $$ | wc -l)
   if [[ $instances_of_ffmpeg_wine -ne 2 ]]; then
-    ncat_pid=$(pgrep -f "ncat -4 -l 127.0.0.1 -p $PORT")
+    ncat_pid=$(pgrep -f "ncat -4 -l 127.0.0.1 $PORT")
     if [[ -n "$ncat_pid" ]]; then
       kill "$ncat_pid" 2>/dev/null
     fi
@@ -50,9 +45,14 @@ main() {
   check_dependencies
   kill_orphaned_ncat
 
+  if is_port_in_use $PORT; then
+    echo "Port $PORT is already in use"
+    exit 1
+  fi
+
   echo "Starting daemon on port $PORT. Will exit immediately if any dependencies are unmet. There will be no logs from here on."
   while [[ $should_exit -eq 0 ]] ; do
-    ncat -4 -l 127.0.0.1 -p $PORT -c '
+    ncat -4 -l 127.0.0.1 $PORT -k -c '
       read -r cmd
       if [[ "$cmd" == "exit" ]]; then
         echo "exit" > /tmp/ncat_server_exit
