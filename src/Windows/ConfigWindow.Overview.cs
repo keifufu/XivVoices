@@ -80,6 +80,10 @@ public partial class ConfigWindow
     using (ImRaii.PushColor(ImGuiCol.Text, versionColor))
       ImGui.Text(_dataService.Version);
 
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text(isUpToDate ? "Your plugin is up to date." : $"Your plugin is outdated. Latest version available: {_dataService.LatestVersion}");
+
     ImGui.Dummy(ScaledVector2(0, 10));
 
     if (_dataService.ServerStatus == ServerStatus.UNAUTHORIZED)
