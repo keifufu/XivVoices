@@ -2,7 +2,11 @@
 
 PORT="$1"
 should_exit=0
-[[ -z "$PORT" ]] && exit 1 # exit early, otherwise kill_orphaned_ncat could kill other netcat processes
+
+if [[ -z "$PORT" ]]; then
+  echo "No port was provided. Exiting..."
+  exit 1
+fi
 
 is_port_in_use() {
   PORT=$1
@@ -19,19 +23,30 @@ is_port_in_use() {
 }
 
 check_dependencies() {
-  # while most of these commands should be preinstalled on any sane distro,
-  # there exists nixos/arch where the users can be... well, users.
-  command -v netstat >/dev/null 2>&1 || command -v ss >/dev/null 2>&1 || should_exit=1
-  command -v ffmpeg >/dev/null 2>&1 || should_exit=1
-  command -v pgrep >/dev/null 2>&1 || should_exit=1
-  command -v grep >/dev/null 2>&1 || should_exit=1
-  command -v ncat >/dev/null 2>&1 || should_exit=1
-  command -v wc >/dev/null 2>&1 || should_exit=1
+  unmet_dependencies=()
+
+  if [[ "$OSTYPE" == "darwin"* ]]; then
+    command -v netstat >/dev/null 2>&1 || unmet_dependencies+=("netstat")
+  else
+    command -v ss >/dev/null 2>&1 || unmet_dependencies+=("ss")
+  fi
+
+  command -v ffmpeg >/dev/null 2>&1 || unmet_dependencies+=("ffmpeg")
+  command -v pgrep >/dev/null 2>&1 || unmet_dependencies+=("pgrep")
+  command -v grep >/dev/null 2>&1 || unmet_dependencies+=("grep")
+  command -v ncat >/dev/null 2>&1 || unmet_dependencies+=("ncat")
+  command -v wc >/dev/null 2>&1 || unmet_dependencies+=("wc")
+
+  if [[ ${#unmet_dependencies[@]} -gt 0 ]]; then
+    echo "Unmet dependencies:"
+    printf '%s\n' "${unmet_dependencies[@]}"
+    exit 1
+  fi
 }
 
 kill_orphaned_ncat() {
   # ncat ocasionally gets orphaned, kill it if there aren't two
-  # instances of ffmpeg-wine.sh (this one and another running nc)
+  # instances of ffmpeg-wine.sh (this one and another running ncat)
   instances_of_ffmpeg_wine=$(pgrep -f "ffmpeg-wine.sh" | grep -v $$ | wc -l)
   if [[ $instances_of_ffmpeg_wine -ne 2 ]]; then
     ncat_pid=$(pgrep -f "ncat -4 -l 127.0.0.1 $PORT")
@@ -50,24 +65,16 @@ main() {
     exit 1
   fi
 
-  echo "Starting daemon on port $PORT. Will exit immediately if any dependencies are unmet. There will be no logs from here on."
-  while [[ $should_exit -eq 0 ]] ; do
-    ncat -4 -l 127.0.0.1 $PORT -k -c '
-      read -r cmd
-      if [[ "$cmd" == "exit" ]]; then
-        echo "exit" > /tmp/ncat_server_exit
-        exit
-      fi
-      if [[ "$cmd" =~ ^ffmpeg[[:space:]] ]]; then
-        eval "$cmd" > /dev/null 2>&1
-      fi
-    '
-
-    if [[ -f /tmp/ncat_server_exit ]]; then
-      should_exit=1
-      rm /tmp/ncat_server_exit
+  echo "Starting daemon on port $PORT. No further logs will be displayed. You can safely close the terminal; the process will continue running in the background."
+  ncat -4 -l 127.0.0.1 $PORT -k -c "
+    read -r cmd
+    if [[ \"\$cmd\" == \"exit\" ]]; then
+      kill \$(pgrep -f \"ncat -4 -l 127.0.0.1 $PORT\")
     fi
-  done
+    if [[ \"\$cmd\" =~ ^ffmpeg[[:space:]] ]]; then
+      eval \"\$cmd\" > /dev/null 2>&1
+    fi
+  " > /dev/null 2>&1
 }
 
 main

@@ -53,7 +53,7 @@ public partial class ConfigWindow
         ImGui.SameLine();
         if (ImGui.Button("Copy Start Command"))
         {
-          ImGui.SetClipboardText($"/usr/bin/env bash -c '/usr/bin/env nohup /usr/bin/env bash \"{_audioPostProcessor.FFmpegWineScriptPath}\" {_audioPostProcessor.FFmpegWineProcessPort} >/dev/null 2>&1' &");
+          ImGui.SetClipboardText($"bash \"{_audioPostProcessor.FFmpegWineScriptPath}\" {_audioPostProcessor.FFmpegWineProcessPort} & disown");
         }
 
         if (ImGui.IsItemHovered())
