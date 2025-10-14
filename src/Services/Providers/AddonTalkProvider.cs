@@ -15,7 +15,7 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IDataService _dataService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -109,6 +109,10 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IP
 
   private unsafe void OnFrameworkUpdate(IFramework framework)
   {
+    // If I reload the plugin with dialogue already open, the manifest can at times be loaded
+    // after this tries to dispatch the message, causing it to be ignored.
+    if (_dataService.Manifest == null) return;
+
     AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
     if (addon == null) return;
 
