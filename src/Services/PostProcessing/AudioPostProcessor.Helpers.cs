@@ -64,7 +64,7 @@ public partial class AudioPostProcessor
     {
       if (filterArgs != "") filterArgs += ",";
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.90[sc];[oc]rubberband=pitch=1.02[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
-      filterArgs += ",\"aecho=0.8:0.88:120:0.4\"";
+      addEcho = true;
     }
 
     // Sound Effects for Golems
@@ -113,12 +113,6 @@ public partial class AudioPostProcessor
       filterArgs += "\"[0:a]asplit=2[sc][oc];[sc]rubberband=pitch=0.8[sc];[oc]rubberband=pitch=1.0[oc];[sc][oc]amix=inputs=2:duration=longest,volume=2\"";
     }
 
-    if (addEcho)
-    {
-      if (filterArgs != "") filterArgs += ",";
-      filterArgs += "\"aecho=0.8:0.9:500:0.1\"";
-    }
-
     if (changeSpeed)
     {
       if (filterArgs != "") filterArgs += ",";
@@ -129,6 +123,12 @@ public partial class AudioPostProcessor
     {
       if (filterArgs != "") filterArgs += ",";
       filterArgs += $"\"flanger=depth=10:delay=15,volume=15dB,aphaser=in_gain=0.4\"";
+    }
+
+    if (addEcho)
+    {
+      if (filterArgs != "") filterArgs += ",";
+      filterArgs += "\"aecho=0.8:0.9:500:0.1\"";
     }
 
     return filterArgs;
