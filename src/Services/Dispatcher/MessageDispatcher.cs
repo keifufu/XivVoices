@@ -157,9 +157,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
-    // If speaker is ignored, well... ignore it.
-    if (_dataService.Manifest.IgnoredSpeakers.Contains(speaker)) return;
-
     // If this sentence matches a sentence in Manifest.DirectMappings.Retainer,
     // then replace the speaker with the retainer one.
     // This needs to be checked before CleanMessage.
@@ -252,7 +249,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     _logger.Debug($"Constructed message: {message}");
 
-    if (source != MessageSource.ChatMessage && message.VoicelinePath == null)
+    // If speaker is ignored, do not send a report, still let it be voiced by local TTS.
+    bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
+
+    // Report if it's not a chat message, it couldn't find a voiceline and the speaker is not ignored.
+    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !_dataService.Manifest.IgnoredSpeakers.Contains(speaker))
       _reportService.Report(message);
 
     bool allowed = true;
