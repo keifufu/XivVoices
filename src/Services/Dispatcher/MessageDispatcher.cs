@@ -173,12 +173,18 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       else _logger.Debug("Failed to find mapped retainer npc");
     }
 
+    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
+    bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
+
     // NOTE: This might want to support more than "???" speakers in the future.
     // For now though, all our nameless mappings are "???" speakers so this is fine.
     // Would have to map speaker+sentence if this is expanded.
     if (speaker == "???")
     {
-      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, sentence);
+      // Nameless mappings use a cleaned sentence with legacy name replacement.
+      string sentenceToMatch = sentence;
+      if (sentenceHasName) (_, sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true, false);
+      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, sentenceToMatch);
       if (mappedNpcFound) _logger.Debug("Found mapped nameless npc");
       else _logger.Debug("Failed to find mapped nameless npc");
     }
@@ -204,9 +210,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       if (source != MessageSource.ChatMessage && voice != null && npc != null)
         npc.VoiceId = voice.Id;
     }
-
-    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
-    bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
     // Cache player npc to assign a gender to chatmessage tts when they're not near you.
     if (source == MessageSource.ChatMessage && npc != null)
