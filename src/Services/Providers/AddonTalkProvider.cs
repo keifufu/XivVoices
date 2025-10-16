@@ -113,6 +113,10 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     // after this tries to dispatch the message, causing it to be ignored.
     if (_dataService.Manifest == null) return;
 
+    // Don't process anything while plugin is muted, so when it is unmuted it can
+    // process already opened dialogue.
+    if (_configuration.MuteEnabled) return;
+
     AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
     if (addon == null) return;
 
