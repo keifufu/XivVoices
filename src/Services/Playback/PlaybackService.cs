@@ -22,6 +22,7 @@ public interface IPlaybackService : IHostedService
   void AddQueuedLine(XivMessage message);
   void SkipQueuedLine(XivMessage message);
   void RemoveQueuedLine(XivMessage message);
+  void ClearQueue();
 
   IEnumerable<TrackableSound> Debug_GetPlaying();
   int Debug_GetMixerSourceCount();
@@ -371,6 +372,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public void RemoveQueuedLine(XivMessage message)
   {
     _queuedMessages.Remove(message);
+  }
+
+  public void ClearQueue()
+  {
+    _queuedMessages.Clear();
   }
 
   public IEnumerable<TrackableSound> Debug_GetPlaying()

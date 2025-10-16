@@ -16,7 +16,7 @@ public enum ConfigWindowTab
   SelfTest,
 }
 
-public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
+public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
 {
   public ConfigWindowTab SelectedTab { get; set; } = ConfigWindowTab.Overview;
 

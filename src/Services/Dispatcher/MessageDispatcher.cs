@@ -3,6 +3,7 @@ namespace XivVoices.Services;
 public interface IMessageDispatcher : IHostedService
 {
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
+  void ClearQueue();
 }
 
 public enum PlaybackQueueState
@@ -53,6 +54,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  public void ClearQueue()
+  {
+    foreach (PlaybackQueue playbackQueue in _queues.Values)
+    {
+      playbackQueue.Queue.Clear();
+    }
   }
 
   private void OnFrameworkUpdate(IFramework framework)

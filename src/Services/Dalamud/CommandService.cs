@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface ICommandService : IHostedService;
 
-public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, ICommandManager _commandManager, IPlaybackService _playbackService, IDataService _dataService) : ICommandService
+public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, ICommandManager _commandManager) : ICommandService
 {
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
@@ -87,7 +87,12 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         bool mute = !_configuration.MuteEnabled;
         _configuration.MuteEnabled = mute;
         _configuration.Save();
-        if (mute) _playbackService.StopAll();
+        if (mute)
+        {
+          _messageDispatcher.ClearQueue();
+          _playbackService.ClearQueue();
+          _playbackService.StopAll();
+        }
         _logger.Chat(mute ? "Muted" : "Unmuted");
         break;
       case "skip":

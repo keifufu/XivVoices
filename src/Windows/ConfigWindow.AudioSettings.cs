@@ -13,7 +13,20 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
     ImGui.Indent(ScaledFloat(8));
 
-    DrawConfigCheckbox("Mute Enabled", ref _configuration.MuteEnabled);
+    bool muteEnabled = _configuration.MuteEnabled;
+    DrawConfigCheckbox("Mute Enabled", ref muteEnabled);
+    if (muteEnabled != _configuration.MuteEnabled)
+    {
+      _configuration.MuteEnabled = muteEnabled;
+      _configuration.Save();
+      if (_configuration.MuteEnabled)
+      {
+        _messageDispatcher.ClearQueue();
+        _playbackService.ClearQueue();
+        _playbackService.StopAll();
+      }
+    }
+
     DrawConfigCheckbox("LipSync Enabled", ref _configuration.LipSyncEnabled);
 
     DrawConfigCheckbox("Queue Dialogue", ref _configuration.QueueDialogue);
