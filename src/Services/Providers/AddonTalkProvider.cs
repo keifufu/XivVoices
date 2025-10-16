@@ -20,6 +20,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
   private string _lastSentence = "";
+  private bool? _lastMuteState = null;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -113,10 +114,6 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     // after this tries to dispatch the message, causing it to be ignored.
     if (_dataService.Manifest == null) return;
 
-    // Don't process anything while plugin is muted, so when it is unmuted it can
-    // process already opened dialogue.
-    if (_configuration.MuteEnabled) return;
-
     AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
     if (addon == null) return;
 
@@ -138,8 +135,10 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
 
     (string speaker, string sentence) = GetSpeakerAndSentence(addon);
 
-    if (_lastSpeaker != speaker || _lastSentence != sentence)
+    if (_lastSpeaker != speaker || _lastSentence != sentence || _lastMuteState != _configuration.MuteEnabled)
     {
+      _lastMuteState = _configuration.MuteEnabled;
+
       if (_selfTestService.Step == SelfTestStep.Provider_Talk)
         _selfTestService.Report_Provider_Talk(speaker, sentence);
 
