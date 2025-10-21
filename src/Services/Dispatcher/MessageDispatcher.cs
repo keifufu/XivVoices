@@ -204,7 +204,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       return;
     }
 
-    NpcEntry? npc = mappedNpc ?? GetNpc(source, speaker);
+    // Clean message and replace names with new replacement method.
+    (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
+
+    NpcEntry? npc = mappedNpc ?? GetNpc(source, cleanedSpeaker);
     if (npc == null || npc.HasVariedLooks)
       npc = await _gameInteropService.RunOnFrameworkThread(() => _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc));
 
@@ -227,9 +230,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // Try to retrieve said cached npc if they're not near you.
     if (source == MessageSource.ChatMessage && npc == null)
       npc = _dataService.TryGetCachedPlayer(rawSpeaker);
-
-    // Clean message and replace names with new replacement method.
-    (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
 
     // Try and find a voiceline.
     (string id, string? voicelinePath) = await TryGetVoiceline(voice, npc, cleanedSentence);
