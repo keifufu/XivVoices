@@ -67,7 +67,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     return !_configuration.MuteEnabled
       && _configuration.AutoAdvanceEnabled
       && !_keyState[VirtualKey.MENU]
-      && _gamepadState.Pressed(GamepadButtons.North) == 0
+      && _gamepadState.Raw(GamepadButtons.North) == 0
       && !addon.IsVisible;
   }
 
