@@ -51,6 +51,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat($"  {command} version - Print the plugin's version");
         _logger.Chat($"  {command} upload-logs - Uploads plugin logs to help with bug-reports");
         _logger.Chat($"  {command} mute - Toggle the muted state");
+        _logger.Chat($"  {command} pause - Pauses voicelines until executed again");
         _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
         _logger.Chat($"  {command} settings - Open the settings window");
         _logger.Chat($"  {command} overview - Open the overview tab");
@@ -94,6 +95,11 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
           _playbackService.StopAll();
         }
         _logger.Chat(mute ? "Muted" : "Unmuted");
+        break;
+      case "pause":
+        bool paused = !_messageDispatcher.Paused;
+        _messageDispatcher.Paused = paused;
+        _logger.Chat(paused ? "Paused" : "Unpaused");
         break;
       case "skip":
         _playbackService.Skip();

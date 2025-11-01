@@ -2,6 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
+  bool Paused { get; set; }
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
   void ClearQueue();
 }
@@ -24,6 +25,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 {
   private Dictionary<MessageSource, PlaybackQueue> _queues = [];
   private InterceptedSound? _interceptedSound;
+
+  public bool Paused { get; set; } = false;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -81,7 +84,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
       if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !playbackQueue.Queue.IsEmpty)
       {
-        if (playbackQueue.Queue.TryDequeue(out XivMessage? message))
+        if (!Paused && playbackQueue.Queue.TryDequeue(out XivMessage? message))
         {
           _logger.Debug($"Playing queued message: {message.Id}");
           _playbackService.RemoveQueuedLine(message);
