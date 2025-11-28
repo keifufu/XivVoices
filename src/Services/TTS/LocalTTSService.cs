@@ -63,6 +63,10 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       cleanedSentence = await ProcessPlayerChat(cleanedSentence, message.Speaker);
     cleanedSentence = ApplyLexicon(cleanedSentence);
 
+    // Workaround: all lowercase for now, reason:
+    // Felicitous Furball: WeLl, WeLl, WeLl, If It IsN't ThE oWnEr HeRsElF. iT sHaLl Be My PlEaSuRe To AdViSe YoU, wHeThEr YoU dEsIrE iT oR nOt. Oh YeS, i ThInK wE'lL gEt AlOnG jUsT fInE.
+    cleanedSentence = cleanedSentence.ToLower();
+
     int speaker = _configuration.LocalTTSDefaultVoice == "Male" ? 0 : 1;
     if (message.Npc != null) speaker = message.Npc.Gender == "Male" ? 0 : 1;
 

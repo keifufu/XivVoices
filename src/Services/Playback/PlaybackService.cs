@@ -213,6 +213,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     else if (useLocalGen) await localGen(message);
     if (voicelinePath == null) // generation failed
     {
+      string method = useLocalTTS ? "LocalTTS" : "LocalGen";
+      _logger.Error($"Generation failed. Method: {method}. Message: {message.Id}");
       _queuedMessages.Remove(message);
       message.IsGenerating = false;
       return;
@@ -228,7 +230,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     _queuedMessages.Remove(message);
     message.IsGenerating = false;
 
-    if (sourceStream == null) return; // AudioPostProcessor failed
+    if (sourceStream == null)
+    {
+      _logger.Debug($"AudioPostProcessor failed. Message: {message.Id}");
+      return;
+    }
 
     if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
     {
@@ -250,6 +256,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       PlaybackCompleted?.Invoke(this, message);
     };
 
+    _logger.Debug($"Starting playing message: {message.Id}");
+    _logger.Debug($"Output volume: {_waveOutputDevice?.Volume}, {_directSoundOutputDevice?.Volume}");
     PlaybackStarted?.Invoke(this, message);
     _mixer.AddMixerInput(track);
     _playing[message.Id] = track;
