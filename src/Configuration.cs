@@ -54,6 +54,7 @@ public class Configuration : IPluginConfiguration
   public int LocalTTSSpeed = 100;
 
   public bool LocalTTSPlayerSays = true;
+  public bool SkipPlayerChat = false;
 
   // Audio Logs
   public bool EnableAutomaticReports = true;

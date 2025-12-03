@@ -102,6 +102,13 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
 
     if (allowed)
     {
+      // Skip if player chat should be ignored
+      if (_configuration.SkipPlayerChat && _clientState.LocalPlayer != null && speaker == _clientState.LocalPlayer.Name.ToString())
+      {
+        _logger.Debug($"Skipping player's own chat: {speaker}");
+        return;
+      }
+
       _logger.Debug($"speaker::{speaker} sentence::{sentence}");
       _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, sentence.ToString());
     }
