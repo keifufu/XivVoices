@@ -5,7 +5,7 @@ public partial class LocalTTSService
   private async Task<string> ProcessPlayerChat(string sentence, string speaker)
   {
     string playerName = speaker.Split(" ")[0];
-    bool iAmSpeaking = await _gameInteropService.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue == speaker);
+    bool iAmSpeaking = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue == speaker);
     if (iAmSpeaking) playerName = "You";
     RegexOptions regexOptions = RegexOptions.IgnoreCase;
 

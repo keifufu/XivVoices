@@ -28,7 +28,7 @@ public interface IPlaybackService : IHostedService
   int Debug_GetMixerSourceCount();
 }
 
-public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IPlaybackService
+public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable) : IPlaybackService
 {
   private WaveOutEvent? _waveOutputDevice;
   private DirectSoundOut? _directSoundOutputDevice;
@@ -129,9 +129,9 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         (track.Message.Source == MessageSource.ChatMessage && _configuration.DirectionalAudioForChat)
       )
       {
-        if (_clientState.LocalPlayer == null) return;
-        if (track.Message.Speaker == _clientState.LocalPlayer.Name.ToString()) return;
-        Vector3 playerPosition = _clientState.LocalPlayer.Position;
+        if (_objectTable.LocalPlayer == null) return;
+        if (track.Message.Speaker == _objectTable.LocalPlayer.Name.ToString()) return;
+        Vector3 playerPosition = _objectTable.LocalPlayer.Position;
 
         Character* speaker = (Character*)_gameInteropService.TryFindCharacter(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
         if (speaker == null) return;

@@ -5,7 +5,7 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IClientState _clientState) : IChatMessageProvider
+public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IObjectTable _objectTable) : IChatMessageProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -55,8 +55,8 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
         allowed = _configuration.ChatSayEnabled;
         break;
       case XivChatType.TellOutgoing:
-        if (_clientState.LocalPlayer != null)
-          speaker = _clientState.LocalPlayer.Name.ToString();
+        if (_objectTable.LocalPlayer != null)
+          speaker = _objectTable.LocalPlayer.Name.ToString();
         allowed = _configuration.ChatTellEnabled;
         break;
       case XivChatType.TellIncoming:

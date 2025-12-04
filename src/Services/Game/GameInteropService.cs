@@ -117,9 +117,9 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     if (location == "") location = $"Unknown:{_clientState.TerritoryType}";
 
     string coordinates;
-    if (_clientState.LocalPlayer != null)
+    if (_objectTable.LocalPlayer != null)
     {
-      Vector3 coordsVec3 = MapUtil.GetMapCoordinates(_clientState.LocalPlayer);
+      Vector3 coordsVec3 = MapUtil.GetMapCoordinates(_objectTable.LocalPlayer);
       coordinates = $"({coordsVec3.X:F1}, {coordsVec3.Y:F1})";
     }
     else

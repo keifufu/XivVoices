@@ -5,7 +5,7 @@ public interface ILocalTTSService : IDisposable
   Task<string?> WriteLocalTTSToDisk(XivMessage message);
 }
 
-public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState) : ILocalTTSService
+public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IObjectTable _objectTable) : ILocalTTSService
 {
   private LocalTTSEngine? _localTTSEngine = null;
 

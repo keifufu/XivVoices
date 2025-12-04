@@ -21,7 +21,7 @@ public class PlaybackQueue
   public DateTime PlaybackStartTime { get; set; }
 }
 
-public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
+public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState, IObjectTable _objectTable) : IMessageDispatcher
 {
   private Dictionary<MessageSource, PlaybackQueue> _queues = [];
   private InterceptedSound? _interceptedSound;
@@ -185,7 +185,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       else _logger.Debug("Failed to find mapped retainer npc");
     }
 
-    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _clientState.LocalPlayer?.Name.TextValue ?? null);
+    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
     bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
     // NOTE: This might want to support more than "???" speakers in the future.

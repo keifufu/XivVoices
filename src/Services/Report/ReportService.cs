@@ -6,7 +6,7 @@ public interface IReportService : IHostedService
   void ReportWithReason(XivMessage message, string reason);
 }
 
-public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IDalamudPluginInterface _pluginInterface) : IReportService
+public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IObjectTable _objectTable, IDalamudPluginInterface _pluginInterface) : IReportService
 {
   private bool _languageWarningThisSession = false;
   private bool _invalidPluginsWarningsThisSession = false;
@@ -199,7 +199,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
     _gameInteropService.RunOnFrameworkThread(() =>
     {
-      if (!CanReport() || !_clientState.IsLoggedIn || _clientState.LocalPlayer == null) return;
+      if (!CanReport() || !_clientState.IsLoggedIn || _objectTable.LocalPlayer == null) return;
 
       if (_configuration.LogReportsToChat)
         _logger.Chat($"Reporting: {message.Speaker}: {message.Sentence}");

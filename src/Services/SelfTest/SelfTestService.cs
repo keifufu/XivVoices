@@ -61,7 +61,7 @@ public enum SelfTestStep : long
   Interop_IsInCutscene = 1L << 18,
 }
 
-public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IClientState _clientState, IFramework _framework) : ISelfTestService
+public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
 {
   public SelfTestStep Step { get; private set; } = SelfTestStep.None;
   public SelfTestStep SkippedTests { get; private set; } = SelfTestStep.None;
@@ -397,12 +397,12 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   {
     _gameInteropService.RunOnFrameworkThread(() =>
     {
-      if (_clientState.LocalPlayer == null)
+      if (_objectTable.LocalPlayer == null)
       {
         AddLog("LocalPlayer is null");
         return;
       }
-      string playerName = _clientState.LocalPlayer.Name.ToString();
+      string playerName = _objectTable.LocalPlayer.Name.ToString();
 
       switch (StepState)
       {
