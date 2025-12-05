@@ -80,5 +80,6 @@ public partial class ConfigWindow
 
     ImGui.Dummy(ScaledVector2(0, 10));
     DrawConfigCheckbox("Add '<Player> says' to chat messages", ref _configuration.LocalTTSPlayerSays);
+    DrawConfigCheckbox("Disable voicing your own chat messages", ref _configuration.LocalTTSDisableLocalPlayerChat);
   }
 }
