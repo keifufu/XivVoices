@@ -196,6 +196,14 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       return;
     }
 
+    // It seems output devices stop after some inactivity. Couln't replicate this on linux buuuut whatever?
+    if (_waveOutputDevice?.PlaybackState == PlaybackState.Stopped || _directSoundOutputDevice?.PlaybackState == PlaybackState.Stopped)
+    {
+      _logger.Debug("Output device was stopped, starting it again.");
+      _waveOutputDevice?.Play();
+      _directSoundOutputDevice?.Play();
+    }
+
     string? voicelinePath = message.VoicelinePath;
 
     message.IsGenerating = true;
@@ -259,6 +267,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     _logger.Debug($"Starting playing message: {message.Id}");
     _logger.Debug($"Output volume: {_waveOutputDevice?.Volume}, {_directSoundOutputDevice?.Volume}");
     _logger.Debug($"Output state: {_waveOutputDevice?.PlaybackState}, {_directSoundOutputDevice?.PlaybackState}");
+
     PlaybackStarted?.Invoke(this, message);
     _mixer.AddMixerInput(track);
     _playing[message.Id] = track;
