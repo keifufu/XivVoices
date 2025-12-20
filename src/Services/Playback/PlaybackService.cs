@@ -47,6 +47,21 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     _framework.Update += FrameworkOnUpdate;
 
+    InitializeOutputDevice();
+
+    _logger.ServiceLifecycle();
+    return Task.CompletedTask;
+  }
+
+  private void InitializeOutputDevice()
+  {
+    _waveOutputDevice?.Stop();
+    _waveOutputDevice?.Dispose();
+    _waveOutputDevice = null;
+    _directSoundOutputDevice?.Stop();
+    _directSoundOutputDevice?.Dispose();
+    _directSoundOutputDevice = null;
+
     _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(48000, 2))
     {
       ReadFully = true
@@ -84,9 +99,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _directSoundOutputDevice.Init(_mixer);
       _directSoundOutputDevice.Play();
     }
-
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -199,9 +211,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     // It seems output devices stop after some inactivity. Couln't replicate this on linux buuuut whatever?
     if (_waveOutputDevice?.PlaybackState == PlaybackState.Stopped || _directSoundOutputDevice?.PlaybackState == PlaybackState.Stopped)
     {
-      _logger.Debug("Output device was stopped, starting it again.");
-      _waveOutputDevice?.Play();
-      _directSoundOutputDevice?.Play();
+      _logger.Debug("Output device was stopped, initializing it again.");
+      InitializeOutputDevice();
     }
 
     string? voicelinePath = message.VoicelinePath;
