@@ -20,6 +20,17 @@ public partial class ConfigWindow
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
+    { "1.2.0.0", new[]
+    {
+      "Updated for 7.4/7.4HF1 (API14/NET10)",
+      "Added the command '/xivv pause'.",
+      "Added option to disable TTS for your own chat messages.",
+      "Fixed controller support for temporarily pausing auto-advance.",
+      "Fixed an issue where audio would stop playing after a long session.",
+      "Fixed certain post-processed lines not being played.",
+      "Removed playback history limit.",
+      "Queued messages now clear when muting.",
+    }},
     { "1.1.0.0", new[] {
       "Added option to prevent accidental dialogue advance.",
       "Added a fallback DirectSound audio device in case WaveOut fails.",

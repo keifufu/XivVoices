@@ -50,7 +50,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     if (args is not AddonReceiveEventArgs eventArgs || (AtkEventType)eventArgs.AtkEventType is not AtkEventType.MouseClick) return;
 
     AddonTalk* addon = (AddonTalk*)args.Addon.Address;
-    AtkEventData.AtkMouseData mouseData = ((AtkEventData*)eventArgs.Data)->MouseData;
+    AtkEventData.AtkMouseData mouseData = ((AtkEventData*)eventArgs.AtkEventData)->MouseData;
     bool ignore = mouseData.PosX == 0 && mouseData.PosY == 0;
 
     if (!addon->RootNode->CheckCollisionAtCoords(mouseData.PosX, mouseData.PosY, true) && !ignore)
