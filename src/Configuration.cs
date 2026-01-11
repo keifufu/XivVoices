@@ -48,6 +48,10 @@ public class Configuration : IPluginConfiguration
   public bool DirectionalAudioForChat = false;
   public bool DirectionalAudioForAddonMiniTalk = true;
 
+  public bool PauseDialogueWhileInactive = true;
+  public bool MuteDialogueWhileInactive = false;
+  public int MaxPausedDialogueLines = 20;
+
   public bool LocalTTSEnabled = true;
   public string LocalTTSDefaultVoice = "Male";
   public int LocalTTSVolume = 100;

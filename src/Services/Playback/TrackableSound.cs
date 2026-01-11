@@ -9,6 +9,8 @@ public class TrackableSound : ISampleProvider, IDisposable
   private readonly PanningSampleProvider _panningProvider;
 
   private bool _playbackEnded = false;
+  private bool _isPaused = false;
+  
   private float _currentVolume = 1.0f;
   private float _currentPan = 0.0f;
 
@@ -49,6 +51,12 @@ public class TrackableSound : ISampleProvider, IDisposable
 
   public int Read(float[] buffer, int offset, int count)
   {
+    if (_isPaused)
+    {
+      Array.Clear(buffer, offset, count);
+      return count;
+    }
+
     int read = _panningProvider.Read(buffer, offset, count);
 
     if (read > 0)
@@ -85,6 +93,12 @@ public class TrackableSound : ISampleProvider, IDisposable
   public void Dispose() => SourceStream.Dispose();
 
   public bool IsPlaying => !IsStopping && !_playbackEnded && SourceStream.Position < SourceStream.Length;
+
+  public bool IsPaused
+  {
+    get => _isPaused;
+    set => _isPaused = value;
+  }
 
   public float Volume
   {

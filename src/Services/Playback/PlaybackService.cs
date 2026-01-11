@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace XivVoices.Services;
 
@@ -38,6 +39,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   private readonly object _playbackHistoryLock = new();
   private readonly List<XivMessage> _playbackHistory = [];
   private readonly List<XivMessage> _queuedMessages = [];
+  
+  // Window focus detection for pause/mute on inactive window
+  private bool _wasGameWindowInactive = false;
+  private Dictionary<string, float> _pausedTrackVolumes = [];
 
   public event EventHandler<XivMessage>? PlaybackStarted;
   public event EventHandler<XivMessage>? PlaybackCompleted;
@@ -46,6 +51,9 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public Task StartAsync(CancellationToken cancellationToken)
   {
     _framework.Update += FrameworkOnUpdate;
+    
+    // Initialize window state to actual current state
+    _wasGameWindowInactive = IsGameWindowInactive();
 
     InitializeOutputDevice();
 
@@ -125,8 +133,122 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private void FrameworkOnUpdate(IFramework framework)
   {
-    foreach (TrackableSound track in _playing.Values)
-      UpdateTrack(track);
+    try
+    {
+      bool pauseEnabled = _configuration.PauseDialogueWhileInactive;
+      bool muteEnabled = _configuration.MuteDialogueWhileInactive;
+      
+      if (pauseEnabled || muteEnabled)
+      {
+        CheckWindowFocusAndUpdateAudio();
+      }
+
+      foreach (TrackableSound track in _playing.Values)
+        UpdateTrack(track);
+    }
+    catch (Exception ex)
+    {
+      _logger.Error($"[FrameworkOnUpdate] Exception: {ex}");
+    }
+  }
+
+  private void CheckWindowFocusAndUpdateAudio()
+  {
+    bool isWindowInactive = IsGameWindowInactive();
+    
+    // Only act on state change, not every frame
+    if (isWindowInactive == _wasGameWindowInactive)
+      return;
+
+    _wasGameWindowInactive = isWindowInactive;
+
+    // Apply pause or mute based on configuration when window becomes inactive/active
+    if (isWindowInactive)
+    {
+      if (_configuration.PauseDialogueWhileInactive)
+        PauseAudio();
+      if (_configuration.MuteDialogueWhileInactive)
+        MuteAudio();
+    }
+    else
+    {
+      if (_configuration.PauseDialogueWhileInactive)
+      {
+        ResumeAudio();
+        CleanupExcessPausedTracks();
+      }
+      if (_configuration.MuteDialogueWhileInactive)
+        UnmuteAudio();
+    }
+  }
+
+  private bool IsGameWindowInactive()
+  {
+    try
+    {
+      unsafe
+      {
+        var framework = FrameworkStruct.Instance();
+        return framework != null && framework->WindowInactive;
+      }
+    }
+    catch
+    {
+      return false;
+    }
+  }
+
+  private void PauseAudio()
+  {
+    // Pause all currently playing tracks (stops audio output)
+    foreach (var (_, track) in _playing)
+      track.IsPaused = true;
+  }
+
+  private void ResumeAudio()
+  {
+    // Resume all paused tracks
+    foreach (var (_, track) in _playing)
+      track.IsPaused = false;
+  }
+
+  private void MuteAudio()
+  {
+    // Mute by storing original volumes and setting to 0
+    _pausedTrackVolumes.Clear();
+    foreach (var (id, track) in _playing)
+    {
+      _pausedTrackVolumes[id] = track.Volume;
+      track.Volume = 0;
+    }
+  }
+
+  private void UnmuteAudio()
+  {
+    // Restore original volumes
+    foreach (var (id, track) in _playing)
+    {
+      if (_pausedTrackVolumes.TryGetValue(id, out float originalVolume))
+        track.Volume = originalVolume;
+    }
+    _pausedTrackVolumes.Clear();
+  }
+
+  private void CleanupExcessPausedTracks()
+  {
+    // Safety measure to prevent too many paused voicelines accumulating
+    // leading to necessity of restarting the game or potential OOM crash happening
+    int pausedCount = _playing.Count;
+    if (pausedCount > _configuration.MaxPausedDialogueLines)
+    {
+      int excess = pausedCount - _configuration.MaxPausedDialogueLines;
+      var tracksToRemove = _playing.Values.Take(excess).ToList();
+      
+      foreach (var track in tracksToRemove)
+      {
+        _ = FadeOutAndStopAsync(track, fadeDurationMs: 50);
+      }
+    }
   }
 
   private unsafe Task UpdateTrack(TrackableSound track)
@@ -134,7 +256,13 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (track.IsStopping) return;
-      track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
+      
+      // Only update volume if track is not muted (not in _pausedTrackVolumes)
+      // This prevents muted volumes from being reset to the configured volume
+      if (!_pausedTrackVolumes.ContainsKey(track.Message.Id))
+      {
+        track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
+      }
 
       if (
         (track.Message.Source == MessageSource.AddonMiniTalk && _configuration.DirectionalAudioForAddonMiniTalk) ||
@@ -282,6 +410,18 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     PlaybackStarted?.Invoke(this, message);
     _mixer.AddMixerInput(track);
     _playing[message.Id] = track;
+
+    // Apply pause/mute immediately if window is inactive and feature is enabled
+    if (IsGameWindowInactive())
+    {
+      if (_configuration.PauseDialogueWhileInactive)
+        track.IsPaused = true;
+      if (_configuration.MuteDialogueWhileInactive)
+      {
+        _pausedTrackVolumes[message.Id] = track.Volume;
+        track.Volume = 0;
+      }
+    }
 
     if (_configuration.LipSyncEnabled)
       _ = _lipSync.TryLipSync(message, track.TotalTime.TotalSeconds);

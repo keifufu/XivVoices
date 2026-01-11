@@ -38,6 +38,38 @@ public partial class ConfigWindow
     DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
     DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);
 
+    ImGui.Dummy(ScaledVector2(0, 15));
+    ImGui.TextWrapped("Inactive Game Window Dialogue Behavior");
+    ImGui.Dummy(ScaledVector2(0, 5));
+
+    bool pauseWhileInactive = _configuration.PauseDialogueWhileInactive;
+    DrawConfigCheckbox("Pause When Window Is Inactive", ref pauseWhileInactive);
+    if (pauseWhileInactive != _configuration.PauseDialogueWhileInactive)
+    {
+      _configuration.PauseDialogueWhileInactive = pauseWhileInactive;
+      if (pauseWhileInactive && _configuration.MuteDialogueWhileInactive)
+        _configuration.MuteDialogueWhileInactive = false;
+      _configuration.Save();
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Pauses voice playback when the game window loses focus.");
+
+    bool muteWhileInactive = _configuration.MuteDialogueWhileInactive;
+    DrawConfigCheckbox("Mute When Window Inactive", ref muteWhileInactive);
+    if (muteWhileInactive != _configuration.MuteDialogueWhileInactive)
+    {
+      _configuration.MuteDialogueWhileInactive = muteWhileInactive;
+      if (muteWhileInactive && _configuration.PauseDialogueWhileInactive)
+        _configuration.PauseDialogueWhileInactive = false;
+      _configuration.Save();
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Mutes voice playback when the game window loses focus.");
+
     ImGui.Unindent(ScaledFloat(8));
     ImGui.Dummy(ScaledVector2(0, 25));
     ImGui.TextWrapped("Directional Audio");
