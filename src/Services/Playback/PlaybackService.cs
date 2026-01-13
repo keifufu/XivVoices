@@ -157,6 +157,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (track.IsStopping) return;
+      track.IsMuted = _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused;
       track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
 
       if (

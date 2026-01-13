@@ -18,6 +18,7 @@ public class TrackableSound : ISampleProvider, IDisposable
   public XivMessage Message { get; }
   public WaveStream SourceStream { get; }
   public bool IsStopping { get; set; } = false;
+  public bool IsMuted = false;
 
   public Action<TrackableSound>? OnPlaybackStopped;
 
@@ -88,11 +89,11 @@ public class TrackableSound : ISampleProvider, IDisposable
 
   public float Volume
   {
-    get => _currentVolume;
+    get => IsMuted ? 0 : _currentVolume;
     set
     {
       _currentVolume = Math.Clamp(value, 0f, 1f);
-      _volumeProvider.Volume = _currentVolume;
+      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume;
     }
   }
 
