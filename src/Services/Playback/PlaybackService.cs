@@ -140,11 +140,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     if (_wasWindowUnfocused != IsWindowUnfocused)
     {
-      if (_waveOutputDevice?.PlaybackState == PlaybackState.Playing)
-        _waveOutputDevice.Volume = (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused) ? 0 : 1;
-      if (_directSoundOutputDevice?.PlaybackState == PlaybackState.Playing)
-        _directSoundOutputDevice.Volume = (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused) ? 0 : 1;
-
       if (_waveOutputDevice != null && _waveOutputDevice.PlaybackState != PlaybackState.Stopped)
         if (Paused) _waveOutputDevice.Pause(); else _waveOutputDevice.Play();
       if (_directSoundOutputDevice != null && _directSoundOutputDevice.PlaybackState != PlaybackState.Stopped)
