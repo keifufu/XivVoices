@@ -3,6 +3,14 @@ using Dalamud.Configuration;
 namespace XivVoices;
 
 [Serializable]
+public enum UnfocusedBehavior
+{
+  Play,
+  Pause,
+  Mute,
+}
+
+[Serializable]
 public class Configuration : IPluginConfiguration
 {
   public int Version { get; set; } = 0;
@@ -44,6 +52,8 @@ public class Configuration : IPluginConfiguration
 
   public int Speed = 100;
   public int Volume = 100;
+
+  public UnfocusedBehavior UnfocusedBehavior = UnfocusedBehavior.Play;
 
   public bool DirectionalAudioForChat = false;
   public bool DirectionalAudioForAddonMiniTalk = true;

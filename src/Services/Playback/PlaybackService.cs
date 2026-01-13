@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace XivVoices.Services;
 
@@ -7,6 +8,8 @@ public interface IPlaybackService : IHostedService
   event EventHandler<XivMessage>? PlaybackStarted;
   event EventHandler<XivMessage>? PlaybackCompleted;
   event EventHandler<XivMessage>? QueuedLineSkipped;
+
+  bool Paused { get; set; }
 
   Task Play(XivMessage message, bool replay = false);
 
@@ -42,6 +45,16 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public event EventHandler<XivMessage>? PlaybackStarted;
   public event EventHandler<XivMessage>? PlaybackCompleted;
   public event EventHandler<XivMessage>? QueuedLineSkipped;
+
+  private bool _paused = false;
+  public bool Paused
+  {
+    get => _paused || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Pause && IsWindowUnfocused);
+    set => _paused = value;
+  }
+
+  private bool _wasWindowUnfocused = false;
+  private unsafe bool IsWindowUnfocused => FrameworkStruct.Instance() != null && FrameworkStruct.Instance()->WindowInactive;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -125,6 +138,21 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private void FrameworkOnUpdate(IFramework framework)
   {
+    if (_wasWindowUnfocused != IsWindowUnfocused)
+    {
+      if (_waveOutputDevice?.PlaybackState == PlaybackState.Playing)
+        _waveOutputDevice.Volume = (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused) ? 0 : 1;
+      if (_directSoundOutputDevice?.PlaybackState == PlaybackState.Playing)
+        _directSoundOutputDevice.Volume = (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused) ? 0 : 1;
+
+      if (_waveOutputDevice != null && _waveOutputDevice.PlaybackState != PlaybackState.Stopped)
+        if (Paused) _waveOutputDevice.Pause(); else _waveOutputDevice.Play();
+      if (_directSoundOutputDevice != null && _directSoundOutputDevice.PlaybackState != PlaybackState.Stopped)
+        if (Paused) _directSoundOutputDevice.Pause(); else _directSoundOutputDevice.Play();
+
+      _wasWindowUnfocused = IsWindowUnfocused;
+    }
+
     foreach (TrackableSound track in _playing.Values)
       UpdateTrack(track);
   }

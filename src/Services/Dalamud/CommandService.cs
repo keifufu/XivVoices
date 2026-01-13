@@ -97,8 +97,8 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat(mute ? "Muted" : "Unmuted");
         break;
       case "pause":
-        bool paused = !_messageDispatcher.Paused;
-        _messageDispatcher.Paused = paused;
+        bool paused = !_playbackService.Paused;
+        _playbackService.Paused = paused;
         _logger.Chat(paused ? "Paused" : "Unpaused");
         break;
       case "skip":

@@ -38,6 +38,40 @@ public partial class ConfigWindow
     DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
     DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);
 
+    ImGui.Dummy(ScaledVector2(0, 15));
+    ImGui.TextWrapped("Unfocused Window Behavior");
+    ImGui.Dummy(ScaledVector2(0, 5));
+
+    if (ImGui.RadioButton("Play voicelines while unfocused", _configuration.UnfocusedBehavior == UnfocusedBehavior.Play))
+    {
+      _configuration.UnfocusedBehavior = UnfocusedBehavior.Play;
+      _configuration.Save();
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Voicelines will play like normal when the window is unfocused.");
+
+    if (ImGui.RadioButton("Pause voicelines while unfocused", _configuration.UnfocusedBehavior == UnfocusedBehavior.Pause))
+    {
+      _configuration.UnfocusedBehavior = UnfocusedBehavior.Pause;
+      _configuration.Save();
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Voicelines will be paused entirely until window is refocused.");
+
+    if (ImGui.RadioButton("Mute voicelines while unfocused", _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute))
+    {
+      _configuration.UnfocusedBehavior = UnfocusedBehavior.Mute;
+      _configuration.Save();
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Voicelines will still continue playback, but they will be muted.");
+
     ImGui.Unindent(ScaledFloat(8));
     ImGui.Dummy(ScaledVector2(0, 25));
     ImGui.TextWrapped("Directional Audio");

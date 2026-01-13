@@ -15,6 +15,11 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
     _dataService.OnOpenConfigWindow += OnOpenConfigWindow;
 
+#if DEBUG
+    _configWindow.IsOpen = true;
+    _configWindow.SelectedTab = ConfigWindowTab.AudioSettings;
+#endif
+
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
   }

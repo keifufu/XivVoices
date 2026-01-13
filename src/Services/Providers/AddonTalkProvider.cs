@@ -65,7 +65,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   {
     AtkUnitBasePtr addon = _gameGui.GetAddonByName("TalkAutoMessageSetting");
     return !_configuration.MuteEnabled
-      && !_messageDispatcher.Paused
+      && !_playbackService.Paused
       && _configuration.AutoAdvanceEnabled
       && !_keyState[VirtualKey.MENU]
       && _gamepadState.Raw(GamepadButtons.North) == 0
