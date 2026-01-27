@@ -79,7 +79,10 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
 
     string l = "";
-    foreach (string log in _selfTestService.CurrentLogs) l += $"{log}\n";
+    lock (_selfTestService.CurrentLogsLock)
+    {
+      foreach (string log in _selfTestService.CurrentLogs) l += $"{log}\n";
+    }
     ImGui.InputTextMultiline("##SelfTestLogs", ref l, 1024, ScaledVector2(350, 120), ImGuiInputTextFlags.ReadOnly);
   }
 

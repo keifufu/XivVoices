@@ -8,6 +8,7 @@ public interface ISelfTestService
   SelfTestStep Step { get; }
   SelfTestStep SkippedTests { get; }
   SelfTestStep CompletedTests { get; }
+  object CurrentLogsLock { get; }
   List<string> CurrentLogs { get; }
   string CurrentInstruction { get; }
   int StepState { get; }
@@ -66,6 +67,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   public SelfTestStep Step { get; private set; } = SelfTestStep.None;
   public SelfTestStep SkippedTests { get; private set; } = SelfTestStep.None;
   public SelfTestStep CompletedTests { get; private set; } = SelfTestStep.None;
+  public object CurrentLogsLock { get; private set; } = new();
   public List<string> CurrentLogs { get; private set; } = [];
   public string CurrentInstruction { get; private set; } = "Press \"Start Self-Test\"";
 
@@ -104,7 +106,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     if (skipped && !alreadyCompleted)
       SkippedTests |= Step;
 
-    CurrentLogs = [];
+    lock (CurrentLogsLock)
+    {
+      CurrentLogs = [];
+    }
 
     switch (Step)
     {
@@ -207,14 +212,17 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     if (_logTimestamps.TryGetValue(log, out DateTime lastLogged) && (now - lastLogged).TotalMilliseconds < LogDebounceTime)
       return;
 
-    CurrentLogs.Insert(0, log);
-    _logTimestamps[log] = now;
-
-    if (CurrentLogs.Count > MaxLogs)
+    lock (CurrentLogsLock)
     {
-      string oldestLog = CurrentLogs[^1];
-      CurrentLogs.RemoveAt(CurrentLogs.Count - 1);
-      _logTimestamps.Remove(oldestLog);
+      CurrentLogs.Insert(0, log);
+      _logTimestamps[log] = now;
+
+      if (CurrentLogs.Count > MaxLogs)
+      {
+        string oldestLog = CurrentLogs[^1];
+        CurrentLogs.RemoveAt(CurrentLogs.Count - 1);
+        _logTimestamps.Remove(oldestLog);
+      }
     }
   }
 
