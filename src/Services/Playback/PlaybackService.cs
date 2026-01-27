@@ -253,15 +253,19 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
 
     if (useLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
-    else if (useLocalGen) await localGen(message);
+    else if (useLocalGen) voicelinePath = await localGen(message);
     if (voicelinePath == null) // generation failed
     {
       string method = useLocalTTS ? "LocalTTS" : "LocalGen";
       _logger.Error($"Generation failed. Method: {method}. Message: {message.Id}");
-      _queuedMessages.Remove(message);
+      lock (_playbackHistoryLock)
+      {
+        _queuedMessages.Remove(message);
+      }
       message.IsGenerating = false;
       return;
     }
+    message.VoicelinePath = voicelinePath;
 
     // Since TTS can take some time to generate, this solves some headaches for now.
     if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
@@ -269,8 +273,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     WaveStream? sourceStream = await _audioPostProcessor.PostProcessToPCM(voicelinePath, message.IsLocalTTS, message);
     if (useLocalTTS) File.Delete(voicelinePath);
-
-    _queuedMessages.Remove(message);
+    lock (_playbackHistoryLock)
+    {
+      _queuedMessages.Remove(message);
+    }
     message.IsGenerating = false;
 
     if (sourceStream == null)
@@ -338,7 +344,9 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         .Replace("%s", Uri.EscapeDataString(message.Sentence))
         .Replace("%i", Uri.EscapeDataString(message.Id));
 
+      if (_configuration.LimitFpsDuringLocalGeneration) unsafe { FrameworkStruct.Instance()->WindowInactive = true; }
       HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
+      if (_configuration.LimitFpsDuringLocalGeneration) unsafe { FrameworkStruct.Instance()->WindowInactive = false; }
 
       if (response.IsSuccessStatusCode)
       {
@@ -395,12 +403,14 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     lock (_playbackHistoryLock)
     {
-      foreach (XivMessage message in _queuedMessages)
+      List<XivMessage> queuedMessages = _queuedMessages.ToList();
+      foreach (XivMessage message in queuedMessages)
       {
         yield return (message, false, 0, true);
       }
 
-      foreach (XivMessage message in _playbackHistory)
+      List<XivMessage> playbackHistory = _playbackHistory.ToList();
+      foreach (XivMessage message in playbackHistory)
       {
         if (_playing.TryGetValue(message.Id, out TrackableSound? track))
           yield return (message, track.IsPlaying, (float)(track.EstimatedCurrentTime.TotalMilliseconds / track.TotalTime.TotalMilliseconds), false);
@@ -412,24 +422,36 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   public void AddQueuedLine(XivMessage message)
   {
-    _queuedMessages.Insert(0, message);
+    lock (_playbackHistoryLock)
+    {
+      _queuedMessages.Insert(0, message);
+    }
   }
 
   public void SkipQueuedLine(XivMessage message)
   {
-    message.GenerationToken.Cancel();
-    _queuedMessages.Remove(message);
-    QueuedLineSkipped?.Invoke(this, message);
+    lock (_playbackHistoryLock)
+    {
+      message.GenerationToken.Cancel();
+      _queuedMessages.Remove(message);
+      QueuedLineSkipped?.Invoke(this, message);
+    }
   }
 
   public void RemoveQueuedLine(XivMessage message)
   {
-    _queuedMessages.Remove(message);
+    lock (_playbackHistoryLock)
+    {
+      _queuedMessages.Remove(message);
+    }
   }
 
   public void ClearQueue()
   {
-    _queuedMessages.Clear();
+    lock (_playbackHistoryLock)
+    {
+      _queuedMessages.Clear();
+    }
   }
 
   public IEnumerable<TrackableSound> Debug_GetPlaying()

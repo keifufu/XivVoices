@@ -51,6 +51,7 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("Enable Local Generation", ref _configuration.EnableLocalGeneration);
     DrawConfigCheckbox("Force Local Generation", ref _configuration.ForceLocalGeneration);
+    DrawConfigCheckbox("Limit FPS during Local Generation", ref _configuration.LimitFpsDuringLocalGeneration);
 
     DrawConfigText("LocalGenerationUri", "LocalGenerationUri", _configuration.LocalGenerationUri, (value) =>
     {

@@ -85,6 +85,7 @@ public class Configuration : IPluginConfiguration
   public string StreamElementsFemaleVoice = "Emma";
   public bool EnableLocalGeneration = false;
   public bool ForceLocalGeneration = false;
+  public bool LimitFpsDuringLocalGeneration = false;
   public string LocalGenerationUri = "http://127.0.0.1:6969/generate?voice=%v&sentence=%s&id=%i";
 
   [NonSerialized]
