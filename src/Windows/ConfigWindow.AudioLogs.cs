@@ -29,7 +29,7 @@ public partial class ConfigWindow
 
       foreach ((XivMessage message, bool isPlaying, float percentage, bool isQueued) in history)
       {
-        ImGui.TextWrapped($"{message.RawSpeaker}: {message.RawSentence}");
+        ImGui.TextWrapped($"{message.RawSpeaker}: {message.AddName(message.RawSentence)}");
 
         float progressSize = 245;
         Vector4 plotHistogramColor = _green;

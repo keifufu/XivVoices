@@ -341,7 +341,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
       string requestUri = _configuration.LocalGenerationUri
         .Replace("%v", Uri.EscapeDataString(message.Voice.Id))
-        .Replace("%s", Uri.EscapeDataString(message.Sentence))
+        .Replace("%s", Uri.EscapeDataString(message.AddName(message.Sentence)))
         .Replace("%i", Uri.EscapeDataString(message.Id));
 
       if (_configuration.LimitFpsDuringLocalGeneration) unsafe { FrameworkStruct.Instance()->WindowInactive = true; }

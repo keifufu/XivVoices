@@ -13,6 +13,16 @@ public class XivMessage
 
   public NpcEntry? Npc { get; }
 
+  [JsonIgnore]
+  public string? PlayerName { get; }
+
+  public string AddName(string str)
+  {
+    if (PlayerName == null) return str;
+    string[] fullname = PlayerName.Split(" ");
+    return str.Replace("_FIRSTNAME_", fullname[0]).Replace("_LASTNAME_", fullname[1]);
+  }
+
   // Used for AudioPostProcessing right now,
   // we do some effects based on the voice name.
   // Can get this from the Manifest via Npc?.VoiceId,
@@ -47,7 +57,8 @@ public class XivMessage
     string rawSentence,
     NpcEntry? npc,
     VoiceEntry? voice,
-    string? voicelinePath)
+    string? voicelinePath,
+    string? playerName)
   {
     Id = id;
     Source = source;
@@ -58,6 +69,7 @@ public class XivMessage
     Npc = npc;
     Voice = voice;
     VoicelinePath = voicelinePath;
+    PlayerName = playerName;
   }
 
   [JsonConstructor]

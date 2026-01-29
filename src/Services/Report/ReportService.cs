@@ -110,7 +110,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       string json = JsonSerializer.Serialize(report, JsonOptions.Write);
       StringContent content = new(json, Encoding.UTF8, "application/json");
 
-      string url = $"{_dataService.ServerUrl}/report";
+      string url = $"{_dataService.ServerUrl}/reports";
       using HttpResponseMessage response = await _dataService.HttpClient.PostAsync(url, content, token);
       response.EnsureSuccessStatusCode();
 

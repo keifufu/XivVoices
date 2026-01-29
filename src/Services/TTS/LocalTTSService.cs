@@ -51,7 +51,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
     // Something in our implementation can only handle ascii. I don't think
     // that's on piper but probably something in our wrapper (localtts.dll)
-    string cleanedSentence = Regex.Replace(message.Sentence, "[“”]", "\"");
+    string cleanedSentence = Regex.Replace(message.AddName(message.Sentence), "[“”]", "\"");
     cleanedSentence = Regex.Replace(cleanedSentence, @"[^\u0000-\u007F]+", "").Trim();
     if (string.IsNullOrEmpty(cleanedSentence))
     {

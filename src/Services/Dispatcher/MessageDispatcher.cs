@@ -183,6 +183,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
 
     string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
+    if (playerName == null) return; // Nah
     bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
     // NOTE: This might want to support more than "???" speakers in the future.
@@ -192,7 +193,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     {
       // Nameless mappings use a cleaned sentence with legacy name replacement.
       string sentenceToMatch = sentence;
-      if (sentenceHasName) (_, sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true, false);
+      if (sentenceHasName) (_, sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true);
       (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, sentenceToMatch);
       if (mappedNpcFound) _logger.Debug("Found mapped nameless npc");
       else _logger.Debug("Failed to find mapped nameless npc");
@@ -205,7 +206,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
 
     // Clean message and replace names with new replacement method.
-    (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, false);
+    (string cleanedSpeaker, string cleanedSentence) = CleanMessage(speaker, sentence, playerName, false);
 
     NpcEntry? npc = mappedNpc ?? GetNpc(source, cleanedSpeaker);
     if (npc == null || npc.HasVariedLooks)
@@ -237,15 +238,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // If no voiceline was found, try again with legacy name replacement method.
     if (voicelinePath == null && sentenceHasName)
     {
-      (_, string legacySentence) = CleanMessage(speaker, sentence, playerName, true, false);
+      (_, string legacySentence) = CleanMessage(speaker, sentence, playerName, true);
       (id, voicelinePath) = await TryGetVoiceline(voice, npc, legacySentence);
       if (voicelinePath == null) _logger.Debug("Did not find legacy name voiceline");
       else _logger.Debug("Found legacy name voiceline");
     }
-
-    // If we still haven't found a voiceline, clean the messages again but keep the name for localtts.
-    if (voicelinePath == null && sentenceHasName)
-      (cleanedSpeaker, cleanedSentence) = CleanMessage(speaker, sentence, playerName, false, true);
 
     XivMessage message = new(
       id,
@@ -253,19 +250,18 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       cleanedSpeaker,
       cleanedSentence,
       rawSpeaker,
-      rawSentence,
+      ReplaceName(rawSentence, playerName),
       npc,
       voice,
-      voicelinePath
+      voicelinePath,
+      playerName
     );
 
     _logger.Debug($"Constructed message: {message}");
 
-    // If speaker is ignored, do not send a report, still let it be voiced by local TTS.
-    bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
-
     // Report if it's not a chat message, it couldn't find a voiceline and the speaker is not ignored.
-    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !_dataService.Manifest.IgnoredSpeakers.Contains(speaker))
+    bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
+    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker)
       _reportService.Report(message);
 
     bool allowed = true;
