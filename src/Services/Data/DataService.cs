@@ -28,6 +28,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   private Dictionary<string, NpcEntry> _cachedPlayers = [];
   private CancellationTokenSource? _updateCts;
   private readonly SemaphoreSlim _updateSemaphore = new(25);
+  private System.Timers.Timer? _updateTimer;
 
   public DataStatus DataStatus { get; private set; } = new();
   public Manifest? Manifest { get; private set; } = null;
@@ -156,6 +157,11 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _ = Update();
     LoadCachedPlayers();
 
+    _updateTimer = new(60 * 60 * 1000);
+    _updateTimer.Elapsed += UpdateTimerElapsed;
+    _updateTimer.AutoReset = true;
+    _updateTimer.Enabled = true;
+
     _logger.Debug($"XivVoices v{Version}");
 
     _logger.ServiceLifecycle();
@@ -168,8 +174,20 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     SaveCachedPlayers();
     AuthStop();
 
+    _updateTimer?.Stop();
+    _updateTimer?.Dispose();
+    _updateTimer = null;
+
     _logger.ServiceLifecycle();
     return Task.CompletedTask;
+  }
+
+  private void UpdateTimerElapsed(object? source, ElapsedEventArgs e)
+  {
+    if (!DataStatus.UpdateInProgress)
+    {
+      _ = Update(true);
+    }
   }
 
   private async Task SetLatestVersion()
@@ -538,7 +556,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       if (_subsequentFails > 15 || !fileName.Contains(".ogg"))
       {
         _logger.Error(httpEx);
-        ServerStatus = ServerStatus.OFFLINE;
+        await UpdateServerStatus(default);
       }
     }
     catch (OperationCanceledException)
