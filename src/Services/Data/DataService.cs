@@ -215,7 +215,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     if (manifestExists)
     {
       DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
-      if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(24))
+      if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(12))
       {
         _logger.Debug("Manifest file is older than 24 hours, redownloading.");
         shouldDownload = true;
@@ -242,7 +242,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         Voicelines = json.Voicelines,
         IgnoredSpeakers = json.IgnoredSpeakers,
         SpeakerMappings = [],
-        Lexicon = []
+        Lexicon = [],
+        RaceMappings = []
       };
 
       foreach (VoiceEntry entry in json.Voices)
@@ -294,6 +295,16 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
           manifest.SpeakerMappings[entry.Type] = [];
         string sanitizedSentence = Regex.Replace(entry.Sentence, @"[^a-zA-Z]", "");
         manifest.SpeakerMappings[entry.Type][sanitizedSentence] = entry.NpcId;
+      }
+
+      foreach (LexiconEntry entry in json.Lexicon)
+      {
+        manifest.Lexicon.Add(entry.From, entry.To);
+      }
+
+      foreach (RaceMapping mapping in json.RaceMappings)
+      {
+        manifest.RaceMappings.Add((mapping.SkeletonId, mapping.TerritoryId), mapping.Race);
       }
 
       Manifest = manifest;

@@ -37,13 +37,20 @@ public class SpeakerMappingEntry
 {
   public required SpeakerMappingType Type { get; set; }
   public required string Sentence { get; set; }
-  public required string NpcId { get; set; }
+  public required string? NpcId { get; set; }
 }
 
 public class LexiconEntry
 {
   public required string From { get; set; }
   public required string To { get; set; }
+}
+
+public class RaceMapping
+{
+  public required int SkeletonId { get; set; }
+  public required ushort TerritoryId { get; set; }
+  public required string Race { get; set; }
 }
 
 public class ManifestJson
@@ -55,6 +62,7 @@ public class ManifestJson
   public required List<string> IgnoredSpeakers { get; set; }
   public required List<SpeakerMappingEntry> SpeakerMappings { get; set; }
   public required List<LexiconEntry> Lexicon { get; set; }
+  public required List<RaceMapping> RaceMappings { get; set; }
 }
 
 public class Manifest
@@ -78,8 +86,11 @@ public class Manifest
   public required List<string> IgnoredSpeakers { get; set; }
 
   // Type -> (Sentence -> NpcId)
-  public required Dictionary<SpeakerMappingType, Dictionary<string, string>> SpeakerMappings { get; set; }
+  public required Dictionary<SpeakerMappingType, Dictionary<string, string?>> SpeakerMappings { get; set; }
 
   // From -> To
   public required Dictionary<string, string> Lexicon { get; set; }
+
+  // (SkeletonId, TerritoryId) -> Race
+  public required Dictionary<(int, ushort), string> RaceMappings { get; set; }
 }

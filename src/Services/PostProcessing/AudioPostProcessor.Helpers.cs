@@ -13,7 +13,7 @@ public partial class AudioPostProcessor
     float pitch = 1.0f;
     float tempo = 1.0f;
 
-    if (message.Voice?.Id == "Omicron" || message.Voice?.Id == "Node" || message.Npc?.Id == "Omega")
+    if (message.Voice?.Id == "Omicron" || message.Voice?.Id == "Allagan Node" || message.Npc?.Id == "Omega")
       isRobot = true;
 
     // Sounds Effects for Age

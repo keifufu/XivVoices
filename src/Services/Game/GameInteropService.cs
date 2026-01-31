@@ -36,7 +36,7 @@ public class CameraView
   public Vector3 Right;
 }
 
-public partial class GameInteropService(ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(IDataService _dataService, ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
 {
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
@@ -96,7 +96,7 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
     if (npc.Body == "Beastman")
     {
       int skeletonId = character->ModelContainer.ModelSkeletonId;
-      npc.Race = GetSkeleton(skeletonId, _clientState.TerritoryType);
+      npc.Race = GetRaceFromSkeleton(skeletonId, _clientState.TerritoryType);
 
       // I would like examples for why these workarounds are necessary,
       // but as it stands this is copied from old XIVV
