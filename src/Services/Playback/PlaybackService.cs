@@ -179,7 +179,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         CameraView camera = _gameInteropService.GetCameraView();
 
         float dotProduct = Vector3.Dot(relativePosition, camera.Right);
-        float balance = Math.Clamp(dotProduct / 20, -0.95f, 0.95f);
+        float balance = Math.Clamp(dotProduct / (distance > 0 ? distance : 1), -0.95f, 0.95f);
 
         float volume = track.Volume;
 
@@ -193,12 +193,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         // Can't let bubbles get too quiet in duties, or for directional chat messages.
         if (_gameInteropService.IsInDuty() || track.Message.Source == MessageSource.ChatMessage)
         {
-          volumeRanges[0].volumeStart = 0.65f;
-          volumeRanges[0].volumeEnd = 0.63f; // 0 to 3 units: 65% to 63%
-          volumeRanges[1].volumeStart = 0.63f;
-          volumeRanges[1].volumeEnd = 0.60f; // 3 to 5 units: 63% to 60%
-          volumeRanges[2].volumeStart = 0.60f;
-          volumeRanges[2].volumeEnd = 0.55f; // 5 to 20 units: 60% to 55%
+          volumeRanges[0].volumeStart = 0.65f * volume;
+          volumeRanges[0].volumeEnd = 0.63f * volume; // 0 to 3 units: 65% to 63%
+          volumeRanges[1].volumeStart = 0.63f * volume;
+          volumeRanges[1].volumeEnd = 0.60f * volume; // 3 to 5 units: 63% to 60%
+          volumeRanges[2].volumeStart = 0.60f * volume;
+          volumeRanges[2].volumeEnd = 0.55f * volume; // 5 to 20 units: 60% to 55%
         }
 
         foreach ((float distanceStart, float distanceEnd, float volumeStart, float volumeEnd) in volumeRanges)
