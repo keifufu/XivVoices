@@ -265,7 +265,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       message.IsGenerating = false;
       return;
     }
-    message.VoicelinePath = voicelinePath;
+
+    if (useLocalGen) message.VoicelinePath = voicelinePath;
 
     // Since TTS can take some time to generate, this solves some headaches for now.
     if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
