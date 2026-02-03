@@ -4,6 +4,7 @@ public interface IMessageDispatcher : IHostedService
 {
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
   void ClearQueue();
+  string ReplaceName(string sentence, string playerName);
 }
 
 public enum PlaybackQueueState

@@ -173,7 +173,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       if (!addon->IsVisible) return;
 
       (string speaker, string sentence) = GetSpeakerAndSentence(addon);
-      if (speaker != message.RawSpeaker || sentence != message.RawSentence)
+
+      if (speaker != message.RawSpeaker || sentence != message.AddName(message.RawSentence))
       {
         _logger.Debug("addontalk speaker or sentence changed, not auto-advancing.");
         return;
