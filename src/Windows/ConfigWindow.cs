@@ -26,6 +26,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
   private bool _promptOpen = false;
   private string _promptDescription = "";
   private string _promptInputBuffer = "";
+  private bool _promptInputSelected = false;
   private Action<string>? _promptCallback = null;
 
   private readonly IFontHandle _uiFont = _pluginInterface.UiBuilder.FontAtlas.NewDelegateFontHandle(e =>
@@ -229,7 +230,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
       {
         if (!overlay.Success) return;
 
-        Vector2 promptSize = ScaledVector2(300, 105);
+        Vector2 promptSize = ScaledVector2(300, 125);
         Vector2 promptPos = (windowSize - promptSize) / 2.0f;
         ImGui.SetCursorPos(new(promptPos.X + ScaledFloat(25), promptPos.Y));
 
@@ -240,14 +241,40 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
             if (!prompt.Success) return;
             ImGui.TextWrapped(_promptDescription);
             ImGui.Dummy(ScaledVector2(0, 5));
+
+            bool isReport = _promptDescription == "Report Reason";
+            List<string> reportReasons = ["Already voiced ingame", "Mispronunciations", "\"Our Friend\"", "Wrong Voice", "Other"];
+
+            if (isReport)
+            {
+              ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
+              using (ImRaii.IEndObject combo = ImRaii.Combo("##reportReason", _promptInputSelected ? reportReasons.Contains(_promptInputBuffer) ? _promptInputBuffer : "Other" : "Select a Reason..."))
+              {
+                if (combo.Success)
+                {
+                  foreach (string reason in reportReasons)
+                  {
+                    if (ImGui.Selectable(reason, _promptInputBuffer == reason))
+                    {
+                      _promptInputBuffer = reason == "Other" ? "" : reason;
+                      _promptInputSelected = true;
+                    }
+                  }
+                }
+              }
+            }
+
             ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
-            ImGui.InputText("##input", ref _promptInputBuffer, 256);
+            if (!isReport || _promptInputSelected && !reportReasons.Contains(_promptInputBuffer)) ImGui.InputText("##input", ref _promptInputBuffer, 256);
 
             ImGui.Dummy(ScaledVector2(0, 5));
-            if (ImGui.Button("Submit"))
+            using (ImRaii.Disabled(_promptInputBuffer.Length == 0))
             {
-              _promptCallback?.Invoke(_promptInputBuffer);
-              _promptOpen = false;
+              if (ImGui.Button("Submit"))
+              {
+                _promptCallback?.Invoke(_promptInputBuffer);
+                _promptOpen = false;
+              }
             }
 
             ImGui.SameLine();
@@ -266,6 +293,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     _promptDescription = description;
     _promptInputBuffer = defaultValue;
     _promptCallback = callback;
+    _promptInputSelected = false;
     _promptOpen = true;
   }
 
