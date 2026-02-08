@@ -54,7 +54,9 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
     Vector2 originPos = ImGui.GetCursorPos();
     ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMax().X + ScaledFloat(8));
-    ImGui.SetCursorPosY(ImGui.GetWindowContentRegionMax().Y - ImGui.GetFrameHeight() - ScaledFloat(26));
+    ImGui.SetCursorPosY(ImGui.GetWindowContentRegionMax().Y - ImGui.GetFrameHeight() - ScaledFloat(76));
+    DrawPatreonButton();
+    ImGui.SetCursorPosX(ImGui.GetWindowContentRegionMax().X - ImGui.GetWindowContentRegionMax().X + ScaledFloat(8));
     DrawDiscordButton();
     ImGui.SetCursorPos(originPos);
 
@@ -117,6 +119,26 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     DrawInputPrompt();
   }
 
+  private void DrawPatreonButton()
+  {
+    Dalamud.Interface.Textures.TextureWraps.IDalamudTextureWrap? patreon = _textureProvider.GetFromFile(Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "patreon.png")).GetWrapOrDefault();
+    if (patreon == null) return;
+    using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0)))
+    {
+      using (ImRaii.Disabled(_dataService.DataDirectory == null))
+      {
+        if (ImGui.ImageButton(patreon.Handle, ScaledVector2(42, 42)))
+        {
+          Util.OpenLink("https://xivv.keifufu.dev/patreon");
+        }
+      }
+    }
+
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Support us on Patreon!");
+  }
+
   private void DrawDiscordButton()
   {
     Dalamud.Interface.Textures.TextureWraps.IDalamudTextureWrap? discord = _textureProvider.GetFromFile(Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "discord.png")).GetWrapOrDefault();
@@ -127,14 +149,14 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
       {
         if (ImGui.ImageButton(discord.Handle, ScaledVector2(42, 42)))
         {
-          Util.OpenLink("https://discord.gg/yWb2kSYKK8");
+          Util.OpenLink("https://xivv.keifufu.dev/discord");
         }
       }
     }
 
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.Text("Join Our Discord Community");
+        ImGui.Text("Join us on Discord!");
 
     if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
     {
