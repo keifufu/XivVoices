@@ -151,7 +151,6 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   public Task StartAsync(CancellationToken cancellationToken)
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
-    if (DataDirectory == null) OnOpenConfigWindow?.Invoke(this, ConfigWindowTab.Overview);
 
     AuthStart();
     _ = Update();
@@ -232,12 +231,14 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     bool shouldDownload = forceDownload || !manifestExists;
     if (manifestExists)
     {
-      DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
-      if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(12))
-      {
-        _logger.Debug("Manifest file is older than 24 hours, redownloading.");
-        shouldDownload = true;
-      }
+      // TODO: Remove this the next update
+      shouldDownload = true;
+      // DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
+      // if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(12))
+      // {
+      //   _logger.Debug("Manifest file is older than 12 hours, redownloading.");
+      //   shouldDownload = true;
+      // }
     }
 
     if (shouldDownload && ServerStatus == ServerStatus.ONLINE)
@@ -261,7 +262,6 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         IgnoredSpeakers = json.IgnoredSpeakers,
         SpeakerMappings = [],
         Lexicon = [],
-        RaceMappings = []
       };
 
       foreach (VoiceEntry entry in json.Voices)
@@ -311,18 +311,12 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       {
         if (!manifest.SpeakerMappings.ContainsKey(entry.Type))
           manifest.SpeakerMappings[entry.Type] = [];
-        string sanitizedSentence = Regex.Replace(entry.Sentence, @"[^a-zA-Z]", "");
-        manifest.SpeakerMappings[entry.Type][sanitizedSentence] = entry.NpcId;
+        manifest.SpeakerMappings[entry.Type][(entry.Speaker, entry.Sentence)] = entry.NpcId;
       }
 
       foreach (LexiconEntry entry in json.Lexicon)
       {
         manifest.Lexicon.Add(entry.From, entry.To);
-      }
-
-      foreach (RaceMapping mapping in json.RaceMappings)
-      {
-        manifest.RaceMappings.Add((mapping.SkeletonId, mapping.TerritoryId), mapping.Race);
       }
 
       Manifest = manifest;
@@ -483,9 +477,12 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       {
         try
         {
-          await DownloadFile(filePath, fileName, token);
-          Interlocked.Increment(ref DataStatus.UpdateCompletedFiles);
-          Interlocked.Increment(ref DataStatus.VoicelinesDownloaded);
+          bool success = await DownloadFile(filePath, fileName, token);
+          if (success)
+          {
+            Interlocked.Increment(ref DataStatus.UpdateCompletedFiles);
+            Interlocked.Increment(ref DataStatus.VoicelinesDownloaded);
+          }
         }
         finally
         {
@@ -519,7 +516,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   private int _cacheHits = 0;
   private int _cacheMisses = 0;
   private int _downloaded = 0;
-  private async Task DownloadFile(string filePath, string fileName, CancellationToken token)
+  private async Task<bool> DownloadFile(string filePath, string fileName, CancellationToken token)
   {
     try
     {
@@ -558,15 +555,20 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         _logger.Error(httpEx);
         await UpdateServerStatus(default);
       }
+      return false;
     }
     catch (OperationCanceledException)
     {
       _logger.Debug($"DownloadFile was cancelled: {fileName}");
+      return false;
     }
     catch (Exception ex)
     {
       _logger.Error(ex);
+      return false;
     }
+
+    return true;
   }
 
   private void LoadCachedPlayers()

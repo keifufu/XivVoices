@@ -167,6 +167,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
+    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
+    if (playerName == null) return; // Nah
+    bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
+
     // If this sentence matches a sentence in Manifest.DirectMappings.Retainer,
     // then replace the speaker with the retainer one.
     // This needs to be checked before CleanMessage.
@@ -178,26 +182,28 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _logger.Debug("AddonTalk message is from a retainer");
       isRetainer = true;
 
-      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Retainer, sentence);
+      (_, string sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true);
+      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Retainer, null, sentenceToMatch);
       if (mappedNpcFound) _logger.Debug("Found mapped retainer npc");
       else _logger.Debug("Failed to find mapped retainer npc");
     }
 
-    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
-    if (playerName == null) return; // Nah
-    bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
-
-    // NOTE: This might want to support more than "???" speakers in the future.
-    // For now though, all our nameless mappings are "???" speakers so this is fine.
-    // Would have to map speaker+sentence if this is expanded.
-    if (speaker == "???")
+    // Check if npc mappings have this sentence/speaker combo
+    // but only if we don't already have a mappedNpc (from retainers)
+    if (mappedNpc == null)
     {
-      // Nameless mappings use a cleaned sentence with legacy name replacement.
-      string sentenceToMatch = sentence;
-      if (sentenceHasName) (_, sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true);
-      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, sentenceToMatch);
+      // First, check with legacy name replacements
+      (string speakerToMatch, string sentenceToMatch) = CleanMessage(speaker, sentence, playerName, true);
+      (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, speakerToMatch, sentenceToMatch);
+
+      // Try with new name replacements only if it didn't find a mapped NPC and the sentence has the player name.
+      if (!mappedNpcFound && sentenceHasName)
+      {
+        (speakerToMatch, sentenceToMatch) = CleanMessage(speaker, sentence, playerName, false);
+        (mappedNpcFound, mappedNpc) = GetNpcFromMappings(SpeakerMappingType.Nameless, speakerToMatch, sentenceToMatch);
+      }
+
       if (mappedNpcFound) _logger.Debug("Found mapped nameless npc");
-      else _logger.Debug("Failed to find mapped nameless npc");
     }
 
     if (mappedNpcFound && mappedNpc == null)
@@ -261,8 +267,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _logger.Debug($"Constructed message: {message}");
 
     // Report if it's not a chat message, it couldn't find a voiceline and the speaker is not ignored.
+    // Retainers are not being reported anymore, as they could have names like "Cahciua" and just be
+    // generated as that. I'm not having that so we will do retainer lines manually if we find any missing.
     bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
-    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker)
+    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
 
     bool allowed = true;
