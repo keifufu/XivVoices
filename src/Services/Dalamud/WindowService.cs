@@ -14,6 +14,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     _pluginInterface.UiBuilder.OpenMainUi += ToggleConfigUi;
 
     _dataService.OnOpenConfigWindow += OnOpenConfigWindow;
+    if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigWindowTab.Overview);
 
 #if DEBUG
     _configWindow.IsOpen = true;
