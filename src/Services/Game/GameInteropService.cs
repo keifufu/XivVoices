@@ -1,5 +1,4 @@
 using Dalamud.Game.ClientState.Conditions;
-using Dalamud.Game.ClientState.Objects;
 using Dalamud.Game.ClientState.Objects.Enums;
 using Dalamud.Game.ClientState.Objects.Types;
 using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
@@ -36,7 +35,7 @@ public class CameraView
   public Vector3 Right;
 }
 
-public partial class GameInteropService(IDataService _dataService, ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
 {
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
@@ -95,13 +94,20 @@ public partial class GameInteropService(IDataService _dataService, ICondition _c
 
     if (npc.Body == "Beastman")
     {
-      int skeletonId = character->ModelContainer.ModelSkeletonId;
-      npc.Race = GetRaceFromSkeleton(skeletonId, _clientState.TerritoryType);
+      npc.Race = GetBeastmanRace(character);
+      if (npc.Race.EndsWith("Male"))
+      {
+        npc.Gender = "Male";
+        npc.Race = npc.Race.Replace(" Male", "");
+      }
+      else if (npc.Race.EndsWith("Female"))
+      {
+        npc.Gender = "Female";
+        npc.Race = npc.Race.Replace(" Female", "");
+      }
 
-      // I would like examples for why these workarounds are necessary,
-      // but as it stands this is copied from old XIVV
-      if (speaker.Contains("Moogle"))
-        npc.Race = "Moogle";
+      npc.Tribe = "";
+      npc.Eyes = "";
     }
 
     return npc;
