@@ -3,7 +3,6 @@
   <PropertyGroup>
     <!-- Keep this version at 0.0.0.0, the CI will replace it. -->
     <Version>0.0.0.0</Version>
-    <Description>XivVoices Dalamud Plugin</Description>
     <PackageProjectUrl>https://github.com/keifufu/XivVoices</PackageProjectUrl>
     <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
     <IsPackable>false</IsPackable>
@@ -28,6 +27,11 @@
     <Content Include="data/discord.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>discord.png</TargetPath>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="data/patreon.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>patreon.png</TargetPath>
       <Visible>false</Visible>
     </Content>
   </ItemGroup>
