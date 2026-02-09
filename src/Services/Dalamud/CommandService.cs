@@ -81,8 +81,8 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
             return;
           }
 
-          string race = _gameInteropService.GetBeastmanRace(target);
-          _logger.Chat(race);
+          (string race, string gender) = _gameInteropService.GetBeastmanRace(target);
+          _logger.Chat($"{race} | {gender}");
         }
         break;
       case "version":

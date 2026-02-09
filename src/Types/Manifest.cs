@@ -47,6 +47,14 @@ public class LexiconEntry
   public required string To { get; set; }
 }
 
+public class RaceMapping
+{
+  public required int ModelSkeletonId { get; set; }
+  public required int ModelCharaId { get; set; }
+  public required string Race { get; set; }
+  public required string Gender { get; set; }
+}
+
 public class ManifestJson
 {
   public required string ToolsMd5 { get; set; }
@@ -55,6 +63,7 @@ public class ManifestJson
   public required Dictionary<string, long> Voicelines { get; set; }
   public required List<string> IgnoredSpeakers { get; set; }
   public required List<SpeakerMappingEntry> SpeakerMappings { get; set; }
+  public required List<RaceMapping> RaceMappings { get; set; }
   public required List<LexiconEntry> Lexicon { get; set; }
 }
 
@@ -80,6 +89,9 @@ public class Manifest
 
   // Type -> ((Speaker, Sentence) -> NpcId)
   public required Dictionary<SpeakerMappingType, Dictionary<(string? speaker, string sentence), string?>> SpeakerMappings { get; set; }
+
+  // (ModelSkeletonId, ModelCharaId) -> (Race, Gender)
+  public required Dictionary<(int modelSkeletonId, int modelCharaId), (string race, string gender)> RaceMappings { get; set; }
 
   // From -> To
   public required Dictionary<string, string> Lexicon { get; set; }

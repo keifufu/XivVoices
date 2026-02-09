@@ -26,7 +26,7 @@ public interface IGameInteropService
   bool IsOccupiedBySummoningBell();
   string ReadUtf8String(Utf8String str);
   unsafe string ReadTextNode(AtkTextNode* textNode);
-  unsafe string GetBeastmanRace(Character* character);
+  unsafe (string race, string gender) GetBeastmanRace(Character* character);
 }
 
 public class CameraView
@@ -36,7 +36,7 @@ public class CameraView
   public Vector3 Right;
 }
 
-public partial class GameInteropService(ICondition _condition, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
 {
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
@@ -95,18 +95,9 @@ public partial class GameInteropService(ICondition _condition, IFramework _frame
 
     if (npc.Body == "Beastman")
     {
-      npc.Race = GetBeastmanRace(character);
-      if (npc.Race.EndsWith("Male"))
-      {
-        npc.Gender = "Male";
-        npc.Race = npc.Race.Replace(" Male", "");
-      }
-      else if (npc.Race.EndsWith("Female"))
-      {
-        npc.Gender = "Female";
-        npc.Race = npc.Race.Replace(" Female", "");
-      }
-
+      (string b_race, string b_gender) = GetBeastmanRace(character);
+      npc.Race = b_race;
+      npc.Gender = b_gender;
       npc.Tribe = "";
       npc.Eyes = "";
     }
