@@ -185,18 +185,32 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
 
   private bool ShouldFilter(string path)
   {
-    if (path.Contains("vo_voiceman") || path.Contains("vo_man") || path.Contains("vo_line") || path.Contains("cut/ffxiv/"))
+    // All lines we care about seem to end with /0
+    if (!path.EndsWith("/0")) return false;
+
+    // MiniTalk and Battletalk, sound/voice/vo_line/8202105_en.scd/0
+    if (path.StartsWith("sound/voice/vo_line/"))
     {
-      if ((path.Contains("vo_man") || (path.Contains("cut/ffxiv/") && path.Contains("vo_voiceman"))) && _configuration.ReplaceVoicedARRCutscenes)
-      {
-        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(false, path));
-        _logger.Debug("Blocking voiced ARR line in favor of XIVV");
-        return true;
-      }
-      else
-      {
-        OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
-      }
+      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
+      return false;
+    }
+
+    // AddonTalk
+    // ARR cut/ffxiv/sound/manfst/manfst304/vo_manfst304_100010_m_en.scd/0
+    // POST-ARR cut/ffxiv/sound/voicem/voiceman_02500/vo_voiceman_02500_w00010_m_en.scd/0
+    if (path.StartsWith("cut/ffxiv") && (path.Contains("vo_man") || path.Contains("vo_voiceman")))
+    {
+      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(!_configuration.ReplaceVoicedARRCutscenes, path));
+      return _configuration.ReplaceVoicedARRCutscenes;
+    }
+
+    // AddonTalk
+    // HW cut/ex1/sound/voicem/voiceman_03001/vo_voiceman_03001_000010_m_en.scd/0
+    // EW cut/ex4/sound/voicem/voiceman_06006/vo_voiceman_06006_006910_m_en.scd/0
+    if (path.StartsWith("cut/ex") && path.Contains("sound/voicem/voiceman"))
+    {
+      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
+      return false;
     }
 
     return false;

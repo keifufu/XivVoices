@@ -146,7 +146,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     string speaker = rawSpeaker;
     string sentence = rawSentence;
 
-    if ((source == MessageSource.AddonTalk && _gameInteropService.IsInCutscene()) || source == MessageSource.AddonBattleTalk)
+    if ((_gameInteropService.IsInCutscene() && source == MessageSource.AddonTalk) || (_gameInteropService.IsInDuty() && (source == MessageSource.AddonBattleTalk || source == MessageSource.AddonMiniTalk)))
     {
       // SoundFilter is a lil slower than our providers so we wait a bit.
       // This is NOT that great but it works. 100 is an arbitrary number that seems to work for now.
