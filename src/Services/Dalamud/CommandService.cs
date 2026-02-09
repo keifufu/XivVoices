@@ -1,8 +1,10 @@
+using FFXIVClientStructs.FFXIV.Client.Game.Character;
+
 namespace XivVoices.Services;
 
 public interface ICommandService : IHostedService;
 
-public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, ICommandManager _commandManager) : ICommandService
+public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, ICommandManager _commandManager) : ICommandService
 {
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
@@ -64,8 +66,24 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         {
           _logger.Chat($"  {command} debug - Open the debug tab");
           _logger.Chat($"  {command} selftest - Open the self-test tab");
+          _logger.Chat($"  {command} target-info - Prints debug info about the current target");
         }
         _logger.Chat($"  {command}");
+        break;
+      case "target-info":
+        unsafe
+        {
+          string targetName = _gameInteropService.GetTarget()?.Name.ToString() ?? "";
+          Character* target = (Character*)_gameInteropService.TryFindCharacter(targetName, 0);
+          if (target == null)
+          {
+            _logger.Chat("No target found.");
+            return;
+          }
+
+          string race = _gameInteropService.GetBeastmanRace(target);
+          _logger.Chat(race);
+        }
         break;
       case "version":
         _logger.Chat($"v{_dataService.Version} / v{_dataService.LatestVersion}");

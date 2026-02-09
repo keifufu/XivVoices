@@ -26,6 +26,7 @@ public interface IGameInteropService
   bool IsOccupiedBySummoningBell();
   string ReadUtf8String(Utf8String str);
   unsafe string ReadTextNode(AtkTextNode* textNode);
+  unsafe string GetBeastmanRace(Character* character);
 }
 
 public class CameraView
