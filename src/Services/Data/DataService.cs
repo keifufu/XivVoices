@@ -261,6 +261,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         Voicelines = json.Voicelines,
         IgnoredSpeakers = json.IgnoredSpeakers,
         SpeakerMappings = [],
+        RaceMappings = [],
         Lexicon = [],
       };
 
@@ -312,6 +313,11 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         if (!manifest.SpeakerMappings.ContainsKey(entry.Type))
           manifest.SpeakerMappings[entry.Type] = [];
         manifest.SpeakerMappings[entry.Type][(entry.Speaker, entry.Sentence)] = entry.NpcId;
+      }
+
+      foreach (RaceMapping mapping in json.RaceMappings)
+      {
+        manifest.RaceMappings.Add((mapping.ModelSkeletonId, mapping.ModelCharaId), (mapping.Race, mapping.Gender));
       }
 
       foreach (LexiconEntry entry in json.Lexicon)
