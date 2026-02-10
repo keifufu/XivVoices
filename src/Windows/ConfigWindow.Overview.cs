@@ -231,7 +231,7 @@ public partial class ConfigWindow
           if (_dataService.DataStatus.UpdateInProgress)
             _dataService.CancelUpdate();
           else
-            _dataService.Update(true);
+            _dataService.Update();
         }
       }
 

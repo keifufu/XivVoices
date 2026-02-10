@@ -15,7 +15,7 @@ public partial interface IDataService : IHostedService
   event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
-  Task Update(bool forceDownloadManifest = false);
+  Task Update();
   void CancelUpdate();
   string? TempFilePath(string fileName);
   NpcEntry? TryGetCachedPlayer(string speaker);
@@ -185,7 +185,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   {
     if (!DataStatus.UpdateInProgress)
     {
-      _ = Update(true);
+      _ = Update();
     }
   }
 
@@ -217,7 +217,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  private async Task LoadManifest(bool forceDownload, CancellationToken token)
+  private async Task LoadManifest(CancellationToken token)
   {
     string? dataDirectory = DataDirectory;
     if (dataDirectory == null)
@@ -228,17 +228,17 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     string manifestPath = Path.Join(DataDirectory, "manifest.json");
     bool manifestExists = File.Exists(manifestPath);
-    bool shouldDownload = forceDownload || !manifestExists;
-    if (manifestExists)
+    bool shouldDownload = true;
+
+    // Always redownload manifest unless version is 0.0.0.0, then only
+    // do it if the local manifest is over 3 hours old.
+    if (manifestExists && Version == "0.0.0.0")
     {
-      // TODO: Remove this the next update
-      shouldDownload = true;
-      // DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
-      // if (DateTime.UtcNow - lastModified > TimeSpan.FromHours(12))
-      // {
-      //   _logger.Debug("Manifest file is older than 12 hours, redownloading.");
-      //   shouldDownload = true;
-      // }
+      DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
+      if (DateTime.UtcNow - lastModified < TimeSpan.FromHours(3))
+      {
+        shouldDownload = false;
+      }
     }
 
     if (shouldDownload && ServerStatus == ServerStatus.ONLINE)
@@ -334,9 +334,9 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  public Task Update(bool forceDownloadManifest = false) => Task.Run(() => UpdateInternal(forceDownloadManifest));
+  public Task Update() => Task.Run(() => UpdateInternal());
 
-  private async Task UpdateInternal(bool forceDownloadManifest)
+  private async Task UpdateInternal()
   {
     await Task.Delay(1); // hopefully get us off the main thread
 
@@ -353,7 +353,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     await UpdateServerStatus(token);
 
     // We want to load the manifest even if the server is offline.
-    await LoadManifest(forceDownloadManifest, token);
+    await LoadManifest(token);
 
     string? dataDirectory = DataDirectory;
     if (dataDirectory == null)
