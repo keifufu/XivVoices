@@ -243,11 +243,13 @@ public partial class ConfigWindow
       }
     }
 
+
     ImGui.Unindent(ScaledFloat(8));
     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(150));
     using (ImRaii.IEndObject child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
     {
       if (!child.Success) return;
+      DrawHorizontallyCenteredText("Plugin Changelogs. Join our Discord for Announcements.");
 
       bool first = true;
       foreach ((string version, string[] notes) in _changelogs)
