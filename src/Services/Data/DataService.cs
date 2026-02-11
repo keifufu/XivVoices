@@ -232,7 +232,9 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     // Always redownload manifest unless version is 0.0.0.0, then only
     // do it if the local manifest is over 3 hours old.
-    if (manifestExists && Version == "0.0.0.0")
+    // Only do this check for the initial manifest load, otherwise
+    // manual update checks are also affected.
+    if (Manifest == null && manifestExists && Version == "0.0.0.0")
     {
       DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
       if (DateTime.UtcNow - lastModified < TimeSpan.FromHours(3))

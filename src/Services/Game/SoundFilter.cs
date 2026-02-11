@@ -185,6 +185,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
 
   private bool ShouldFilter(string path)
   {
+    // if (!path.Contains("sound/battle") && !path.Contains("sound/system") && !path.Contains("sound/foot") && !path.Contains("sound/vfx") && !path.Contains("bgcommon/sound")) _logger.Debug(path);
+
     // All lines we care about seem to end with /0
     if (!path.EndsWith("/0")) return false;
 
