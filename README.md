@@ -14,11 +14,6 @@
 Issues? Kudos? Wanna just hang with fellow FFXIV Story enjoyers?
 [Join us on Discord!](https://xivv.keifufu.dev/discord)
 
-Want to support XivVoices?
-[Support us on Patreon!](https://xivv.keifufu.dev/patreon)
-
-We also have a website for Stats and Leaderboards, if that tickles your fancy. [xivv.keifufu.dev](https://xivv.keifufu.dev)
-
 ### Key Features:
 
 1. **Expansive Coverage**: Voices all in-game dialogue, including NPC conversations, battle dialogue, narrator lines, and more.
