@@ -109,6 +109,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     return (speaker, sentence);
   }
 
+  private int _updateCount = 0;
   private unsafe void OnFrameworkUpdate(IFramework framework)
   {
     // If I reload the plugin with dialogue already open, the manifest can at times be loaded
@@ -153,6 +154,13 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
 
       _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence);
     }
+
+    if (_configuration.FastForward && !_configuration.MuteEnabled && _updateCount % 15 == 0)
+    {
+      AutoAdvance(null);
+    }
+
+    _updateCount++;
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
@@ -162,7 +170,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     AutoAdvance(message);
   }
 
-  public unsafe void AutoAdvance(XivMessage message)
+  public unsafe void AutoAdvance(XivMessage? message)
   {
     if (!CanAutoAdvance()) return;
 
@@ -174,7 +182,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
 
       (string speaker, string sentence) = GetSpeakerAndSentence(addon);
 
-      if (speaker != message.RawSpeaker || sentence != message.AddName(message.RawSentence))
+      if (message != null && (speaker != message.RawSpeaker || sentence != message.AddName(message.RawSentence)))
       {
         _logger.Debug("addontalk speaker or sentence changed, not auto-advancing.");
         return;

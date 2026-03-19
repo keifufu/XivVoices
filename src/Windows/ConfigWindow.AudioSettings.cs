@@ -34,6 +34,11 @@ public partial class ConfigWindow
       using (ImRaii.Tooltip())
         ImGui.Text("Queues regular dialogue so it won't get skipped when you click away.");
 
+    DrawConfigCheckbox("Fast Forward", ref _configuration.FastForward);
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Dialogue boxes will be skipped immediately, useful if used in combination with \"Queue Dialogue\". Will not take effect if muted.");
+
     ImGui.Dummy(ScaledVector2(0, 10));
     DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
     DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);

@@ -66,9 +66,18 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         {
           _logger.Chat($"  {command} debug - Open the debug tab");
           _logger.Chat($"  {command} selftest - Open the self-test tab");
+          _logger.Chat($"  {command} generate <speaker>:<sentence> - Dispatch a message");
           _logger.Chat($"  {command} target-info - Prints debug info about the current target");
         }
         _logger.Chat($"  {command}");
+        break;
+      case "generate":
+        if (!_configuration.DebugMode) break;
+        string joinedString = string.Join(" ", args.Skip(1));
+        string[] parts = joinedString.Split([':'], 2);
+        string speaker = parts.Length > 0 ? parts[0] : string.Empty;
+        string sentence = parts.Length > 1 ? parts[1] : string.Empty;
+        _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence, null, true);
         break;
       case "target-info":
         unsafe

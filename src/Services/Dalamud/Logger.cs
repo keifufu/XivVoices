@@ -64,6 +64,12 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     _configuration = configuration;
   }
 
+  private string SanitizeLog(string log)
+  {
+    if (string.IsNullOrEmpty(_configuration.StreamElementsApiKey)) return log;
+    return log.Replace(_configuration.StreamElementsApiKey, "REDACTED");
+  }
+
   private void AddLogHistory(string logEntry)
   {
     string timestamp = DateTime.UtcNow.ToString("HH:mm:ss.fff");
@@ -114,21 +120,21 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
 
   public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
-    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
+    string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
     _pluginLog.Error(logEntry);
     AddLogHistory(logEntry);
   }
 
   public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
-    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}";
+    string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
     _pluginLog.Error(logEntry);
     AddLogHistory(logEntry);
   }
 
   public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
-    string logEntry = $"{FormatCallsite(callerPath, callerName, lineNumber)} {text}";
+    string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
     if (_configuration.DebugLogging) _pluginLog.Debug(logEntry);
     AddLogHistory(logEntry);
   }

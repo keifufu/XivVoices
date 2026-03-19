@@ -20,7 +20,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     if (message.GenerationToken.IsCancellationRequested) return null;
 
     string voice = speaker == 0 ? _configuration.StreamElementsMaleVoice : _configuration.StreamElementsFemaleVoice;
-    string requestUri = $"https://api.streamelements.com/kappa/v2/speech?voice={voice}&text={cleanedSentence}";
+    string requestUri = $"https://api.streamelements.com/kappa/v2/speech?voice={voice}&text={cleanedSentence}&key={_configuration.StreamElementsApiKey}";
 
     HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
 

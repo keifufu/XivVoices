@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false);
   void ClearQueue();
   string ReplaceName(string sentence, string playerName);
 }
@@ -140,7 +140,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -270,7 +270,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // Retainers are not being reported anymore, as they could have names like "Cahciua" and just be
     // generated as that. I'm not having that so we will do retainer lines manually if we find any missing.
     bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
-    if (source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
+    if (!isFake && source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
 
     bool allowed = true;
@@ -282,18 +282,18 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         allowed = _configuration.AddonTalkEnabled
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled
-            : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled);
+            : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled || _configuration.ForceLocalGeneration);
         queued = _configuration.QueueDialogue;
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled
-            : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled);
+            : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled || _configuration.ForceLocalGeneration);
         queued = true;
         break;
       case MessageSource.AddonMiniTalk:
-        allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled);
+        allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled || _configuration.ForceLocalGeneration);
         queued = true;
         break;
       case MessageSource.ChatMessage:
@@ -307,7 +307,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (isNarrator && _configuration.PrintNarratorMessages)
       _logger.Chat(message.RawSentence, "", "", "Narrator", XivChatType.NPCDialogue, false);
 
-    if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled))
+    if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled && !_configuration.ForceLocalGeneration))
     {
       _logger.Debug($"Not playing line due to user configuration. MuteEnabled:{_configuration.MuteEnabled} allowed:{allowed} isNarrator:{isNarrator} isRetainer:{isRetainer} isLocalTTS:{message.IsLocalTTS}");
       return;

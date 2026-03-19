@@ -49,6 +49,7 @@ public class Configuration : IPluginConfiguration
   public bool MuteEnabled = false;
   public bool LipSyncEnabled = false;
   public bool QueueDialogue = false;
+  public bool FastForward = false;
 
   public int Speed = 100;
   public int Volume = 100;
@@ -81,6 +82,7 @@ public class Configuration : IPluginConfiguration
   public string LocalTTSVoiceMale = "en-gb-northern_english_male-medium";
   public string LocalTTSVoiceFemale = "en-gb-jenny_dioco-medium";
   public bool UseStreamElementsLocalTTS = false;
+  public string StreamElementsApiKey = "";
   public string StreamElementsMaleVoice = "Brian";
   public string StreamElementsFemaleVoice = "Emma";
   public bool EnableLocalGeneration = false;
@@ -107,6 +109,12 @@ public class Configuration : IPluginConfiguration
     Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.Write));
   }
 
+  private bool IsKeySecret(string key)
+  {
+    if (key == "StreamElementsApiKey") return true;
+    return false;
+  }
+
   public void Save()
   {
     Dictionary<string, object?> currentConfig = GetAllFields();
@@ -114,7 +122,7 @@ public class Configuration : IPluginConfiguration
     {
       if (_previousConfig != null &&
           _previousConfig.TryGetValue(field.Key, out object? oldValue) &&
-          !Equals(oldValue, field.Value))
+          !Equals(oldValue, field.Value) && !IsKeySecret(field.Key))
       {
         Logger?.Debug($"Changed {field.Key}: from '{oldValue}' to '{field.Value}'");
       }

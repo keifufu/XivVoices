@@ -35,6 +35,12 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("UseStreamElementsLocalTTS", ref _configuration.UseStreamElementsLocalTTS);
 
+    DrawConfigText("StreamElementsApiKey", "StreamElementsApiKey", _configuration.StreamElementsApiKey, (value) =>
+    {
+      _configuration.StreamElementsApiKey = value;
+      _configuration.Save();
+    });
+
     // See https://lazypy.ro/tts for all available StreamElements voices.
     // Some have different names than what the api expects, check network traffic for those.
     DrawConfigText("StreamElementsMaleVoice", "StreamElementsMaleVoice", _configuration.StreamElementsMaleVoice, (value) =>
