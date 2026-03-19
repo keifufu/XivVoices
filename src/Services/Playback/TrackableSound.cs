@@ -92,7 +92,7 @@ public class TrackableSound : ISampleProvider, IDisposable
     get => IsMuted ? 0 : _currentVolume;
     set
     {
-      _currentVolume = Math.Clamp(value, 0f, 1f);
+      _currentVolume = Math.Clamp(value, 0f, 3f);
       _volumeProvider.Volume = IsMuted ? 0 : _currentVolume;
     }
   }

@@ -40,7 +40,7 @@ public partial class ConfigWindow
         ImGui.Text("Dialogue boxes will be skipped immediately, useful if used in combination with \"Queue Dialogue\". Will not take effect if muted.");
 
     ImGui.Dummy(ScaledVector2(0, 10));
-    DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
+    DrawConfigSlider("Volume", ref _configuration.Volume, 0, 150);
     DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);
 
     ImGui.Dummy(ScaledVector2(0, 15));
