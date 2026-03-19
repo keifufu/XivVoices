@@ -40,12 +40,31 @@ public partial class MessageDispatcher
       string npcId = npcExists ? npc?.Id ?? "Unknown" : "Unknown";
       string id = Md5(voiceId, npcId, sentence);
 
-      _logger.Debug($"Searching for voiceline: ({voiceId}:{npcId}:{sentence}) ({id})");
-      string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
-      if (!File.Exists(voicelinePath))
+      string voicelinePath = "";
+      bool voicelinePathExists = false;
+      if (_dataService.VoicelinesOverrideDirectory != null)
       {
-        _logger.Debug("Voiceline not found.");
-        return (id, null);
+        _logger.Debug($"Searching for override voiceline: ({voiceId}:{npcId}:{sentence}) ({id})");
+        voicelinePath = Path.Join(_dataService.VoicelinesOverrideDirectory, id + ".ogg");
+        if (File.Exists(voicelinePath))
+        {
+          voicelinePathExists = true;
+        }
+        else
+        {
+          _logger.Debug("Override Voiceline not found.");
+        }
+      }
+
+      if (!voicelinePathExists)
+      {
+        _logger.Debug($"Searching for voiceline: ({voiceId}:{npcId}:{sentence}) ({id})");
+        voicelinePath = Path.Join(_dataService.VoicelinesDirectory, id + ".ogg");
+        if (!File.Exists(voicelinePath))
+        {
+          _logger.Debug("Voiceline not found.");
+          return (id, null);
+        }
       }
 
       _logger.Debug("Voiceline found.");

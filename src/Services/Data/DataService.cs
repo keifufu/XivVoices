@@ -8,6 +8,7 @@ public partial interface IDataService : IHostedService
   string? DataDirectory { get; }
   string? ToolsDirectory { get; }
   string? VoicelinesDirectory { get; }
+  string? VoicelinesOverrideDirectory { get; }
   string ServerUrl { get; }
   string Version { get; }
   string LatestVersion { get; }
@@ -91,6 +92,21 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         _voicelinesDirectoryExists = true;
       }
       return voicelinesDirectory;
+    }
+  }
+
+  private bool? _voicelinesOverrideDirectoryExists = null;
+  public string? VoicelinesOverrideDirectory
+  {
+    get
+    {
+      string? dataDirectory = DataDirectory;
+      if (dataDirectory == null) return null;
+      string voicelinesOverrideDirectory = Path.Join(dataDirectory, "voicelines_override");
+      // We only check once.
+      _voicelinesOverrideDirectoryExists ??= Directory.Exists(voicelinesOverrideDirectory);
+      if (_voicelinesOverrideDirectoryExists == true) return voicelinesOverrideDirectory;
+      return null;
     }
   }
 
