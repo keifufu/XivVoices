@@ -50,8 +50,6 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
     }
 
     CancellationToken token = cts.Token;
-    CharacterModes initialCharacterMode = TryGetCharacterMode(character);
-    CharacterModes characterMode = CharacterModes.EmoteLoop;
 
     int durationMs = (int)(durationSeconds * 1000);
     int durationRounded = (int)Math.Floor(durationSeconds);
@@ -75,21 +73,21 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
         {
           int delay = CalculateAdjustedDelay(mouthMovement[6] * 4000, 6);
           _logger.Debug($"Starting 4s lip movement. Delay: {delay}");
-          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalLong, delay, token);
+          await AnimateLipSync(message, SpeakNormalLong, delay, token);
         }
 
         if (mouthMovement[5] > 0)
         {
           int delay = CalculateAdjustedDelay(mouthMovement[5] * 2000, 5);
           _logger.Debug($"Starting 2s lip movement. Delay: {delay}");
-          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalMiddle, delay, token);
+          await AnimateLipSync(message, SpeakNormalMiddle, delay, token);
         }
 
         if (mouthMovement[4] > 0)
         {
           int delay = CalculateAdjustedDelay(mouthMovement[4] * 1000, 4);
           _logger.Debug($"Starting 1s lip movement. Delay: {delay}");
-          await AnimateLipSync(message, initialCharacterMode, characterMode, SpeakNormalShort, delay, token);
+          await AnimateLipSync(message, SpeakNormalShort, delay, token);
         }
 
         _logger.Debug("LipSync completed successfully");
@@ -107,7 +105,6 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
         await _gameInteropService.RunOnFrameworkThread(() =>
         {
           IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
-          TrySetCharacterMode(character, initialCharacterMode);
           TrySetLipsOverride(character, SpeakNone);
         });
 
@@ -135,14 +132,13 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
     }
   }
 
-  private async Task AnimateLipSync(XivMessage message, CharacterModes initialMode, CharacterModes targetMode, ushort speakValue, int delayMs, CancellationToken token)
+  private async Task AnimateLipSync(XivMessage message, ushort speakValue, int delayMs, CancellationToken token)
   {
     if (token.IsCancellationRequested) return;
 
     await _gameInteropService.RunOnFrameworkThread(() =>
     {
       IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
-      TrySetCharacterMode(character, targetMode);
       TrySetLipsOverride(character, speakValue);
     });
 
@@ -153,7 +149,6 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
       await _gameInteropService.RunOnFrameworkThread(() =>
       {
         IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
-        TrySetCharacterMode(character, initialMode);
         TrySetLipsOverride(character, SpeakNone);
       });
       _logger.Debug($"LipSync {speakValue} block finished after {delayMs}ms");
@@ -188,19 +183,5 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
     Character* character = (Character*)_character;
     if (character == null) return;
     character->Timeline.SetLipsOverrideTimeline(lipsOverride);
-  }
-
-  private unsafe CharacterModes TryGetCharacterMode(IntPtr _character)
-  {
-    Character* character = (Character*)_character;
-    if (character == null) return CharacterModes.None;
-    return character->Mode;
-  }
-
-  private unsafe void TrySetCharacterMode(IntPtr _character, CharacterModes mode)
-  {
-    Character* character = (Character*)_character;
-    if (character == null) return;
-    character->SetMode(mode, 0);
   }
 }
