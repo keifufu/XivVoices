@@ -163,7 +163,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       return false;
     }
 
-    List<string> invalidPlugins = ["Echoglossian", "ARealmRepopulated"];
+    List<string> invalidPlugins = ["Echoglossian", "ARealmRepopulated", "AQuestReborn"];
     List<string> loadedPlugins = [];
     foreach (string invalidPlugin in invalidPlugins)
       if (_pluginInterface.InstalledPlugins.Any(pluginInfo => pluginInfo.InternalName == invalidPlugin && pluginInfo.IsLoaded))
