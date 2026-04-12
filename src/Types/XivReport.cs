@@ -18,8 +18,7 @@ public class XivReport
   // Manual report reason
   public string? Reason { get; }
 
-  private string GetDate() =>
-    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fffffffZ");
+  private string GetDate() => DateTime.UtcNow.ToString("o");
 
   public XivReport(string pluginVersion, XivMessage message, string location, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
   {
