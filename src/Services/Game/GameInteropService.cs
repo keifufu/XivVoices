@@ -197,11 +197,8 @@ public partial class GameInteropService(ICondition _condition, IDataService _dat
 
   public string ReadUtf8String(Utf8String str)
   {
-    return new Lumina.Text.ReadOnly.ReadOnlySeString(str)
-      .ToString()
-      .Trim()
-      .Replace("\n", "")
-      .Replace("\r", "");
+    string text = new Lumina.Text.ReadOnly.ReadOnlySeString(str).ToString();
+    return Regex.Replace(text, @"\s+", " ").Trim();
   }
 
   public unsafe string ReadTextNode(AtkTextNode* textNode)
