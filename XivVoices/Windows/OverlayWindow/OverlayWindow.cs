@@ -63,6 +63,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   public override OverlayLayer OverlayLayer => OverlayLayer.Foreground;
   public override bool HideWithNativeUi => false;
 
+  private readonly IGameInteropService _gameInteropService;
   private readonly IAddonEventManager _addonEventManager;
   private readonly IMessageDispatcher _messageDispatcher;
   private readonly IPlaybackService _playbackService;
@@ -98,6 +99,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _playbackService = services.GetRequiredService<IPlaybackService>();
     _messageDispatcher = services.GetRequiredService<IMessageDispatcher>();
     _addonEventManager = services.GetRequiredService<IAddonEventManager>();
+    _gameInteropService = services.GetRequiredService<IGameInteropService>();
 
     _configuration.Saved += ConfigurationSaved;
 
@@ -277,8 +279,6 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   private void ConfigurationSaved()
   {
-    IsVisible = _configuration.OverlayOpen;
-
     Scale = new(_configuration.OverlayScale / 100.0f);
     _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
 
@@ -299,6 +299,8 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   protected override void OnUpdate()
   {
+    IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
+
     _pauseButton.String = _playbackService.Paused ? "Play" : "Pause";
     _pauseButton.AddColor = new(_playbackService.Paused ? 0.15f : 0.0f);
 

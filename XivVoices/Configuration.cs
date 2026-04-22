@@ -75,6 +75,8 @@ public class Configuration : IPluginConfiguration
   public bool OverlayPinned = true;
   public bool OverlayBorder = true;
   public bool OverlayExpanded = true;
+  public bool OverlayHideInDuty = false;
+  public bool OverlayHideWhenMuted = false;
 
   // Audio Logs
   public bool EnableAutomaticReports = true;
