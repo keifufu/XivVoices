@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using Lumina.Extensions;
 using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace XivVoices.Services;
@@ -21,6 +22,7 @@ public interface IPlaybackService : IHostedService
   int CountPlaying(MessageSource source);
 
   IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> GetPlaybackHistory();
+  XivMessage? GetLatestCurrentlyPlayingMessage();
 
   void AddQueuedLine(XivMessage message);
   void SkipQueuedLine(XivMessage message);
@@ -124,6 +126,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       track.Dispose();
     }
 
+    foreach (XivMessage message in _queuedMessages)
+    {
+      message.GenerationToken.Cancel();
+    }
+
     _playing.Clear();
     _waveOutputDevice?.Stop();
     _waveOutputDevice?.Dispose();
@@ -179,7 +186,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         CameraView camera = _gameInteropService.GetCameraView();
 
         float dotProduct = Vector3.Dot(relativePosition, camera.Right);
-        float balance = Math.Clamp(dotProduct / (distance > 0 ? distance : 1), -0.95f, 0.95f);
+        float balance = Math.Clamp(dotProduct / (distance > 0 ? distance : 1), _configuration.MaximumPan / 100 * -1, _configuration.MaximumPan / 100);
 
         float volume = track.Volume;
 
@@ -249,12 +256,22 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         _queuedMessages.Add(message);
     }
 
+    if (!message.IsFake && voicelinePath == null && _configuration.LiveMode && message.Source == MessageSource.AddonTalk)
+    {
+      voicelinePath = await TryDownloadVoiceline(message);
+      message.VoicelinePath = voicelinePath;
+    }
+
+    // New token incase livemode failed or was cancelled, so we fall back to localtts/localgen.
+    message.GenerationToken = new();
     bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
     bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
 
     if (useLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
     else if (useLocalGen) voicelinePath = await localGen(message);
-    if (voicelinePath == null) // generation failed
+
+    // Generation failed
+    if (voicelinePath == null)
     {
       string method = useLocalTTS ? "LocalTTS" : "LocalGen";
       _logger.Error($"Generation failed. Method: {method}. Message: {message.Id}");
@@ -300,6 +317,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       // when playback is completed. Calling .RemoveMixerInput here does not cause any exceptions
       // but any future lines will be broken.
       t.Dispose();
+
+      // Sleep a little before finishing the playback and thus auto advancing.
+      // I personally don't think this is needed but after trimming audio files of silence
+      // some people are of the opinion there needs to be a bit of a pause after the line.
+      Thread.Sleep(200);
+
       _playing.TryRemove(message.Id, out _);
       _logger.Debug($"Finished playing message: {message.Id}");
 
@@ -352,6 +375,51 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (response.IsSuccessStatusCode)
       {
         return await response.Content.ReadAsStringAsync();
+      }
+    }
+
+    return null;
+  }
+
+  private async Task<string?> TryDownloadVoiceline(XivMessage message)
+  {
+    if (message.GenerationToken == null) return null;
+
+    // using CancellationTokenSource ctsTimeout = CancellationTokenSource.CreateLinkedTokenSource(message.GenerationToken.Token);
+    // ctsTimeout.CancelAfter(TimeSpan.FromMinutes(5));
+    // CancellationToken token = ctsTimeout.Token;
+    CancellationToken token = message.GenerationToken.Token;
+
+    while (!token.IsCancellationRequested)
+    {
+      string requestUri = $"{_dataService.ServerUrl}/files/lookup/{Uri.EscapeDataString(message.Speaker)}/{Uri.EscapeDataString(message.Sentence)}";
+
+      try
+      {
+        using HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
+
+        if (response.IsSuccessStatusCode)
+        {
+          string? fileName = response.Content.Headers.ContentDisposition?.FileName;
+          if (fileName == null) return null;
+
+          if (_dataService.VoicelinesDirectory == null) return null;
+          string voicelinePath = Path.Join(_dataService.VoicelinesDirectory, fileName);
+
+          using (FileStream fileStream = new(voicelinePath, FileMode.Create, FileAccess.Write, FileShare.None))
+            await response.Content.CopyToAsync(fileStream);
+
+          return voicelinePath;
+        }
+      }
+      catch (OperationCanceledException) when (token.IsCancellationRequested)
+      {
+        return null;
+      }
+      catch (HttpRequestException)
+      {
+        try { await Task.Delay(TimeSpan.FromSeconds(0.5), token).ConfigureAwait(false); }
+        catch (OperationCanceledException) { return null; }
       }
     }
 
@@ -419,6 +487,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           yield return (message, false, message.IsGenerating ? 0 : 100, false);
       }
     }
+  }
+
+  public XivMessage? GetLatestCurrentlyPlayingMessage()
+  {
+    return _playing.FirstOrNull()?.Value.Message;
   }
 
   public void AddQueuedLine(XivMessage message)

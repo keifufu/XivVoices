@@ -16,7 +16,7 @@ public partial interface IDataService : IHostedService
   event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
-  Task Update();
+  Task Update(bool isManual);
   void CancelUpdate();
   string? TempFilePath(string fileName);
   NpcEntry? TryGetCachedPlayer(string speaker);
@@ -28,7 +28,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 {
   private Dictionary<string, NpcEntry> _cachedPlayers = [];
   private CancellationTokenSource? _updateCts;
-  private readonly SemaphoreSlim _updateSemaphore = new(25);
+  private readonly SemaphoreSlim _automaticUpdateSemaphore = new(3);
+  private readonly SemaphoreSlim _manualUpdateSemaphore = new(25);
   private System.Timers.Timer? _updateTimer;
 
   public DataStatus DataStatus { get; private set; } = new();
@@ -155,7 +156,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     OnDataDirectoryChanged?.Invoke(this, dataDirectory); // Used in ReportService for localReports.json
 
     SaveCookies();
-    _ = Update();
+    _ = Update(true);
   }
 
   public void SetServerUrl(string serverUrl)
@@ -168,8 +169,9 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
 
+    Cleanup();
     AuthStart();
-    _ = Update();
+    _ = Update(false);
     LoadCachedPlayers();
 
     _updateTimer = new(60 * 60 * 1000);
@@ -197,11 +199,32 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     return Task.CompletedTask;
   }
 
+  private void Cleanup()
+  {
+    string? dataDirectory = DataDirectory;
+    if (dataDirectory == null) return;
+
+    IEnumerable<FileInfo> files = new DirectoryInfo(dataDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Where(f => f.Extension.Equals(".mp3") || f.Extension.Equals(".ogg"));
+
+    foreach (FileInfo file in files)
+    {
+      try
+      {
+        _logger.Debug($"Deleting leftover file: {file.Name}");
+        file.Delete();
+      }
+      catch (Exception ex)
+      {
+        _logger.Error(ex);
+      }
+    }
+  }
+
   private void UpdateTimerElapsed(object? source, ElapsedEventArgs e)
   {
     if (!DataStatus.UpdateInProgress)
     {
-      _ = Update();
+      _ = Update(false);
     }
   }
 
@@ -352,9 +375,9 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  public Task Update() => Task.Run(() => UpdateInternal());
+  public Task Update(bool isManual) => Task.Run(() => UpdateInternal(isManual));
 
-  private async Task UpdateInternal()
+  private async Task UpdateInternal(bool isManual)
   {
     await Task.Delay(1); // hopefully get us off the main thread
 
@@ -483,7 +506,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     {
       try
       {
-        await _updateSemaphore.WaitAsync(token);
+        if (isManual) await _manualUpdateSemaphore.WaitAsync(token);
+        else await _automaticUpdateSemaphore.WaitAsync(token);
       }
       catch (OperationCanceledException)
       {
@@ -510,7 +534,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         }
         finally
         {
-          _updateSemaphore.Release();
+          if (isManual) _manualUpdateSemaphore.Release();
+          else _automaticUpdateSemaphore.Release();
         }
       }, token));
     }

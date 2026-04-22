@@ -40,7 +40,7 @@ public partial class ConfigWindow
 
         using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))
         {
-          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), isQueued ? "queued" : message.IsGenerating ? "generating" : isPlaying ? "playing" : "stopped");
+          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), message.IsGenerating ? "generating" : isQueued ? "queued" : isPlaying ? "playing" : "stopped");
         }
 
         if (allowReports)

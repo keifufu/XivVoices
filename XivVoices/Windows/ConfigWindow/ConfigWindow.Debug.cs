@@ -64,5 +64,9 @@ public partial class ConfigWindow
       _configuration.LocalGenerationUri = value;
       _configuration.Save();
     });
+
+    DrawConfigCheckbox("SuperFastForward", ref _configuration.SuperFastForward);
+
+    DrawConfigCheckbox("LiveMode", ref _configuration.LiveMode);
   }
 }

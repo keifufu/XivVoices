@@ -55,9 +55,11 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat($"  {command} mute - Toggle the muted state");
         _logger.Chat($"  {command} pause - Pauses voicelines until executed again");
         _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
+        _logger.Chat($"  {command} overlay - Open the overlay window");
         _logger.Chat($"  {command} settings - Open the settings window");
         _logger.Chat($"  {command} overview - Open the overview tab");
         _logger.Chat($"  {command} dialogue - Open the dialogue settings tab");
+        _logger.Chat($"  {command} overlaycfg - Open the overlay settings tab");
         _logger.Chat($"  {command} audio - Open the audio settings tab");
         _logger.Chat($"  {command} logs - Open the audio logs tab");
         if (Util.IsWine())
@@ -66,12 +68,12 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         {
           _logger.Chat($"  {command} debug - Open the debug tab");
           _logger.Chat($"  {command} selftest - Open the self-test tab");
-          _logger.Chat($"  {command} generate <speaker>:<sentence> - Dispatch a message");
+          _logger.Chat($"  {command} dispatch <speaker>:<sentence> - Dispatch a message");
           _logger.Chat($"  {command} target-info - Prints debug info about the current target");
         }
         _logger.Chat($"  {command}");
         break;
-      case "generate":
+      case "dispatch":
         if (!_configuration.DebugMode) break;
         string joinedString = string.Join(" ", args.Skip(1));
         string[] parts = joinedString.Split([':'], 2);
@@ -131,6 +133,10 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
       case "skip":
         _playbackService.Skip();
         break;
+      case "overlay":
+        _configuration.OverlayOpen = !_configuration.OverlayOpen;
+        _configuration.Save();
+        break;
       case "settings":
         _configWindow.Toggle();
         break;
@@ -139,6 +145,9 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         break;
       case "dialogue":
         SwitchTab(ConfigWindowTab.DialogueSettings);
+        break;
+      case "overlaycfg":
+        SwitchTab(ConfigWindowTab.OverlaySettings);
         break;
       case "audio":
         SwitchTab(ConfigWindowTab.AudioSettings);

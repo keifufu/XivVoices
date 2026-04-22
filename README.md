@@ -1,5 +1,5 @@
-<p align="center"><img alt="logo" src="./data/logo-text-dark.png#gh-dark-mode-only" width="400"></p>
-<p align="center"><img alt="logo" src="./data/logo-text-light.png#gh-light-mode-only" width="400"></p>
+<p align="center"><img alt="logo" src="./XivVoices/assets/logo-text-dark.png#gh-dark-mode-only" width="400"></p>
+<p align="center"><img alt="logo" src="./XivVoices/assets/logo-text-light.png#gh-light-mode-only" width="400"></p>
 
 <h3 align="center">Transforming Final Fantasy XIV by voicing every piece of dialogue!</h3>
 
@@ -46,14 +46,14 @@ Follow these steps to install XivVoices:
      https://xivv.keifufu.dev/repo
      ```
    - Use the images below for guidance:
-     - <img src="./data/1.png" alt="Settings Guide" width="300"/>
-     - <img src="./data/2.png" alt="Add Repository" width="600"/>
+     - <img src="./XivVoices/assets/1.png" alt="Settings Guide" width="300"/>
+     - <img src="./XivVoices/assets/2.png" alt="Add Repository" width="600"/>
 3. **Install the Plugin**:
    - Open the Dalamud Plugins window.
    - Navigate to 'All Plugins', search for "XivVoices", and click 'Install'.
-     - <img src="./data/3.png" alt="Plugins Guide" width="300"/>
-     - <img src="./data/4.png" alt="Install Plugin" width="600"/>
+     - <img src="./XivVoices/assets/3.png" alt="Plugins Guide" width="300"/>
+     - <img src="./XivVoices/assets/4.png" alt="Install Plugin" width="600"/>
 4. **Setup Plugin**:
    - Upon first launch, you'll be prompted with a setup screen to select a storage location for the plugin’s content.
    - After selecting the appropriate drive or directory, click "Install".
-     - <img src="./data/5.png" alt="XivVoices Install Directory" width="300"/>
+     - <img src="./XivVoices/assets/5.png" alt="XivVoices Install Directory" width="300"/>

@@ -1,4 +1,4 @@
-using Dalamud.Game.ClientState.Objects;
+using KamiToolKit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ILogger = XivVoices.Services.ILogger;
@@ -25,10 +25,13 @@ public sealed class Plugin : IDalamudPlugin
     IAddonLifecycle addonLifecycle,
     ICommandManager commandManager,
     ITextureProvider textureProvider,
+    IAddonEventManager addonEventManager,
     IGameInteropProvider interopProvider,
     IDalamudPluginInterface pluginInterface
   )
   {
+    KamiToolKitLibrary.Initialize(pluginInterface, pluginInterface.InternalName);
+
     _host = new HostBuilder()
       .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
       .ConfigureLogging(lb =>
@@ -55,12 +58,15 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(textureProvider);
         collection.AddSingleton(interopProvider);
         collection.AddSingleton(pluginInterface);
+        collection.AddSingleton(addonEventManager);
 
         collection.AddSingleton<ConfigWindow>();
+        collection.AddSingleton<OverlayWindow>();
         collection.AddSingleton<ILogger, Logger>();
         collection.AddSingleton<ILipSync, LipSync>();
         collection.AddSingleton<IDataService, DataService>();
         collection.AddSingleton<ISoundFilter, SoundFilter>();
+        collection.AddSingleton<IOverlayWindow, OverlayWindow>();
         collection.AddSingleton<IReportService, ReportService>();
         collection.AddSingleton<IWindowService, WindowService>();
         collection.AddSingleton<ICommandService, CommandService>();
@@ -76,6 +82,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
         collection.AddSingleton<IAddonBattleTalkProvider, AddonBattleTalkProvider>();
 
+
         collection.AddSingleton(InitializeConfiguration);
         collection.AddSingleton(new WindowSystem(pluginInterface.InternalName));
 
@@ -83,9 +90,10 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<ILogger>());
         collection.AddHostedService(sp => sp.GetRequiredService<IDataService>());
         collection.AddHostedService(sp => sp.GetRequiredService<ISoundFilter>());
+        collection.AddHostedService(sp => sp.GetRequiredService<IOverlayWindow>());
         collection.AddHostedService(sp => sp.GetRequiredService<IWindowService>());
-        collection.AddHostedService(sp => sp.GetRequiredService<ICommandService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IReportService>());
+        collection.AddHostedService(sp => sp.GetRequiredService<ICommandService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IPlaybackService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IMessageDispatcher>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAudioPostProcessor>());
@@ -112,5 +120,6 @@ public sealed class Plugin : IDalamudPlugin
   {
     _host.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
     _host.Dispose();
+    KamiToolKitLibrary.Dispose();
   }
 }

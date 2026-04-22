@@ -45,6 +45,9 @@ public class XivMessage
   [JsonIgnore]
   public bool Reported { get; set; } = false;
 
+  [JsonIgnore]
+  public bool IsFake { get; set; } = false;
+
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 
@@ -58,7 +61,8 @@ public class XivMessage
     NpcEntry? npc,
     VoiceEntry? voice,
     string? voicelinePath,
-    string? playerName)
+    string? playerName,
+    bool isFake)
   {
     Id = id;
     Source = source;
@@ -70,6 +74,7 @@ public class XivMessage
     Voice = voice;
     VoicelinePath = voicelinePath;
     PlayerName = playerName;
+    IsFake = isFake;
   }
 
   [JsonConstructor]

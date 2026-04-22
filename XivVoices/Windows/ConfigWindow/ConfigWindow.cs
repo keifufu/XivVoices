@@ -10,6 +10,7 @@ public enum ConfigWindowTab
   Overview,
   DialogueSettings,
   AudioSettings,
+  OverlaySettings,
   AudioLogs,
   WineSettings,
   Debug,
@@ -67,6 +68,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         DrawImageButton(ConfigWindowTab.Overview, "Overview", GetImGuiHandleForIconId(1));
         DrawImageButton(ConfigWindowTab.DialogueSettings, "Dialogue Settings", GetImGuiHandleForIconId(29));
         DrawImageButton(ConfigWindowTab.AudioSettings, "Audio Settings", GetImGuiHandleForIconId(36));
+        DrawImageButton(ConfigWindowTab.OverlaySettings, "Overlay Settings", GetImGuiHandleForIconId(42));
         DrawImageButton(ConfigWindowTab.AudioLogs, "Audio Logs", GetImGuiHandleForIconId(45));
         if (Util.IsWine())
           DrawImageButton(ConfigWindowTab.WineSettings, "Wine Settings", GetImGuiHandleForIconId(24423));
@@ -100,6 +102,9 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
           break;
         case ConfigWindowTab.AudioSettings:
           DrawAudioSettingsTab();
+          break;
+        case ConfigWindowTab.OverlaySettings:
+          DrawOverlaySettingsTab();
           break;
         case ConfigWindowTab.AudioLogs:
           DrawAudioLogsTab();

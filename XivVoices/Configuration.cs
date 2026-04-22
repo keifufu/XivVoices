@@ -58,6 +58,7 @@ public class Configuration : IPluginConfiguration
 
   public bool DirectionalAudioForChat = false;
   public bool DirectionalAudioForAddonMiniTalk = true;
+  public int MaximumPan = 95;
 
   public bool LocalTTSEnabled = true;
   public string LocalTTSDefaultVoice = "Male";
@@ -66,6 +67,14 @@ public class Configuration : IPluginConfiguration
 
   public bool LocalTTSPlayerSays = true;
   public bool LocalTTSDisableLocalPlayerChat = false;
+
+  // Overlay Settings
+  public bool OverlayOpen = true;
+  public int OverlayScale = 100;
+  public Vector2 OverlayPosition = new(100.0f);
+  public bool OverlayPinned = true;
+  public bool OverlayBorder = true;
+  public bool OverlayExpanded = true;
 
   // Audio Logs
   public bool EnableAutomaticReports = true;
@@ -89,6 +98,8 @@ public class Configuration : IPluginConfiguration
   public bool ForceLocalGeneration = false;
   public bool LimitFpsDuringLocalGeneration = false;
   public string LocalGenerationUri = "http://127.0.0.1:6969/generate?voice=%v&sentence=%s&id=%i";
+  public bool SuperFastForward = false;
+  public bool LiveMode = false;
 
   [NonSerialized]
   private ILogger? Logger;
@@ -115,6 +126,8 @@ public class Configuration : IPluginConfiguration
     return false;
   }
 
+  public event System.Action? Saved;
+
   public void Save()
   {
     Dictionary<string, object?> currentConfig = GetAllFields();
@@ -130,6 +143,8 @@ public class Configuration : IPluginConfiguration
 
     PluginInterface!.SavePluginConfig(this);
     _previousConfig = currentConfig;
+
+    Saved?.Invoke();
   }
 
   private Dictionary<string, object?> GetAllFields() =>

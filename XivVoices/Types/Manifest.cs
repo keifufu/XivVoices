@@ -8,6 +8,7 @@ public class VoiceEntry
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 }
+
 public class NpcEntry
 {
   // Id and VoiceId are nullable because GameInteropService can set them to be null for new npcs.

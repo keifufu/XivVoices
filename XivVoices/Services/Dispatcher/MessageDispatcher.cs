@@ -67,7 +67,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnFrameworkUpdate(IFramework framework)
   {
-    int timeoutSec = (_configuration.ForceLocalGeneration || _configuration.EnableLocalGeneration) ? 45 : 3;
+    int timeoutSec = _configuration.LiveMode ? 300 : (_configuration.ForceLocalGeneration || _configuration.EnableLocalGeneration) ? 45 : 3;
 
     foreach (PlaybackQueue playbackQueue in _queues.Values)
     {
@@ -261,7 +261,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       npc,
       voice,
       voicelinePath,
-      playerName
+      playerName,
+      isFake
     );
 
     _logger.Debug($"Constructed message: {message}");
@@ -272,6 +273,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
     if (!isFake && source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
+
+    // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
+    if (source == MessageSource.AddonTalk && isIgnoredSpeaker && _configuration.LiveMode)
+      _logger.Chat($"Ignored Speaker: {message.Speaker}");
 
     bool allowed = true;
     bool queued = false;

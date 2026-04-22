@@ -1,35 +1,40 @@
-<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Dalamud.NET.Sdk/14.0.1">
+<Project Sdk="Dalamud.NET.Sdk/14.0.2">
   <PropertyGroup>
     <!-- Keep this version at 0.0.0.0, the CI will replace it. -->
     <Version>0.0.0.0</Version>
-    <PackageProjectUrl>https://github.com/keifufu/XivVoices</PackageProjectUrl>
-    <PackageLicenseExpression>AGPL-3.0-or-later</PackageLicenseExpression>
-    <IsPackable>false</IsPackable>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <Author>keifufu</Author>
+    <Name>XivVoices</Name>
+    <Punchline>Transforming Final Fantasy XIV by voicing every piece of dialogue!</Punchline>
+    <Description>A plugin that voices every NPC dialogue, battle interaction, and more.</Description>
+    <RepoUrl>https://github.com/keifufu/XivVoices</RepoUrl>
+    <Tags>xivvoices;xivv</Tags>
+  </PropertyGroup>
+
   <ItemGroup>
-    <EmbeddedResource Include="data/nosound.scd" />
+    <EmbeddedResource Include="assets/nosound.scd" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="data/ffmpeg-wine.sh">
+    <Content Include="assets/ffmpeg-wine.sh">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>ffmpeg-wine.sh</TargetPath>
       <Visible>false</Visible>
     </Content>
-    <Content Include="data/logo.png">
+    <Content Include="assets/logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>logo.png</TargetPath>
       <Visible>false</Visible>
     </Content>
-    <Content Include="data/discord.png">
+    <Content Include="assets/discord.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>discord.png</TargetPath>
       <Visible>false</Visible>
     </Content>
-    <Content Include="data/patreon.png">
+    <Content Include="assets/patreon.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>patreon.png</TargetPath>
       <Visible>false</Visible>
@@ -41,5 +46,9 @@
     <PackageReference Include="Concentus.OggFile" Version="1.0.6" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.0.2" />
     <PackageReference Include="NAudio" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../KamiToolKit/KamiToolKit.csproj" />
   </ItemGroup>
 </Project>

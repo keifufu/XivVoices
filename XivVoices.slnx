@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="KamiToolKit/KamiToolKit.csproj" />
+  <Project Path="XivVoices/XivVoices.csproj" />
+</Solution>
