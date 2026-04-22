@@ -20,6 +20,20 @@ public partial class ConfigWindow
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
+    { "1.3.0.0", new[]
+    {
+      "Added an overlay window to control playback.",
+      "Added '/xivv overlay' and '/xivv overlaycfg'.",
+      "Added manual report presets.",
+      "Added a voiceline override directory.",
+      "Added an option to pause or mute playback while the window is unfocused.",
+      "Added an option to fast-forward through dialogue.",
+      "Added an option to set the maximum pan for directional audio.",
+      "Improved directional audio volume and panning.",
+      "Fixed an issue with auto-advance not working when the message contains the player's name.",
+      "Fixed LipSync causing NPCs to T-Pose away.",
+      "Fixed hourly auto-update potentially causing lag spikes.",
+    }},
     { "1.2.0.0", new[]
     {
       "Updated for 7.4/7.4HF1 (API14/NET10)",
@@ -245,7 +259,7 @@ public partial class ConfigWindow
 
 
     ImGui.Unindent(ScaledFloat(8));
-    ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(150));
+    ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(175));
     using (ImRaii.IEndObject child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
     {
       if (!child.Success) return;
