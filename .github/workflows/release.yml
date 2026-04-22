@@ -41,8 +41,8 @@ jobs:
 
       - name: Create Release
         run: |
-          mv bin/Release/XivVoices/latest.zip bin/Release/XivVoices/XivVoices.zip
-          gh release create "${{ github.ref_name }}" bin/Release/XivVoices/XivVoices.zip \
+          mv XivVoices/bin/Release/XivVoices/latest.zip XivVoices/bin/Release/XivVoices/XivVoices.zip
+          gh release create "${{ github.ref_name }}" XivVoices/bin/Release/XivVoices/XivVoices.zip \
             --title "XivVoices ${{ github.ref_name }}" \
             --notes "Xiv Voices Plugin Release. Install via the dalamud repo link."
 
