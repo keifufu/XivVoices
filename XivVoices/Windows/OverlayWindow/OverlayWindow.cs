@@ -8,11 +8,15 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace XivVoices.Windows;
 
-public interface IOverlayWindow : IHostedService;
+public interface IOverlayWindow : IHostedService
+{
+  public unsafe bool CheckCollision(AtkEventData* atkEventData);
+}
 
 public class OverlayWindow(ILogger _logger, Configuration _configuration, IFramework _framework, IClientState _clientState, IServiceProvider services) : IOverlayWindow
 {
   private OverlayController? _overlayController;
+  private XivvOverlayNode? _xivvOverlayNode;
 
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -40,12 +44,18 @@ public class OverlayWindow(ILogger _logger, Configuration _configuration, IFrame
   {
     _overlayController?.RemoveAllNodes();
 
-    _overlayController?.AddNode(new XivvOverlayNode(services)
+    _xivvOverlayNode = new XivvOverlayNode(services)
     {
       Size = new(340.0f, 100.0f),
       Position = _configuration.OverlayPosition,
-    });
+    };
+    _overlayController?.AddNode(_xivvOverlayNode);
   });
+
+  public unsafe bool CheckCollision(AtkEventData* atkEventData)
+  {
+    return _xivvOverlayNode?.Frame.CheckCollision(atkEventData) ?? false;
+  }
 }
 
 public unsafe class XivvOverlayNode : OverlayNode
@@ -60,7 +70,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly ConfigWindow _configWindow;
   private readonly ILogger _logger;
 
-  private readonly WindowBackgroundNode _frame;
+  public readonly WindowBackgroundNode Frame;
   private readonly ViewportEventListener _editEventListener;
   private readonly WindowBackgroundNode _frameFront;
   private readonly TextNode _titleText;
@@ -91,18 +101,18 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _configuration.Saved += ConfigurationSaved;
 
-    _frame = new WindowBackgroundNode(false)
+    Frame = new WindowBackgroundNode(false)
     {
       Position = Vector2.Zero,
       Offsets = new Vector4(64.0f, 32.0f, 32.0f, 32.0f),
       NodeFlags = NodeFlags.Visible | NodeFlags.Fill,
       PartsRenderType = 19,
     };
-    _frame.AttachNode(this);
+    Frame.AttachNode(this);
 
     _editEventListener = new ViewportEventListener(OnEditEvent);
-    _editEventListener.AddEvent(AtkEventType.MouseMove, _frame);
-    _editEventListener.AddEvent(AtkEventType.MouseDown, _frame);
+    _editEventListener.AddEvent(AtkEventType.MouseMove, Frame);
+    _editEventListener.AddEvent(AtkEventType.MouseDown, Frame);
 
     _frameFront = new WindowBackgroundNode(true)
     {
@@ -301,7 +311,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   {
     base.OnSizeChanged();
 
-    _frame.Size = Size;
+    Frame.Size = Size;
     _frameFront.Size = Size;
 
     _titleText.Size = new Vector2(Width - 8.0f, 31.0f);
@@ -354,9 +364,9 @@ public unsafe class XivvOverlayNode : OverlayNode
         }
         break;
 
-      case AtkEventType.MouseDown when _frame.CheckCollision(atkEventData) && !_isMoving:
+      case AtkEventType.MouseDown when Frame.CheckCollision(atkEventData) && !_isMoving:
         {
-          _editEventListener.AddEvent(AtkEventType.MouseUp, _frame);
+          _editEventListener.AddEvent(AtkEventType.MouseUp, Frame);
 
           _isMoving = true;
           _clickStartPosition = mousePosition;
