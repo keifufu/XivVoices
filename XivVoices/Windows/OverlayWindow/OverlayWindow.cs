@@ -50,7 +50,7 @@ public class OverlayWindow(ILogger _logger, Configuration _configuration, IFrame
 
 public unsafe class XivvOverlayNode : OverlayNode
 {
-  public override OverlayLayer OverlayLayer => OverlayLayer.BehindUserInterface;
+  public override OverlayLayer OverlayLayer => OverlayLayer.Foreground;
   public override bool HideWithNativeUi => false;
 
   private readonly IAddonEventManager _addonEventManager;
