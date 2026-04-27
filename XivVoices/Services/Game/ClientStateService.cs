@@ -39,6 +39,9 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
 
   private void WarnOutdated()
   {
+    // I don't want to have the dalamud toast pop up in the main menu.
+    if (!_clientState.IsLoggedIn) return;
+
     if (_dataService.IsOutdated)
     {
       _logger.Chat("Plugin is outdated. Reports will not be processed.", preColor: 25);

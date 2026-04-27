@@ -46,7 +46,7 @@ public partial class ConfigWindow
         if (allowReports)
         {
           ImGui.SameLine();
-          using (ImRaii.Disabled(message.Reported))
+          using (ImRaii.Disabled(message.Reported || _dataService.IsOutdated))
           {
             if (ImGuiComponents.IconButton($"##reportButton-{message.Id}", Dalamud.Interface.FontAwesomeIcon.Flag, new(24)))
             {
