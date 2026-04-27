@@ -164,6 +164,14 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
 
     if (_configuration.FastForward && _updateCount % 15 == 0)
     {
+      (string cleanedSpeaker, _) = _messageDispatcher.CleanMessage(speaker, "", "Fake Name", false);
+      if (_configuration.LiveMode && (_dataService.Manifest?.IgnoredSpeakers.Contains(cleanedSpeaker) ?? false))
+      {
+        _configuration.FastForward = false;
+        _configuration.Save();
+        _logger.Chat("Disabled FastForward due to ignored speaker");
+        return;
+      }
       AutoAdvance(null);
     }
 

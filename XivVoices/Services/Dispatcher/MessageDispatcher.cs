@@ -5,6 +5,7 @@ public interface IMessageDispatcher : IHostedService
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false);
   void ClearQueue();
   string ReplaceName(string sentence, string playerName);
+  (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
 }
 
 public enum PlaybackQueueState
@@ -248,7 +249,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       (_, string legacySentence) = CleanMessage(speaker, sentence, playerName, true);
       (id, voicelinePath) = await TryGetVoiceline(voice, npc, legacySentence);
       if (voicelinePath == null) _logger.Debug("Did not find legacy name voiceline");
-      else _logger.Debug("Found legacy name voiceline");
+      else
+      {
+        _logger.Debug("Found legacy name voiceline");
+        cleanedSentence = legacySentence;
+      }
     }
 
     XivMessage message = new(
@@ -270,7 +275,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // Report if it's not a chat message, it couldn't find a voiceline and the speaker is not ignored.
     // Retainers are not being reported anymore, as they could have names like "Cahciua" and just be
     // generated as that. I'm not having that so we will do retainer lines manually if we find any missing.
-    bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(speaker);
+    bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(message.Speaker);
+
+    // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
+    if (message.RawSpeaker == $"{playerName.Split(" ")[0]}?") isIgnoredSpeaker = true;
+
     if (!isFake && source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
 
