@@ -40,7 +40,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     // I don't want to have the dalamud toast pop up in the main menu.
     if (!_clientState.IsLoggedIn) return;
 
-    if (!_dataService.IsOutdated)
+    if (_dataService.IsOutdated)
     {
       _logger.Chat(pre: "Plugin is outdated. Reports will not be processed.", preColor: 25);
       _logger.DalamudToast(NotificationType.Warning, "Plugin is outdated", "Reports will not be processed.", 15);
