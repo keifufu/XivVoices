@@ -29,8 +29,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     _addonLifecycle.RegisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
     _addonLifecycle.RegisterListener(AddonEvent.PreReceiveEvent, "Talk", OnTalkAddonReceiveEvent);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -40,8 +39,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     _addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
     _addonLifecycle.UnregisterListener(AddonEvent.PreReceiveEvent, "Talk", OnTalkAddonReceiveEvent);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private unsafe void OnTalkAddonReceiveEvent(AddonEvent type, AddonArgs args)

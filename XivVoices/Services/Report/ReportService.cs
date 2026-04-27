@@ -22,8 +22,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     LoadReports();
     _ = TryUploadReports(_cts.Token);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -36,8 +35,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
     SaveReports();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void OnDataDirectoryChanged(object? sender, string dataDirectory) =>

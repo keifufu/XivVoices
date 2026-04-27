@@ -11,16 +11,14 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
   {
     _chatGui.ChatMessage += OnChatMessage;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _chatGui.ChatMessage -= OnChatMessage;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString sentence, ref bool isHandled)

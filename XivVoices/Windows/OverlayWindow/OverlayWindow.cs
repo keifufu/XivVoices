@@ -25,8 +25,7 @@ public class OverlayWindow(ILogger _logger, Configuration _configuration, IFrame
     _clientState.Login += RebuildOverlay;
     if (_clientState.IsLoggedIn) RebuildOverlay();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -36,8 +35,7 @@ public class OverlayWindow(ILogger _logger, Configuration _configuration, IFrame
     _overlayController?.Dispose();
     _overlayController = null;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void RebuildOverlay() => _framework.RunOnFrameworkThread(() =>

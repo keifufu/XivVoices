@@ -16,16 +16,14 @@ public class AddonBattleTalkProvider(ILogger _logger, IGameInteropService _gameI
   {
     _addonLifecycle.RegisterListener(AddonEvent.PostDraw, "_BattleTalk", OnBattleTalkAddonPostDraw);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.UnregisterListener(OnBattleTalkAddonPostDraw);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private unsafe void OnBattleTalkAddonPostDraw(AddonEvent type, AddonArgs args)

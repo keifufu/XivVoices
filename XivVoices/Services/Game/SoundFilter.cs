@@ -34,8 +34,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     _loadSoundFileHook.Enable();
     _playSpecificSoundHook.Enable();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -48,8 +47,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     Marshal.FreeHGlobal(_infoPtr);
     Marshal.FreeHGlobal(_noSoundPtr);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private byte[] GetNoSoundScd()

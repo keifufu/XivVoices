@@ -34,7 +34,7 @@ public interface ILogger : IHostedService
       [CallerMemberName] string callerName = "",
       [CallerLineNumber] int lineNumber = -1);
 
-  void ServiceLifecycle(string? status = null,
+  Task ServiceLifecycle(string? status = null,
       [CallerFilePath] string callerPath = "",
       [CallerMemberName] string callerName = "",
       [CallerLineNumber] int lineNumber = -1);
@@ -49,17 +49,14 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   {
     TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-    ServiceLifecycle();
-    return Task.CompletedTask;
+    return ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
 
-    // TODO: make servicelifecycle return completedtask if we use that pattern everywhere.
-    ServiceLifecycle();
-    return Task.CompletedTask;
+    return ServiceLifecycle();
   }
 
   public void SetConfiguration(Configuration configuration)
@@ -188,7 +185,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     Debug(sb.ToString(), callerPath, callerName, lineNumber);
   }
 
-  public void ServiceLifecycle(string? status = null, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public Task ServiceLifecycle(string? status = null, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
     string lifecycleStage = status ??
       (callerName.Contains("Start")
@@ -202,5 +199,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       ?.Name ?? "UnknownClass";
 
     Debug($"{className} {lifecycleStage}", callerPath, callerName, lineNumber);
+
+    return Task.CompletedTask;
   }
 }

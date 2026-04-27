@@ -14,16 +14,14 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
     _gameInteropProvider.InitializeFromAttributes(this);
     _openBubbleHook.Enable();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _openBubbleHook?.Dispose();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private unsafe delegate void* OpenBubbleDelegate(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID);

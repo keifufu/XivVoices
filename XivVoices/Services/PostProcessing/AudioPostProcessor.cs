@@ -19,16 +19,14 @@ public partial class AudioPostProcessor(ILogger _logger, Configuration _configur
   {
     _ = FFmpegStart();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
     _ = FFmpegStop();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public async Task<WaveStream?> PostProcessToPCM(string voicelinePath, bool isLocalTTS, XivMessage message)

@@ -64,8 +64,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     InitializeOutputDevice();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void InitializeOutputDevice()
@@ -139,8 +138,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     _directSoundOutputDevice?.Dispose();
     _directSoundOutputDevice = null;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void FrameworkOnUpdate(IFramework framework)

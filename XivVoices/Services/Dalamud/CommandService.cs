@@ -20,8 +20,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
       HelpMessage = $"Alias for {XivVoicesCommand}."
     });
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -29,8 +28,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
     _commandManager.RemoveHandler(XivVoicesCommand);
     _commandManager.RemoveHandler(XivVoicesCommandAlias);
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private async void OnCommand(string command, string arguments)

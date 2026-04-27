@@ -21,8 +21,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     _configWindow.SelectedTab = ConfigWindowTab.AudioSettings;
 #endif
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -35,8 +34,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
     _windowSystem.RemoveAllWindows();
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void OnOpenConfigWindow(object? sender, ConfigWindowTab tab)

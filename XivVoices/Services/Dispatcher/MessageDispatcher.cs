@@ -39,8 +39,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
     _playbackService.QueuedLineSkipped += OnQueuedLineSkipped;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -54,8 +53,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     _queues = [];
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public void ClearQueue()

@@ -12,8 +12,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     _dataService.OnLatestVersionChanged += WarnOutdated;
     WarnMuted(); // Don't want to warn outdated here, DataService will already do that OnLatestVersionChanged.
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -21,8 +20,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     _clientState.Login -= OnLogin;
     _dataService.OnLatestVersionChanged -= WarnOutdated;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void OnLogin()

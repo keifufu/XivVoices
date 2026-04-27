@@ -189,8 +189,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     _logger.Debug($"XivVoices v{Version}");
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -203,8 +202,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _updateTimer?.Dispose();
     _updateTimer = null;
 
-    _logger.ServiceLifecycle();
-    return Task.CompletedTask;
+    return _logger.ServiceLifecycle();
   }
 
   private void Cleanup()
