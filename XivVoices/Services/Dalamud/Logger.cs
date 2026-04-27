@@ -11,8 +11,8 @@ public interface ILogger : IHostedService
   void SetConfiguration(Configuration configuration);
 
   void DalamudToast(NotificationType type, string title, string text, int durationSeconds = 5);
-  void Toast(string pre, string italic = "", string post = "");
-  void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2);
+  void Toast(string pre = "", string italic = "", string post = "");
+  void Chat(string uncolored = "", string pre = "", string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2);
 
   void Error(string text,
       [CallerFilePath] string callerPath = "",
@@ -94,7 +94,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     });
   }
 
-  public void Toast(string pre, string italic = "", string post = "")
+  public void Toast(string pre = "", string italic = "", string post = "")
   {
     _toastGui.ShowNormal(
       new SeStringBuilder()
@@ -110,7 +110,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     );
   }
 
-  public void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2)
+  public void Chat(string uncolored = "", string pre = "", string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2)
   {
     XivChatEntry chatMessage = new()
     {
@@ -118,6 +118,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
         .AddUiForeground(addPrefix ? "[XivVoices] " : "", 35)
+        .AddText(uncolored)
         .AddUiForeground(pre, preColor)
         .AddItalicsOn()
         .AddUiForeground(italic, italicColor)
