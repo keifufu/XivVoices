@@ -10,6 +10,7 @@ public class XivReport
   // These are not added for manual reports, as the player
   // could be in another zone by that point.
   public string? Location { get; }
+  public string? ClassJob { get; }
   public bool? IsInCutscene { get; }
   public bool? IsInDuty { get; }
   public List<string>? ActiveQuests { get; }
@@ -20,7 +21,7 @@ public class XivReport
 
   private string GetDate() => DateTime.UtcNow.ToString("o");
 
-  public XivReport(string pluginVersion, XivMessage message, string location, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
+  public XivReport(string pluginVersion, XivMessage message, string location, string classJob, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
   {
     Type = ReportType.Automatic;
     PluginVersion = pluginVersion;
@@ -28,6 +29,7 @@ public class XivReport
 
     Message = message;
     Location = location;
+    ClassJob = classJob;
     IsInCutscene = isInCutscene;
     IsInDuty = isInDuty;
     ActiveQuests = activeQuests;

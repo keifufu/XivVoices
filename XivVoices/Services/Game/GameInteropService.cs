@@ -18,6 +18,7 @@ public interface IGameInteropService
   IntPtr TryFindCharacter(string name, uint? baseId);
   NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npc);
   string GetLocation();
+  string GetClassJob();
   List<string> GetActiveQuests();
   List<string> GetActiveLeves();
   CameraView GetCameraView();
@@ -36,7 +37,7 @@ public class CameraView
   public Vector3 Right;
 }
 
-public partial class GameInteropService(ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, IPlayerState _playerState, ITargetManager _targetManager) : IGameInteropService
 {
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
@@ -126,6 +127,11 @@ public partial class GameInteropService(ICondition _condition, IDataService _dat
     }
 
     return $"{location} {coordinates}";
+  }
+
+  public string GetClassJob()
+  {
+    return _playerState.ClassJob.ValueNullable?.NameEnglish.ToString() ?? "Unknown ClassJob";
   }
 
   public List<string> GetActiveQuests()

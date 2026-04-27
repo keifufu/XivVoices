@@ -208,6 +208,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
         _dataService.Version,
         message,
         _gameInteropService.GetLocation(),
+        _gameInteropService.GetClassJob(),
         _gameInteropService.IsInCutscene(),
         _gameInteropService.IsInDuty(),
         _gameInteropService.GetActiveQuests(),
