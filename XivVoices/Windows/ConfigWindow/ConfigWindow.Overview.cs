@@ -113,16 +113,15 @@ public partial class ConfigWindow
     using (ImRaii.PushColor(ImGuiCol.Text, voicelineColor))
       ImGui.Text(_dataService.DataStatus.VoicelinesDownloaded.ToString());
 
-    bool isUpToDate = _dataService.Version == _dataService.LatestVersion;
     DrawHorizontallyCenteredText("Version:", $"Version: {_dataService.Version}");
     ImGui.SameLine();
-    Vector4 versionColor = isUpToDate ? _green : _red;
+    Vector4 versionColor = _dataService.IsOutdated ? _red : _green;
     using (ImRaii.PushColor(ImGuiCol.Text, versionColor))
       ImGui.Text(_dataService.Version);
 
     if (ImGui.IsItemHovered())
       using (ImRaii.Tooltip())
-        ImGui.Text(isUpToDate ? "Your plugin is up to date." : $"Your plugin is outdated. Latest version available: {_dataService.LatestVersion}");
+        ImGui.Text(_dataService.IsOutdated ? $"Your plugin is outdated. Latest version available: {_dataService.LatestVersion}" : "Your plugin is up to date.");
 
     ImGui.Dummy(ScaledVector2(0, 10));
 

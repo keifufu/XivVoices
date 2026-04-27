@@ -12,8 +12,10 @@ public partial interface IDataService : IHostedService
   string ServerUrl { get; }
   string Version { get; }
   string LatestVersion { get; }
+  bool IsOutdated { get; }
   event EventHandler<string>? OnDataDirectoryChanged;
   event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
+  event System.Action? OnLatestVersionChanged;
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
   Task Update(bool isManual);
@@ -37,6 +39,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
   public event EventHandler<string>? OnDataDirectoryChanged;
   public event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
+  public event System.Action? OnLatestVersionChanged;
 
   private bool _dataDirectoryExists;
   public string? DataDirectory
@@ -132,6 +135,11 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   }
 
   public string LatestVersion { get; private set; } = "0.0.0.0";
+
+  public bool IsOutdated
+  {
+    get => Version != LatestVersion;
+  }
 
   public string? TempFilePath(string fileName)
   {
@@ -254,6 +262,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       _logger.Debug($"Failed to retrieve latest plugin version with code: {response.StatusCode}");
       LatestVersion = Version;
     }
+
+    OnLatestVersionChanged?.Invoke();
   }
 
   private async Task LoadManifest(CancellationToken token)

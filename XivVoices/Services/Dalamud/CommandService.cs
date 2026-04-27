@@ -97,7 +97,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         }
         break;
       case "version":
-        _logger.Chat($"v{_dataService.Version} / v{_dataService.LatestVersion}");
+        _logger.Chat($"v{_dataService.Version}", "", $" / v{_dataService.LatestVersion}", preColor: (ushort)(_dataService.IsOutdated ? 15 : 2));
         break;
       case "upload-logs":
         _logger.Chat("Uploading logs...");

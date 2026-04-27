@@ -28,7 +28,8 @@ public sealed class Plugin : IDalamudPlugin
     ITextureProvider textureProvider,
     IAddonEventManager addonEventManager,
     IGameInteropProvider interopProvider,
-    IDalamudPluginInterface pluginInterface
+    IDalamudPluginInterface pluginInterface,
+    INotificationManager notificationManager
   )
   {
     KamiToolKitLibrary.Initialize(pluginInterface, pluginInterface.InternalName);
@@ -61,6 +62,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(interopProvider);
         collection.AddSingleton(pluginInterface);
         collection.AddSingleton(addonEventManager);
+        collection.AddSingleton(notificationManager);
 
         collection.AddSingleton<ConfigWindow>();
         collection.AddSingleton<OverlayWindow>();

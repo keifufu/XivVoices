@@ -1,5 +1,6 @@
 using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Text.SeStringHandling;
+using Dalamud.Interface.ImGuiNotification;
 
 namespace XivVoices.Services;
 
@@ -9,8 +10,9 @@ public interface ILogger : IHostedService
 
   void SetConfiguration(Configuration configuration);
 
+  void DalamudToast(NotificationType type, string title, string text, int durationSeconds = 5);
   void Toast(string pre, string italic = "", string post = "");
-  void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true);
+  void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2);
 
   void Error(string text,
       [CallerFilePath] string callerPath = "",
@@ -38,7 +40,7 @@ public interface ILogger : IHostedService
       [CallerLineNumber] int lineNumber = -1);
 }
 
-public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGui) : ILogger
+public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGui, INotificationManager _notificationManager) : ILogger
 {
   private Configuration _configuration { get; set; } = new Configuration();
   public List<string> LogHistory { get; } = [];
@@ -55,6 +57,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   {
     TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
 
+    // TODO: make servicelifecycle return completedtask if we use that pattern everywhere.
     ServiceLifecycle();
     return Task.CompletedTask;
   }
@@ -82,6 +85,18 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       AddLogHistory($"Uncaught Exception: {args.Exception}");
   }
 
+  public void DalamudToast(NotificationType type, string title, string text, int durationSeconds = 5)
+  {
+    _notificationManager.AddNotification(new()
+    {
+      Content = text,
+      Title = title,
+      Type = type,
+      Minimized = false,
+      InitialDuration = TimeSpan.FromSeconds(durationSeconds)
+    });
+  }
+
   public void Toast(string pre, string italic = "", string post = "")
   {
     _toastGui.ShowNormal(
@@ -98,7 +113,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     );
   }
 
-  public void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true)
+  public void Chat(string pre, string italic = "", string post = "", string name = "", XivChatType type = XivChatType.Debug, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2)
   {
     XivChatEntry chatMessage = new()
     {
@@ -106,9 +121,11 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
         .AddUiForeground(addPrefix ? "[XivVoices] " : "", 35)
-        .AddText(pre)
-        .AddItalics(italic)
-        .AddText(post)
+        .AddUiForeground(pre, preColor)
+        .AddItalicsOn()
+        .AddUiForeground(italic, italicColor)
+        .AddItalicsOff()
+        .AddUiForeground(post, postColor)
         .Build(),
     };
     _chatGui.Print(chatMessage);
