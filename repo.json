@@ -15,7 +15,7 @@
     "IsTestingExclusive": false,
     "RepoUrl": "https://github.com/keifufu/XivVoices",
     "ApplicableVersion": "any",
-    "DalamudApiLevel": 14,
+    "DalamudApiLevel": 15,
     "TestingDalamudApiLevel": 0,
     "DownloadCount": 8501,
     "LastUpdate": 1777498429,
