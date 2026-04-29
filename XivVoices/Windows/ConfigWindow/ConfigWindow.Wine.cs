@@ -32,7 +32,7 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 20));
     if (wineUseNativeFFmpeg)
     {
-      using (ImRaii.IEndObject child = ImRaii.Child("##wineFFmpegState", ScaledVector2(345, 60), true, ImGuiWindowFlags.NoScrollbar))
+      using (ImRaii.ChildDisposable child = ImRaii.Child("##wineFFmpegState", ScaledVector2(345, 60), true, ImGuiWindowFlags.NoScrollbar))
       {
         if (!child.Success) return;
         ImGui.TextWrapped($"FFmpeg daemon state: {(_audioPostProcessor.FFmpegWineProcessRunning ? "Running" : "Stopped")}");
@@ -68,7 +68,7 @@ public partial class ConfigWindow
           ImGui.TextWrapped("Warning: ffmpeg-wine might require wine to fully restart for registry changes to take effect.");
           ImGui.Dummy(ScaledVector2(0, 20));
         }
-        using (ImRaii.IEndObject child = ImRaii.Child("##wineFFmpegTroubleshooting", ScaledVector2(345, 285), true, ImGuiWindowFlags.NoScrollbar))
+        using (ImRaii.ChildDisposable child = ImRaii.Child("##wineFFmpegTroubleshooting", ScaledVector2(345, 285), true, ImGuiWindowFlags.NoScrollbar))
         {
           if (!child.Success) return;
           ImGui.TextWrapped("If the FFmpeg daemon fails to start, check the following:");

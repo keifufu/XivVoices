@@ -6,7 +6,7 @@ public partial class ConfigWindow
 {
   private void DrawSelfTestTab()
   {
-    using (ImRaii.IEndObject table = ImRaii.Table(string.Empty, 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+    using (ImRaii.TableDisposable table = ImRaii.Table(string.Empty, 3, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
     {
       if (!table) return;
 
@@ -31,6 +31,7 @@ public partial class ConfigWindow
       DrawStep(SelfTestStep.Interop_GetActiveQuests);
       DrawStep(SelfTestStep.Interop_GetActiveLeves);
       DrawStep(SelfTestStep.Interop_Camera);
+      DrawStep(SelfTestStep.Interop_GetClassJob);
       DrawStep(SelfTestStep.Provider_BattleTalk);
       DrawStep(SelfTestStep.Interop_IsInDuty);
       DrawStep(SelfTestStep.Interop_IsInCutscene);

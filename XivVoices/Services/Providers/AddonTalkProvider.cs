@@ -160,16 +160,21 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       _ = _messageDispatcher.TryDispatch(MessageSource.AddonTalk, speaker, sentence);
     }
 
-    if (_configuration.FastForward && _updateCount % 15 == 0)
+    if (_configuration.LiveMode && !_configuration.MuteEnabled && (_configuration.FastForward || _configuration.AutoAdvanceEnabled))
     {
       (string cleanedSpeaker, _) = _messageDispatcher.CleanMessage(speaker, "", "Fake Name", false);
-      if (_configuration.LiveMode && (_dataService.Manifest?.IgnoredSpeakers.Contains(cleanedSpeaker) ?? false))
+      if (_dataService.Manifest?.IgnoredSpeakers.Contains(cleanedSpeaker) ?? false)
       {
         _configuration.FastForward = false;
+        _configuration.AutoAdvanceEnabled = false;
         _configuration.Save();
-        _logger.Chat("Disabled FastForward due to ignored speaker");
+        _logger.Chat(pre: "Disabled FastForward and AutoAdvance due to ignored speaker", preColor: 25);
         return;
       }
+    }
+
+    if (_configuration.FastForward && _updateCount % 15 == 0)
+    {
       AutoAdvance(null);
     }
 

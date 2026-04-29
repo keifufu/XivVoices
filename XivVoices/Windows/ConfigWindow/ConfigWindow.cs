@@ -36,7 +36,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     {
       float fontPx = UiBuilder.DefaultFontSizePx;
       SafeFontConfig safeFontConfig = new() { SizePx = fontPx };
-      tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansJpMedium, safeFontConfig);
+      tk.AddDalamudAssetFont(Dalamud.DalamudAsset.NotoSansCjkMedium, safeFontConfig);
       tk.AttachExtraGlyphsForDalamudLanguage(safeFontConfig);
     });
   });
@@ -61,7 +61,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     DrawDiscordButton();
     ImGui.SetCursorPos(originPos);
 
-    using (ImRaii.IEndObject child = ImRaii.Child("Sidebar", ScaledVector2(50, 500), false))
+    using (ImRaii.ChildDisposable child = ImRaii.Child("Sidebar", ScaledVector2(50, 500), false))
     {
       if (child.Success)
       {
@@ -88,9 +88,8 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     drawList.AddLine(lineStart, lineEnd, lineColor, 1f);
     ImGui.SameLine(ScaledFloat(85));
 
-    using (ImRaii.IEndObject group = ImRaii.Group())
+    using (ImRaii.GroupDisposable group = ImRaii.Group())
     {
-      if (!group.Success) return;
       ImGui.Unindent(ScaledFloat(8));
       switch (SelectedTab)
       {
@@ -253,7 +252,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
     using (ImRaii.PushColor(ImGuiCol.ChildBg, overlayColor))
     {
-      using (ImRaii.IEndObject overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false))
+      using (ImRaii.ChildDisposable overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false))
       {
         if (!overlay.Success) return;
 
@@ -263,7 +262,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
         using (ImRaii.PushColor(ImGuiCol.ChildBg, promptColor))
         {
-          using (ImRaii.IEndObject prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding))
+          using (ImRaii.ChildDisposable prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding))
           {
             if (!prompt.Success) return;
             ImGui.TextWrapped(_promptDescription);
@@ -275,7 +274,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
             if (isReport)
             {
               ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
-              using (ImRaii.IEndObject combo = ImRaii.Combo("##reportReason", _promptInputSelected ? reportReasons.Contains(_promptInputBuffer) ? _promptInputBuffer : "Other" : "Select a Reason..."))
+              using (ImRaii.ComboDisposable combo = ImRaii.Combo("##reportReason", _promptInputSelected ? reportReasons.Contains(_promptInputBuffer) ? _promptInputBuffer : "Other" : "Select a Reason..."))
               {
                 if (combo.Success)
                 {

@@ -71,7 +71,7 @@ public partial class GameInteropService(ICondition _condition, IDataService _dat
     Character* character = (Character*)TryFindCharacter(name, baseId);
     if (character == null) return null;
 
-    string speaker = character->GetName();
+    string speaker = character->GetName().ToString();
 
     byte[] customize = character->DrawData.CustomizeData.Data.ToArray();
     bool gender = Convert.ToBoolean(customize[(int)CustomizeIndex.Gender]);

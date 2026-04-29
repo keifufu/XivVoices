@@ -1,3 +1,4 @@
+using Dalamud.Game.Chat;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
 
@@ -21,12 +22,12 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     return _logger.ServiceLifecycle();
   }
 
-  private void OnChatMessage(XivChatType type, int timestamp, ref SeString sender, ref SeString sentence, ref bool isHandled)
+  private void OnChatMessage(IChatMessage message)
   {
     string speaker = "";
     try
     {
-      foreach (Payload item in sender.Payloads)
+      foreach (Payload item in message.Sender.Payloads)
       {
         if (item is PlayerPayload player)
         {
@@ -44,10 +45,10 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     catch { }
 
     if (_selfTestService.Step == SelfTestStep.Provider_Chat)
-      _selfTestService.Report_Provider_Chat(type, speaker, sentence.ToString());
+      _selfTestService.Report_Provider_Chat(message.LogKind, speaker, message.Message.ToString());
 
     bool allowed = false;
-    switch (type)
+    switch (message.LogKind)
     {
       case XivChatType.Say:
         allowed = _configuration.ChatSayEnabled;
@@ -103,8 +104,8 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
 
     if (allowed)
     {
-      _logger.Debug($"speaker::{speaker} sentence::{sentence}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, sentence.ToString());
+      _logger.Debug($"speaker::{speaker} sentence::{message.Message}");
+      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString());
     }
   }
 }

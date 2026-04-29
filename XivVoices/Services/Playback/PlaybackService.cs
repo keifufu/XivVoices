@@ -254,7 +254,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         _queuedMessages.Add(message);
     }
 
-    if (!message.IsFake && voicelinePath == null && _configuration.LiveMode && message.Source == MessageSource.AddonTalk)
+    bool isIgnoredSpeaker = _dataService.Manifest?.IgnoredSpeakers.Contains(message.Speaker) ?? false;
+    if (!message.IsFake && !isIgnoredSpeaker && voicelinePath == null && _configuration.LiveMode && message.Source == MessageSource.AddonTalk)
     {
       voicelinePath = await TryDownloadVoiceline(message);
       message.VoicelinePath = voicelinePath;

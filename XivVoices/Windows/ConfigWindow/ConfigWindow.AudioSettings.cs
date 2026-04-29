@@ -98,7 +98,7 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 10));
     string[] genders = ["Male", "Female"];
     ImGui.Text("TTS Default Voice");
-    using (ImRaii.IEndObject combo = ImRaii.Combo("##LocalTTSDefaultVoice", _configuration.LocalTTSDefaultVoice))
+    using (ImRaii.ComboDisposable combo = ImRaii.Combo("##LocalTTSDefaultVoice", _configuration.LocalTTSDefaultVoice))
     {
       if (combo.Success)
       {

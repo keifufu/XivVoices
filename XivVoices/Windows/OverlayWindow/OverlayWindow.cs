@@ -1,10 +1,13 @@
 using Dalamud.Game.Addon.Events;
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using Microsoft.Extensions.DependencyInjection;
+
+#if !NO_KTK
 using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Overlay.UiOverlay;
-using Microsoft.Extensions.DependencyInjection;
+#endif
 
 namespace XivVoices.Windows;
 
@@ -13,6 +16,7 @@ public interface IOverlayWindow : IHostedService
   public unsafe bool CheckCollision(AtkEventData* atkEventData);
 }
 
+#if !NO_KTK
 public class OverlayWindow(ILogger _logger, Configuration _configuration, IFramework _framework, IClientState _clientState, IServiceProvider services) : IOverlayWindow
 {
   private OverlayController? _overlayController;
@@ -44,7 +48,7 @@ public class OverlayWindow(ILogger _logger, Configuration _configuration, IFrame
 
     _xivvOverlayNode = new XivvOverlayNode(services)
     {
-      Size = new(340.0f, 100.0f),
+      Size = new(370.0f, 100.0f),
       Position = _configuration.OverlayPosition,
     };
     _overlayController?.AddNode(_xivvOverlayNode);
@@ -79,6 +83,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly CircleButtonNode _closeButton;
   private readonly HorizontalLineNode _horizontalLine;
   private readonly TextButtonNode _pauseButton;
+  private readonly CircleButtonNode _fastForwardButton;
   private readonly CircleButtonNode _muteButton;
   private readonly SliderNode _volumeSlider;
   private readonly HorizontalListNode _horizontalList;
@@ -210,6 +215,18 @@ public unsafe class XivvOverlayNode : OverlayNode
       }
     };
 
+    _fastForwardButton = new CircleButtonNode
+    {
+      Width = 28.0f,
+      Y = -2.0f,
+      Icon = ButtonIcon.RightArrow,
+      OnClick = () =>
+      {
+        _configuration.FastForward = !_configuration.FastForward;
+        _configuration.Save();
+      }
+    };
+
     _volumeSlider = new SliderNode
     {
       Y = 2.0f,
@@ -239,6 +256,7 @@ public unsafe class XivvOverlayNode : OverlayNode
           String = "Skip",
           OnClick = () => _playbackService.Skip(),
         },
+        _fastForwardButton,
         _muteButton,
         _volumeSlider
       ]
@@ -281,6 +299,8 @@ public unsafe class XivvOverlayNode : OverlayNode
     _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
 
     _frameFront.IsVisible = _configuration.OverlayBorder;
+
+    _fastForwardButton.AddColor = new(_configuration.FastForward ? 0.15f : 0.0f);
 
     _volumeSlider.IsEnabled = !_configuration.MuteEnabled;
     _volumeSlider.Value = _configuration.Volume;
@@ -407,3 +427,18 @@ public unsafe class XivvOverlayNode : OverlayNode
     }
   }
 }
+#endif
+
+#if NO_KTK
+public class OverlayWindow(ILogger _logger) : IOverlayWindow
+{
+  public Task StartAsync(CancellationToken cancellationToken)
+    => _logger.ServiceLifecycle();
+
+  public Task StopAsync(CancellationToken cancellationToken)
+    => _logger.ServiceLifecycle();
+  
+  public unsafe bool CheckCollision(AtkEventData* atkEventData)
+    => false;
+}
+#endif

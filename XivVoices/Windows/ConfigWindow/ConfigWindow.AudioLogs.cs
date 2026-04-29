@@ -16,7 +16,7 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
 
     ImGui.Unindent(ScaledFloat(8));
-    using (ImRaii.IEndObject child = ImRaii.Child("##AudioLogsScrollingRegion", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.AlwaysVerticalScrollbar))
+    using (ImRaii.ChildDisposable child = ImRaii.Child("##AudioLogsScrollingRegion", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.AlwaysVerticalScrollbar))
     {
       if (!child.Success) return;
 

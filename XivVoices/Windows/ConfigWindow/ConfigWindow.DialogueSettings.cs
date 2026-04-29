@@ -25,7 +25,7 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
     ImGui.Indent(ScaledFloat(8));
 
-    using (ImRaii.IEndObject table = ImRaii.Table("AddonSettingsTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
+    using (ImRaii.TableDisposable table = ImRaii.Table("AddonSettingsTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
     {
       if (!table.Success) return;
       ImGui.TableSetupColumn("Source");

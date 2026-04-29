@@ -57,9 +57,10 @@ public enum SelfTestStep : long
   Interop_GetActiveLeves = 1L << 14,
   Interop_Camera = 1L << 15,
 
-  Provider_BattleTalk = 1L << 16,
-  Interop_IsInDuty = 1L << 17,
-  Interop_IsInCutscene = 1L << 18,
+  Interop_GetClassJob = 1L << 16,
+  Provider_BattleTalk = 1L << 17,
+  Interop_IsInDuty = 1L << 18,
+  Interop_IsInCutscene = 1L << 19,
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
@@ -170,6 +171,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Interop_Camera;
         break;
       case SelfTestStep.Interop_Camera:
+        CurrentInstruction = "Switch to White Mage.";
+        Step = SelfTestStep.Interop_GetClassJob;
+        break;
+      case SelfTestStep.Interop_GetClassJob:
         CurrentInstruction = "Join \"Hells Kier\" and attack Suzaku once.";
         Step = SelfTestStep.Provider_BattleTalk;
         break;
@@ -351,6 +356,24 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
       case SelfTestStep.Interop_Camera:
         CameraView cameraView = _gameInteropService.GetCameraView();
         AddLog($"F{cameraView.Forward:F1} U{cameraView.Up:F1} R:{cameraView.Right:F1}");
+        break;
+      case SelfTestStep.Interop_GetClassJob:
+        string classJob = _gameInteropService.GetClassJob();
+        switch (StepState)
+        {
+          case 0:
+            if (classJob == "White Mage")
+            {
+              StepState = 1;
+              CurrentInstruction = "Switch to Warrior";
+            }
+            break;
+          case 1:
+            if (classJob == "Warrior")
+              Next(true, false);
+            break;
+        }
+        AddLog($"Current ClassJob: \"{classJob}\"");
         break;
       case SelfTestStep.Interop_IsInDuty:
         switch (StepState)

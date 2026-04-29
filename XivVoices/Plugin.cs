@@ -1,7 +1,10 @@
-using KamiToolKit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ILogger = XivVoices.Services.ILogger;
+
+#if !NO_KTK
+using KamiToolKit;
+#endif
 
 namespace XivVoices;
 
@@ -32,7 +35,9 @@ public sealed class Plugin : IDalamudPlugin
     INotificationManager notificationManager
   )
   {
+#if !NO_KTK
     KamiToolKitLibrary.Initialize(pluginInterface, pluginInterface.InternalName);
+#endif
 
     _host = new HostBuilder()
       .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
@@ -124,6 +129,8 @@ public sealed class Plugin : IDalamudPlugin
   {
     _host.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
     _host.Dispose();
+#if !NO_KTK
     KamiToolKitLibrary.Dispose();
+#endif
   }
 }

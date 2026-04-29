@@ -29,7 +29,7 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
   private readonly Hook<OpenBubbleDelegate> _openBubbleHook = null!;
   private unsafe void* OpenBubbleDetour(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID)
   {
-    if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Player && !_gameInteropService.IsInCutscene())
+    if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Pc && !_gameInteropService.IsInCutscene())
     {
       string speaker = actor->GetName().ToString();
       if (string.IsNullOrEmpty(speaker)) speaker = "Bubble";

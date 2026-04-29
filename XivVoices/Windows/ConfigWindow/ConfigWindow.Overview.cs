@@ -20,6 +20,11 @@ public partial class ConfigWindow
 
   // Changelogs. Newest ones go to the top.
   private readonly Dictionary<string, string[]> _changelogs = new() {
+    { "1.3.1.0", new[]
+    {
+      "Updated for 7.5 (API15)",
+      "Added a warning if the plugin is outdated.",
+    }},
     { "1.3.0.0", new[]
     {
       "Added an overlay window to control playback.",
@@ -151,7 +156,7 @@ public partial class ConfigWindow
       }
 
       ImGui.SetNextItemWidth(ScaledFloat(160));
-      using (ImRaii.IEndObject combo = ImRaii.Combo("##Drives", _selectedDrive ?? "Select Drive"))
+      using (ImRaii.ComboDisposable combo = ImRaii.Combo("##Drives", _selectedDrive ?? "Select Drive"))
       {
         if (combo)
         {
@@ -259,7 +264,7 @@ public partial class ConfigWindow
 
     ImGui.Unindent(ScaledFloat(8));
     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(175));
-    using (ImRaii.IEndObject child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
+    using (ImRaii.ChildDisposable child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
     {
       if (!child.Success) return;
       DrawHorizontallyCenteredText("Plugin Changelogs. Join our Discord for Announcements.");

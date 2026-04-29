@@ -283,7 +283,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
     if (source == MessageSource.AddonTalk && isIgnoredSpeaker && _configuration.LiveMode)
-      _logger.Chat($"Ignored Speaker: {message.Speaker}");
+      _logger.Chat(pre: $"Ignored Speaker: {message.Speaker}", preColor: 25);
 
     bool allowed = true;
     bool queued = false;
