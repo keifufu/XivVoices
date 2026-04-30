@@ -102,6 +102,7 @@ public class Configuration : IPluginConfiguration
   public string LocalGenerationUri = "http://127.0.0.1:6969/generate?voice=%v&sentence=%s&id=%i";
   public bool SuperFastForward = false;
   public bool LiveMode = false;
+  public bool WarnIgnoredSpeaker = false;
 
   [NonSerialized]
   private ILogger? Logger;

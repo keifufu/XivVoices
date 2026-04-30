@@ -68,5 +68,6 @@ public partial class ConfigWindow
     DrawConfigCheckbox("SuperFastForward", ref _configuration.SuperFastForward);
 
     DrawConfigCheckbox("LiveMode", ref _configuration.LiveMode);
+    DrawConfigCheckbox("WarnIgnoredSpeaker", ref _configuration.WarnIgnoredSpeaker);
   }
 }
