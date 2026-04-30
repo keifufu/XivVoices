@@ -9,10 +9,16 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
   private readonly ConcurrentDictionary<string, DateTime> _recentSentences = new();
   private readonly TimeSpan _sentenceCooldown = TimeSpan.FromSeconds(30);
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  private unsafe delegate void* OpenBubbleDelegate(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID);
+  private Hook<OpenBubbleDelegate> _openBubbleHook = null!;
+
+  public unsafe Task StartAsync(CancellationToken cancellationToken)
   {
-    _gameInteropProvider.InitializeFromAttributes(this);
+    _openBubbleHook ??= _gameInteropProvider.HookFromSignature<OpenBubbleDelegate>("E8 ?? ?? ?? ?? F6 86 ?? ?? ?? ?? ?? C7 46 ?? ?? ?? ?? ??", OpenBubbleDetour);
+
+#if !NO_HOOKS
     _openBubbleHook.Enable();
+#endif
 
     return _logger.ServiceLifecycle();
   }
@@ -24,9 +30,6 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
     return _logger.ServiceLifecycle();
   }
 
-  private unsafe delegate void* OpenBubbleDelegate(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID);
-  [Signature("E8 ?? ?? ?? ?? F6 86 ?? ?? ?? ?? ?? C7 46 ?? ?? ?? ?? ??", DetourName = nameof(OpenBubbleDetour))]
-  private readonly Hook<OpenBubbleDelegate> _openBubbleHook = null!;
   private unsafe void* OpenBubbleDetour(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID)
   {
     if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Pc && !_gameInteropService.IsInCutscene())

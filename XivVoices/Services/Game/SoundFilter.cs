@@ -1,3 +1,4 @@
+using FFXIVClientStructs.FFXIV.Client.System.Resource;
 using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
 using InteropGenerator.Runtime;
 
@@ -22,17 +23,33 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
 
   public event EventHandler<InterceptedSound>? OnCutsceneAudioDetected;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  private Hook<ResourceManager.Delegates.GetResourceSync> _getResourceSyncHook = null!;
+  private Hook<ResourceManager.Delegates.GetResourceAsync> _getResourceAsyncHook = null!;
+
+  private unsafe delegate void* PlaySpecificSoundDelegate(long a1, int idx);
+  private Hook<PlaySpecificSoundDelegate> _playSpecificSoundHook = null!;
+
+  private delegate IntPtr LoadSoundFileDelegate(IntPtr resourceHandle, uint a2);
+  private Hook<LoadSoundFileDelegate> _loadSoundFileHook = null!;
+
+  public unsafe Task StartAsync(CancellationToken cancellationToken)
   {
     (nint noSoundPtr, nint infoPtr) = SetUpNoSound();
     _noSoundPtr = noSoundPtr;
     _infoPtr = infoPtr;
 
-    _interopProvider.InitializeFromAttributes(this);
+    _getResourceSyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceSync>(ResourceManager.Addresses.GetResourceSync.Value, GetResourceSyncDetour);
+    _getResourceAsyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceAsync>(ResourceManager.Addresses.GetResourceAsync.Value, GetResourceAsyncDetour);
+
+    _playSpecificSoundHook ??= _interopProvider.HookFromSignature<PlaySpecificSoundDelegate>("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 33 F6 8B DA 48 8B F9 0F BA E2 0F", PlaySpecificSoundDetour);
+    _loadSoundFileHook ??= _interopProvider.HookFromSignature<LoadSoundFileDelegate>("E8 ?? ?? ?? ?? 48 85 C0 75 12 B0 F6", LoadSoundFileDetour);
+
+#if !NO_HOOKS
     _getResourceSyncHook.Enable();
     _getResourceAsyncHook.Enable();
     _loadSoundFileHook.Enable();
     _playSpecificSoundHook.Enable();
+#endif
 
     return _logger.ServiceLifecycle();
   }
@@ -81,24 +98,18 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     return (noSoundPtr, infoPtr);
   }
 
-  private unsafe delegate void* GetResourceSyncDelegate(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown);
-  [Signature("E8 ?? ?? ?? ?? 48 8B C8 8B C3 F0 0F C0 81", DetourName = nameof(GetResourceSyncDetour))]
-  private readonly Hook<GetResourceSyncDelegate> _getResourceSyncHook = null!;
-  private unsafe void* GetResourceSyncDetour(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown)
+  private unsafe ResourceHandle* GetResourceSyncDetour(ResourceManager* thisPtr, ResourceCategory* category, uint* type, uint* hash, CStringPointer path, void* unknown, void* unkDebugPtr, uint unkDebugInt)
   {
-    void* ret = _getResourceSyncHook.Original(resourceManager, category, type, hash, path, unknown);
+    ResourceHandle* ret = _getResourceSyncHook.Original(thisPtr, category, type, hash, path, unknown, unkDebugPtr, unkDebugInt);
     if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceSync)
       _selfTestService.Report_SoundFilter_GetResourceSync(path.ToString());
     GetResourceDetourInner(ret, path);
     return ret;
   }
 
-  private unsafe delegate void* GetResourceAsyncDelegate(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown);
-  [Signature("E8 ?? ?? ?? 00 48 8B D8 EB ?? F0 FF 83 ?? ?? 00 00", DetourName = nameof(GetResourceAsyncDetour))]
-  private readonly Hook<GetResourceAsyncDelegate> _getResourceAsyncHook = null!;
-  private unsafe void* GetResourceAsyncDetour(void* resourceManager, void* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown)
+  private unsafe ResourceHandle* GetResourceAsyncDetour(ResourceManager* thisPtr, ResourceCategory* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown, void* unkDebugPtr, uint unkDebugInt)
   {
-    void* ret = _getResourceAsyncHook.Original(resourceManager, category, type, hash, path, unknown, isUnknown);
+    ResourceHandle* ret = _getResourceAsyncHook.Original(thisPtr, category, type, hash, path, unknown, isUnknown, unkDebugPtr, unkDebugInt);
     if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceAsync)
       _selfTestService.Report_SoundFilter_GetResourceAsync(path.ToString());
     GetResourceDetourInner(ret, path);
@@ -116,9 +127,6 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     }
   }
 
-  private unsafe delegate IntPtr LoadSoundFileDelegate(IntPtr resourceHandle, uint a2);
-  [Signature("E8 ?? ?? ?? ?? 48 85 C0 75 12 B0 F6", DetourName = nameof(LoadSoundFileDetour))]
-  private readonly Hook<LoadSoundFileDelegate> _loadSoundFileHook = null!;
   private unsafe IntPtr LoadSoundFileDetour(IntPtr resourceHandle, uint a2)
   {
     nint ret = _loadSoundFileHook.Original(resourceHandle, a2);
@@ -142,9 +150,6 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     return ret;
   }
 
-  private unsafe delegate void* PlaySpecificSoundDelegate(long a1, int idx);
-  [Signature("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 33 F6 8B DA 48 8B F9 0F BA E2 0F", DetourName = nameof(PlaySpecificSoundDetour))]
-  private readonly Hook<PlaySpecificSoundDelegate> _playSpecificSoundHook = null!;
   private unsafe void* PlaySpecificSoundDetour(long a1, int idx)
   {
     try
