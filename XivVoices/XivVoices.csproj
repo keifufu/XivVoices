@@ -44,7 +44,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Concentus.OggFile" Version="1.0.7" />
-    <PackageReference Include="KamiToolKit" Version="1.1.0" />
+    <PackageReference Include="KamiToolKit" Version="1.1.2" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.0.2" />
     <PackageReference Include="NAudio" Version="2.3.0" />
   </ItemGroup>
