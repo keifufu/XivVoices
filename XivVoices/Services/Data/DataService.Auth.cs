@@ -23,6 +23,7 @@ public partial class DataService
   public ServerStatus ServerStatus { get; private set; } = ServerStatus.OFFLINE;
   public HttpClient HttpClient { get; private set; } = new();
   public bool IsLoggingIn { get; private set; } = false;
+  private CancellationTokenSource? _loginCts;
 
   private CookieContainer _cookieContainer = new();
 
@@ -49,6 +50,8 @@ public partial class DataService
   private void AuthStop()
   {
     SaveCookies();
+    _loginCts?.Cancel();
+    _loginCts?.Dispose();
   }
 
   public async Task UpdateServerStatus(CancellationToken token)
@@ -78,7 +81,7 @@ public partial class DataService
         {
           _logger.Debug("Server returned 401 Unauthorized");
           ServerStatus = ServerStatus.UNAUTHORIZED;
-          OnOpenConfigWindow?.Invoke(this, ConfigWindowTab.Overview);
+          OnOpenConfigWindow?.Invoke(this, ConfigTab.Overview);
         }
         else
         {
@@ -98,6 +101,7 @@ public partial class DataService
     }
 
     _ = SetLatestVersion();
+    OnServerStatusChanged?.Invoke();
   }
 
   public void Login()
@@ -110,7 +114,14 @@ public partial class DataService
     string url = $"{ServerUrl}/auth/oauth2/discord?state={state}";
     Util.OpenLink(url);
 
-    _ = CheckLoginStatus(state);
+    if (_loginCts != null)
+    {
+      _loginCts.Cancel();
+      _loginCts.Dispose();
+    }
+
+    _loginCts = new CancellationTokenSource();
+    _ = CheckLoginStatus(state, _loginCts.Token);
   }
 
   private CookieContainer LoadCookies()
@@ -169,18 +180,19 @@ public partial class DataService
     File.WriteAllText(cookiesPath, json);
   }
 
-  private async Task CheckLoginStatus(string state)
+  private async Task CheckLoginStatus(string state, CancellationToken token)
   {
-    using CancellationTokenSource cts = new(TimeSpan.FromMinutes(5));
+    using CancellationTokenSource timeoutCts = new(TimeSpan.FromMinutes(5));
+    using CancellationTokenSource linkedCts = CancellationTokenSource.CreateLinkedTokenSource(token, timeoutCts.Token);
+    CancellationToken linkedToken = linkedCts.Token;
 
-    while (!cts.Token.IsCancellationRequested)
+    while (!linkedToken.IsCancellationRequested)
     {
-      await Task.Delay(TimeSpan.FromSeconds(5), cts.Token);
-
       try
       {
+        await Task.Delay(TimeSpan.FromSeconds(5), linkedToken);
         string statusEndpoint = $"{ServerUrl}/auth/oauth2/discord/authorized?state={state}";
-        HttpResponseMessage response = await HttpClient.GetAsync(statusEndpoint, cts.Token);
+        HttpResponseMessage response = await HttpClient.GetAsync(statusEndpoint, linkedToken);
 
         if (response.IsSuccessStatusCode)
         {
@@ -188,6 +200,7 @@ public partial class DataService
           IsLoggingIn = false;
           _ = UpdateServerStatus(default);
           SaveCookies();
+          OnServerStatusChanged?.Invoke();
           return;
         }
         else
@@ -198,18 +211,22 @@ public partial class DataService
       catch (OperationCanceledException)
       {
         _logger.Debug("CheckLoginStatus was cancelled.");
+        IsLoggingIn = false;
+        OnServerStatusChanged?.Invoke();
         return;
       }
       catch (Exception ex)
       {
         _logger.Error(ex);
         IsLoggingIn = false;
+        OnServerStatusChanged?.Invoke();
         return;
       }
     }
 
-    _logger.Debug("Login check timed out after 5 minutes.");
+    _logger.Debug("Login check ended.");
     IsLoggingIn = false;
+    OnServerStatusChanged?.Invoke();
   }
 }
 

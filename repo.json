@@ -5,8 +5,8 @@
     "Punchline": "Transforming Final Fantasy XIV by voicing every piece of dialogue!",
     "Description": "A plugin that voices every NPC dialogue, battle interaction, and more.",
     "Tags": [
-      "XivVoices",
-      "XIVV"
+      "xivvoices",
+      "xivv"
     ],
     "IsHide": false,
     "InternalName": "XivVoices",
@@ -25,6 +25,6 @@
     "LoadRequiredState": 2,
     "LoadSync": true,
     "LoadPriority": 0,
-    "IconUrl": "https://raw.githubusercontent.com/keifufu/XivVoices/main/data/logo.png"
+    "IconUrl": "https://raw.githubusercontent.com/keifufu/XivVoices/main/XivVoices/assets/logo.png"
   }
 ]

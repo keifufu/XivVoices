@@ -1,3 +1,5 @@
+using Dalamud.Interface.ImGuiFileDialog;
+
 namespace XivVoices.Services;
 
 public partial interface IDataService : IHostedService
@@ -13,9 +15,12 @@ public partial interface IDataService : IHostedService
   string Version { get; }
   string LatestVersion { get; }
   bool IsOutdated { get; }
-  event EventHandler<string>? OnDataDirectoryChanged;
-  event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
+  FileDialogManager FileDialogManager { get; }
+  event EventHandler<ConfigTab>? OnOpenConfigWindow;
+  event System.Action? OnDataDirectoryChanged;
   event System.Action? OnLatestVersionChanged;
+  event System.Action? OnServerStatusChanged;
+  event System.Action? OnUpdateFinished;
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
   Task Update(bool isManual);
@@ -37,9 +42,13 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   public DataStatus DataStatus { get; private set; } = new();
   public Manifest? Manifest { get; private set; } = null;
 
-  public event EventHandler<string>? OnDataDirectoryChanged;
-  public event EventHandler<ConfigWindowTab>? OnOpenConfigWindow;
+  public FileDialogManager FileDialogManager { get; } = new();
+
+  public event EventHandler<ConfigTab>? OnOpenConfigWindow;
+  public event System.Action? OnDataDirectoryChanged;
   public event System.Action? OnLatestVersionChanged;
+  public event System.Action? OnServerStatusChanged;
+  public event System.Action? OnUpdateFinished;
 
   private bool _dataDirectoryExists;
   public string? DataDirectory
@@ -61,6 +70,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         .Where(drive => drive.IsReady)
         .Select(drive => drive.Name.Trim('\\'))
         .ToList();
+      if (Util.IsWine()) _availableDrives = _availableDrives.Where((d) => d != "C:").ToList();
       return _availableDrives;
     }
   }
@@ -161,7 +171,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
     // Incase the new data directory is an existing installation, try to import these instead of overwriting them with empty ones.
     LoadCachedPlayers();
-    OnDataDirectoryChanged?.Invoke(this, dataDirectory); // Used in ReportService for localReports.json
+    OnDataDirectoryChanged?.Invoke(); // Used in ReportService for localReports.json
 
     SaveCookies();
     _ = Update(true);
@@ -409,6 +419,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     {
       _logger.Debug("DataDirectory not found, can't update.");
       DataStatus.UpdateInProgress = false;
+      OnUpdateFinished?.Invoke();
       return;
     }
 
@@ -419,6 +430,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     {
       _logger.Debug("Manifest not loaded, can't update.");
       DataStatus.UpdateInProgress = false;
+      OnUpdateFinished?.Invoke();
       return;
     }
 
@@ -430,6 +442,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     {
       _logger.Debug($"ServerStatus is {ServerStatus}, can't update.");
       DataStatus.UpdateInProgress = false;
+      OnUpdateFinished?.Invoke();
       return;
     }
 
@@ -504,6 +517,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     if (missingFiles.Count == 0)
     {
       DataStatus.UpdateInProgress = false;
+      OnUpdateFinished?.Invoke();
       return;
     }
 
@@ -555,6 +569,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     finally
     {
       DataStatus.UpdateInProgress = false;
+      OnUpdateFinished?.Invoke();
       _logger.Debug("Update completed.");
     }
   }

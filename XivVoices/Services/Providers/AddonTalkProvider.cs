@@ -15,7 +15,11 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IDataService _dataService, IOverlayWindow _overlayWindow, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle) : IAddonTalkProvider
+public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IDataService _dataService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle
+#if !NO_KTK
+, IOverlayAddon _overlayWindow
+#endif
+) : IAddonTalkProvider
 {
   private bool _lastVisible = false;
   private string _lastSpeaker = "";
@@ -46,11 +50,13 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   {
     if (args is not AddonReceiveEventArgs eventArgs || (AtkEventType)eventArgs.AtkEventType is not AtkEventType.MouseClick) return;
 
+#if !NO_KTK
     if (_overlayWindow.CheckCollision((AtkEventData*)eventArgs.AtkEventData))
     {
       eventArgs.AtkEventType = 0;
       return;
     }
+#endif
 
     if (!_configuration.PreventAccidentalDialogueAdvance || _configuration.MuteEnabled) return;
 

@@ -6,6 +6,7 @@ public interface IMessageDispatcher : IHostedService
   void ClearQueue();
   string ReplaceName(string sentence, string playerName);
   (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
+  void DispatchTestMessage();
 }
 
 public enum PlaybackQueueState
@@ -167,7 +168,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
 
     string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
-    if (playerName == null) return; // Nah
+    if (playerName == null)
+    {
+      if (isFake) playerName = "Fake Name";
+      else return; // Nah
+    }
     bool sentenceHasName = SentenceHasPlayerName(sentence, playerName);
 
     // If this sentence matches a sentence in Manifest.DirectMappings.Retainer,
@@ -293,14 +298,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       case MessageSource.AddonTalk:
         allowed = _configuration.AddonTalkEnabled
           && (isNarrator
-            ? _configuration.AddonTalkNarratorEnabled
+            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonTalkTTSEnabled || _configuration.ForceLocalGeneration)
             : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled || _configuration.ForceLocalGeneration);
         queued = _configuration.QueueDialogue;
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
           && (isNarrator
-            ? _configuration.AddonTalkNarratorEnabled
+            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled || _configuration.ForceLocalGeneration)
             : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled || _configuration.ForceLocalGeneration);
         queued = true;
         break;
@@ -313,13 +318,15 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         break;
     }
 
-    if (source == MessageSource.AddonMiniTalk && _configuration.PrintBubbleMessages)
+    if (isFake) allowed = true;
+
+    if (source == MessageSource.AddonMiniTalk)
       _logger.Chat(message.RawSentence, name: npc?.Id ?? "Bubble", type: XivChatType.NPCDialogue, addPrefix: false);
 
-    if (isNarrator && _configuration.PrintNarratorMessages)
+    if (isNarrator)
       _logger.Chat(message.RawSentence, name: "Narrator", type: XivChatType.NPCDialogue, addPrefix: false);
 
-    if (_configuration.MuteEnabled || !allowed || (isRetainer && !_configuration.RetainersEnabled) || (message.IsLocalTTS && !_configuration.LocalTTSEnabled && !_configuration.ForceLocalGeneration))
+    if ((_configuration.MuteEnabled && !isFake) || !allowed || (isRetainer && !_configuration.RetainersEnabled))
     {
       _logger.Debug($"Not playing line due to user configuration. MuteEnabled:{_configuration.MuteEnabled} allowed:{allowed} isNarrator:{isNarrator} isRetainer:{isRetainer} isLocalTTS:{message.IsLocalTTS}");
       return;
@@ -336,5 +343,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _logger.Debug($"Playing message: {message.Id}");
       _ = _playbackService.Play(message);
     }
+  }
+
+  public void DispatchTestMessage()
+  {
+    string sentence = Random.Shared.Next(100) == 0 ? "Testing.... Ardbert, can you hear me? I can speak now. Will you come home soon?" : "This is a test message.";
+    _ = TryDispatch(MessageSource.AddonTalk, "Narrator", sentence, null, true);
   }
 }

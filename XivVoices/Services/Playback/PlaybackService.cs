@@ -12,6 +12,10 @@ public interface IPlaybackService : IHostedService
 
   bool Paused { get; set; }
 
+  public void InitializeOutputDevice();
+  public IEnumerable<WaveOutCapabilities> GetWaveOutDevices();
+  public IEnumerable<DirectSoundDeviceInfo> GetDirectSoundDevices();
+
   Task Play(XivMessage message, bool replay = false);
 
   void StopAll();
@@ -67,7 +71,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _logger.ServiceLifecycle();
   }
 
-  private void InitializeOutputDevice()
+  private void StopOutputDevice()
   {
     _waveOutputDevice?.Stop();
     _waveOutputDevice?.Dispose();
@@ -75,6 +79,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     _directSoundOutputDevice?.Stop();
     _directSoundOutputDevice?.Dispose();
     _directSoundOutputDevice = null;
+  }
+
+  public void InitializeOutputDevice()
+  {
+    StopAll();
+    StopOutputDevice();
 
     _mixer = new MixingSampleProvider(WaveFormat.CreateIeeeFloatWaveFormat(48000, 2))
     {
@@ -83,36 +93,74 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     try
     {
-      int devices = WaveOut.DeviceCount;
-      _logger.Debug($"[Wave] Available audio devices: {devices}");
-
-      for (int i = -1; i < devices; i++)
+      switch (_configuration.PlaybackDeviceType)
       {
-        WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
-        _logger.Debug($"[Wave] Device {i} ({deviceInfo.ProductName})");
+        case PlaybackDeviceType.WaveOut:
+          InitializeWaveOutDevice();
+          break;
+        case PlaybackDeviceType.DirectSound:
+          InitializeDirectSoundDevice();
+          break;
       }
-
-      _waveOutputDevice = new WaveOutEvent();
-      _logger.Debug($"[Wave] Initializing WaveOutEvent with Device {_waveOutputDevice.DeviceNumber}");
-      _waveOutputDevice.Init(_mixer);
-      _waveOutputDevice.Play();
     }
     catch (Exception ex)
     {
+      StopOutputDevice();
       _logger.Error(ex);
-      _logger.Debug("Failed to initialize WaveOutEvent, attempting DirectSoundOut.");
-
-      _directSoundOutputDevice = new DirectSoundOut();
-
-      foreach (DirectSoundDeviceInfo? device in DirectSoundOut.Devices)
-      {
-        _logger.Debug($"[DirectSound] Device {device.Guid} ({device.Description})");
-      }
-
-      _logger.Debug($"[DirectSound] Initializing DirectSoundOut with Device {DirectSoundOut.DSDEVID_DefaultPlayback} (DSDEVID_DefaultPlayback)");
-      _directSoundOutputDevice.Init(_mixer);
-      _directSoundOutputDevice.Play();
+      // Could try to initialize the opposite of what the user configured if it fails,
+      // but I'd rather just the user fix their configuration, so we will just warn here.
+      _logger.Chat(pre: "Output device failed to initialize.", preColor: 15, post: "Please check your output configuration.");
     }
+  }
+
+  private void InitializeWaveOutDevice()
+  {
+    int devices = WaveOut.DeviceCount;
+    _logger.Debug($"[Wave] Available audio devices: {devices}");
+
+    int deviceNumber = -1;
+    for (int i = -1; i < devices; i++)
+    {
+      WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
+      _logger.Debug($"[Wave] Device {i} ({deviceInfo.ProductName})");
+
+      if (deviceInfo.ProductName == _configuration.WaveOutDevice)
+        deviceNumber = i;
+    }
+
+    _waveOutputDevice = new WaveOutEvent()
+    {
+      DeviceNumber = deviceNumber,
+    };
+    _logger.Debug($"[Wave] Initializing WaveOutEvent with Device {_configuration.WaveOutDevice}");
+    _waveOutputDevice.Init(_mixer);
+    _waveOutputDevice.Play();
+  }
+
+  private void InitializeDirectSoundDevice()
+  {
+    _directSoundOutputDevice = new DirectSoundOut(_configuration.DirectSoundDevice ?? DirectSoundOut.DSDEVID_DefaultPlayback);
+
+    foreach (DirectSoundDeviceInfo? device in DirectSoundOut.Devices)
+    {
+      _logger.Debug($"[DirectSound] Device {device.Guid} ({device.Description})");
+    }
+
+    _logger.Debug($"[DirectSound] Initializing DirectSoundOut with Device {_configuration.DirectSoundDevice ?? DirectSoundOut.DSDEVID_DefaultPlayback}");
+    _directSoundOutputDevice.Init(_mixer);
+    _directSoundOutputDevice.Play();
+  }
+
+  public IEnumerable<WaveOutCapabilities> GetWaveOutDevices()
+  {
+    for (int i = -1; i < WaveOut.DeviceCount; i++)
+      yield return WaveOut.GetCapabilities(i);
+  }
+
+  public IEnumerable<DirectSoundDeviceInfo> GetDirectSoundDevices()
+  {
+    foreach (DirectSoundDeviceInfo? device in DirectSoundOut.Devices)
+      if (device != null) yield return device;
   }
 
   public Task StopAsync(CancellationToken cancellationToken)
@@ -131,12 +179,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     }
 
     _playing.Clear();
-    _waveOutputDevice?.Stop();
-    _waveOutputDevice?.Dispose();
-    _waveOutputDevice = null;
-    _directSoundOutputDevice?.Stop();
-    _directSoundOutputDevice?.Dispose();
-    _directSoundOutputDevice = null;
+    StopOutputDevice();
 
     return _logger.ServiceLifecycle();
   }
@@ -483,7 +526,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         if (_playing.TryGetValue(message.Id, out TrackableSound? track))
           yield return (message, track.IsPlaying, (float)(track.EstimatedCurrentTime.TotalMilliseconds / track.TotalTime.TotalMilliseconds), false);
         else
-          yield return (message, false, message.IsGenerating ? 0 : 100, false);
+          yield return (message, false, message.IsGenerating ? 0 : 1, false);
       }
     }
   }

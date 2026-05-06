@@ -2,7 +2,7 @@ namespace XivVoices.Windows;
 
 public partial class ConfigWindow
 {
-  private void DrawWineTab()
+  private void DrawWineSettingsTab()
   {
     if (!Util.IsWine())
     {

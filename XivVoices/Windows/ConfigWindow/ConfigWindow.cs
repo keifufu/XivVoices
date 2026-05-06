@@ -5,21 +5,9 @@ using Dalamud.Interface.Textures;
 
 namespace XivVoices.Windows;
 
-public enum ConfigWindowTab
-{
-  Overview,
-  DialogueSettings,
-  AudioSettings,
-  OverlaySettings,
-  AudioLogs,
-  WineSettings,
-  Debug,
-  SelfTest,
-}
-
 public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
 {
-  public ConfigWindowTab SelectedTab { get; set; } = ConfigWindowTab.Overview;
+  public ConfigTab SelectedTab { get; set; } = ConfigTab.Overview;
 
   private int _debugModeClickCount = 0;
   private double _debugModeLastClickTime;
@@ -65,17 +53,17 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     {
       if (child.Success)
       {
-        DrawImageButton(ConfigWindowTab.Overview, "Overview", GetImGuiHandleForIconId(1));
-        DrawImageButton(ConfigWindowTab.DialogueSettings, "Dialogue Settings", GetImGuiHandleForIconId(29));
-        DrawImageButton(ConfigWindowTab.AudioSettings, "Audio Settings", GetImGuiHandleForIconId(36));
-        DrawImageButton(ConfigWindowTab.OverlaySettings, "Overlay Settings", GetImGuiHandleForIconId(42));
-        DrawImageButton(ConfigWindowTab.AudioLogs, "Audio Logs", GetImGuiHandleForIconId(45));
+        DrawImageButton(ConfigTab.Overview, "Overview", GetImGuiHandleForIconId(1));
+        DrawImageButton(ConfigTab.DialogueSettings, "Dialogue Settings", GetImGuiHandleForIconId(29));
+        DrawImageButton(ConfigTab.PlaybackSettings, "Playback Settings", GetImGuiHandleForIconId(36));
+        DrawImageButton(ConfigTab.OverlaySettings, "Overlay Settings", GetImGuiHandleForIconId(42));
+        DrawImageButton(ConfigTab.AudioLogs, "Audio Logs", GetImGuiHandleForIconId(45));
         if (Util.IsWine())
-          DrawImageButton(ConfigWindowTab.WineSettings, "Wine Settings", GetImGuiHandleForIconId(24423));
+          DrawImageButton(ConfigTab.WineSettings, "Wine Settings", GetImGuiHandleForIconId(24423));
         if (_configuration.DebugMode)
         {
-          DrawImageButton(ConfigWindowTab.Debug, "Debug", GetImGuiHandleForIconId(28));
-          DrawImageButton(ConfigWindowTab.SelfTest, "Self-Test", GetImGuiHandleForIconId(73));
+          DrawImageButton(ConfigTab.Debug, "Debug", GetImGuiHandleForIconId(28));
+          DrawImageButton(ConfigTab.SelfTest, "Self-Test", GetImGuiHandleForIconId(73));
         }
       }
     }
@@ -93,28 +81,28 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
       ImGui.Unindent(ScaledFloat(8));
       switch (SelectedTab)
       {
-        case ConfigWindowTab.Overview:
+        case ConfigTab.Overview:
           DrawOverviewTab();
           break;
-        case ConfigWindowTab.DialogueSettings:
+        case ConfigTab.DialogueSettings:
           DrawDialogueSettingsTab();
           break;
-        case ConfigWindowTab.AudioSettings:
-          DrawAudioSettingsTab();
+        case ConfigTab.PlaybackSettings:
+          DrawPlaybackSettingsTab();
           break;
-        case ConfigWindowTab.OverlaySettings:
+        case ConfigTab.OverlaySettings:
           DrawOverlaySettingsTab();
           break;
-        case ConfigWindowTab.AudioLogs:
+        case ConfigTab.AudioLogs:
           DrawAudioLogsTab();
           break;
-        case ConfigWindowTab.WineSettings:
-          DrawWineTab();
+        case ConfigTab.WineSettings:
+          DrawWineSettingsTab();
           break;
-        case ConfigWindowTab.Debug:
+        case ConfigTab.Debug:
           DrawDebugTab();
           break;
-        case ConfigWindowTab.SelfTest:
+        case ConfigTab.SelfTest:
           DrawSelfTestTab();
           break;
       }
@@ -177,14 +165,14 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         _debugModeClickCount = 0;
         _configuration.DebugMode = !_configuration.DebugMode;
         _configuration.Save();
-        if (SelectedTab == ConfigWindowTab.Debug || SelectedTab == ConfigWindowTab.SelfTest)
-          SelectedTab = ConfigWindowTab.Overview;
+        if (SelectedTab == ConfigTab.Debug || SelectedTab == ConfigTab.SelfTest)
+          SelectedTab = ConfigTab.Overview;
         _logger.Debug("Toggled Debug Mode");
       }
     }
   }
 
-  private void DrawImageButton(ConfigWindowTab tab, string tabName, ImTextureID imageHandle)
+  private void DrawImageButton(ConfigTab tab, string tabName, ImTextureID imageHandle)
   {
     ImGuiStylePtr style = ImGui.GetStyle();
     if (SelectedTab == tab)
@@ -201,7 +189,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     {
       Vector4 tintColor = (SelectedTab == tab) ? new Vector4(0.6f, 0.8f, 1.0f, 1.0f) : new Vector4(1.0f, 1.0f, 1.0f, 1.0f);
 
-      using (ImRaii.Disabled(_dataService.DataDirectory == null && tab != ConfigWindowTab.Overview))
+      using (ImRaii.Disabled(_dataService.DataDirectory == null && tab != ConfigTab.Overview))
       {
         if (ImGui.ImageButton(imageHandle, ScaledVector2(42, 42), Vector2.Zero, Vector2.One, (int)style.FramePadding.X, Vector4.Zero, tintColor)) SelectedTab = tab;
       }

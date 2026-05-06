@@ -11,6 +11,7 @@
     <Punchline>Transforming Final Fantasy XIV by voicing every piece of dialogue!</Punchline>
     <Description>A plugin that voices every NPC dialogue, battle interaction, and more.</Description>
     <RepoUrl>https://github.com/keifufu/XivVoices</RepoUrl>
+    <IconUrl>https://raw.githubusercontent.com/keifufu/XivVoices/main/XivVoices/assets/logo.png</IconUrl>
     <Tags>xivvoices;xivv</Tags>
   </PropertyGroup>
 
@@ -44,8 +45,17 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Concentus.OggFile" Version="1.0.7" />
-    <PackageReference Include="KamiToolKit" Version="1.1.2" />
     <PackageReference Include="Xabe.FFmpeg" Version="6.0.2" />
     <PackageReference Include="NAudio" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup Condition="!$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">
+    <PackageReference Include="KamiToolKit" Version="1.1.11" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">
+    <Compile Remove="**\*Addon\**\*.cs" />
+    <None Remove="**\*Addon\**\*" />
+    <Content Remove="**\*Addon\**\*" />
   </ItemGroup>
 </Project>

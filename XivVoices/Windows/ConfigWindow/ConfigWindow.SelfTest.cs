@@ -16,25 +16,11 @@ public partial class ConfigWindow
 
       ImGui.TableHeadersRow();
 
-      DrawStep(SelfTestStep.SoundFilter_GetResourceSync);
-      DrawStep(SelfTestStep.SoundFilter_GetResourceAsync);
-      DrawStep(SelfTestStep.SoundFilter_LoadSoundFile);
-      DrawStep(SelfTestStep.SoundFilter_PlaySpecificSound);
-      DrawStep(SelfTestStep.Provider_Chat);
-      DrawStep(SelfTestStep.Provider_Talk);
-      DrawStep(SelfTestStep.Provider_Talk_AutoAdvance);
-      DrawStep(SelfTestStep.Interop_GetNpcData);
-      DrawStep(SelfTestStep.LipSync);
-      DrawStep(SelfTestStep.Provider_MiniTalk);
-      DrawStep(SelfTestStep.Interop_GetLocation);
-      DrawStep(SelfTestStep.Interop_IsOccupiedBySummoningBell);
-      DrawStep(SelfTestStep.Interop_GetActiveQuests);
-      DrawStep(SelfTestStep.Interop_GetActiveLeves);
-      DrawStep(SelfTestStep.Interop_Camera);
-      DrawStep(SelfTestStep.Interop_GetClassJob);
-      DrawStep(SelfTestStep.Provider_BattleTalk);
-      DrawStep(SelfTestStep.Interop_IsInDuty);
-      DrawStep(SelfTestStep.Interop_IsInCutscene);
+      foreach (SelfTestStep step in Enum.GetValues<SelfTestStep>())
+      {
+        if (step != SelfTestStep.None)
+          DrawStep(step);
+      }
     }
 
     ImGui.Separator();
@@ -47,32 +33,12 @@ public partial class ConfigWindow
       else _selfTestService.Start();
     }
 
-    bool completeDisabled = false;
-    switch (_selfTestService.Step)
+    foreach ((string button, bool enabled, System.Action action) in _selfTestService.GetButtonsForCurrentStep())
     {
-      case SelfTestStep.Interop_GetActiveQuests:
-      case SelfTestStep.Interop_GetActiveLeves:
-        completeDisabled = _selfTestService.StepState != 2;
-        goto case SelfTestStep.Interop_Camera; // Draw Complete and Skip buttons
-      case SelfTestStep.SoundFilter_GetResourceSync:
-      case SelfTestStep.SoundFilter_GetResourceAsync:
-      case SelfTestStep.SoundFilter_LoadSoundFile:
-      case SelfTestStep.SoundFilter_PlaySpecificSound:
-      case SelfTestStep.Provider_Talk_AutoAdvance:
-      case SelfTestStep.Interop_Camera:
-        ImGui.SameLine();
-        using (ImRaii.Disabled(completeDisabled))
-          if (ImGui.Button("Complete"))
-            _selfTestService.Next(true, false);
-        ImGui.SameLine();
-        if (ImGui.Button("Skip"))
-          _selfTestService.Next(false, true);
-        break;
-      case SelfTestStep.LipSync:
-        ImGui.SameLine();
-        if (ImGui.Button("LipSync Target"))
-          _selfTestService.LipSyncTarget();
-        goto case SelfTestStep.Interop_Camera; // Draw Complete and Skip buttons
+      ImGui.SameLine();
+      using (ImRaii.Disabled(!enabled))
+        if (ImGui.Button(button))
+          action();
     }
 
     ImGui.Dummy(ScaledVector2(0, 5));

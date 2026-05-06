@@ -9,21 +9,29 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
     ImGui.Indent(ScaledFloat(8));
 
-    DrawConfigCheckbox("Queue Chat Messages", ref _configuration.QueueChatMessages);
+    DrawConfigCheckbox("Chat Messages Enabled", ref _configuration.ChatEnabled);
     DrawConfigCheckbox("Say Enabled", ref _configuration.ChatSayEnabled);
     DrawConfigCheckbox("Tell Enabled", ref _configuration.ChatTellEnabled);
-    DrawConfigCheckbox("Shout/Yell Enabled", ref _configuration.ChatShoutYellEnabled);
     DrawConfigCheckbox("Party Enabled", ref _configuration.ChatPartyEnabled);
+    DrawConfigCheckbox("Shout/Yell Enabled", ref _configuration.ChatShoutYellEnabled);
     DrawConfigCheckbox("Alliance Enabled", ref _configuration.ChatAllianceEnabled);
     DrawConfigCheckbox("Free Company Enabled", ref _configuration.ChatFreeCompanyEnabled);
     DrawConfigCheckbox("Linkshell Enabled", ref _configuration.ChatLinkshellEnabled);
     DrawConfigCheckbox("Emotes Enabled", ref _configuration.ChatEmotesEnabled);
+    DrawConfigCheckbox("Queue Chat Messages", ref _configuration.QueueChatMessages);
+    DrawConfigCheckbox("Add '<Player> says' to chat messages", ref _configuration.LocalTTSPlayerSays);
+    DrawConfigCheckbox("Disable voicing your own chat messages", ref _configuration.LocalTTSDisableLocalPlayerChat);
 
     ImGui.Unindent(ScaledFloat(8));
     ImGui.Dummy(ScaledVector2(0, 10));
-    ImGui.TextWrapped("Dialogue Source Settings");
+    ImGui.TextWrapped("Dialogue Settings");
     ImGui.Dummy(ScaledVector2(0, 5));
     ImGui.Indent(ScaledFloat(8));
+
+    DrawConfigCheckbox("Queue Dialogue", ref _configuration.QueueDialogue);
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Queues regular dialogue so it won't get skipped when you click away.");
 
     using (ImRaii.TableDisposable table = ImRaii.Table("AddonSettingsTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
     {
@@ -77,6 +85,8 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
     ImGui.Indent(ScaledFloat(8));
 
+    DrawConfigCheckbox("LipSync Enabled", ref _configuration.LipSyncEnabled);
+
     DrawConfigCheckbox("Auto-Advance", ref _configuration.AutoAdvanceEnabled);
     string autoAdvanceHelp = """
     Automatically advances to the next dialogue when audio finishes playing.
@@ -87,9 +97,12 @@ public partial class ConfigWindow
       using (ImRaii.Tooltip())
         ImGui.Text(autoAdvanceHelp);
 
+    DrawConfigCheckbox("Fast Forward", ref _configuration.FastForward);
+    if (ImGui.IsItemHovered())
+      using (ImRaii.Tooltip())
+        ImGui.Text("Dialogue boxes will be skipped immediately, useful if used in combination with \"Queue Dialogue\". Will not take effect if muted.");
+
     DrawConfigCheckbox("Retainers Enabled", ref _configuration.RetainersEnabled);
-    DrawConfigCheckbox("Print Bubble Messages", ref _configuration.PrintBubbleMessages);
-    DrawConfigCheckbox("Print Narrator Messages", ref _configuration.PrintNarratorMessages);
     DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
     DrawConfigCheckbox("Prevent Accidental Dialogue Advance", ref _configuration.PreventAccidentalDialogueAdvance);
     if (ImGui.IsItemHovered())

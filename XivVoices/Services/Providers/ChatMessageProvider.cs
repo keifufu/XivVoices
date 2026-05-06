@@ -102,6 +102,9 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     if (_configuration.LocalTTSDisableLocalPlayerChat && _objectTable.LocalPlayer?.Name.ToString() == speaker)
       allowed = false;
 
+    if (!_configuration.ChatEnabled)
+      allowed = false;
+
     if (allowed)
     {
       _logger.Debug($"speaker::{speaker} sentence::{message.Message}");

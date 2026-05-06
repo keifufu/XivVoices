@@ -1,23 +1,18 @@
 using Dalamud.Game.Addon.Events;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using Microsoft.Extensions.DependencyInjection;
-
-#if !NO_KTK
 using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Overlay.UiOverlay;
-#endif
 
 namespace XivVoices.Windows;
 
-public interface IOverlayWindow : IHostedService
+public interface IOverlayAddon : IHostedService
 {
   public unsafe bool CheckCollision(AtkEventData* atkEventData);
 }
 
-#if !NO_KTK
-public class OverlayWindow(ILogger _logger, Configuration _configuration, IFramework _framework, IClientState _clientState, IServiceProvider services) : IOverlayWindow
+public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramework _framework, IClientState _clientState, IServiceProvider services) : IOverlayAddon
 {
   private OverlayController? _overlayController;
   private XivvOverlayNode? _xivvOverlayNode;
@@ -69,8 +64,8 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly IAddonEventManager _addonEventManager;
   private readonly IMessageDispatcher _messageDispatcher;
   private readonly IPlaybackService _playbackService;
+  private readonly IWindowService _windowService;
   private readonly Configuration _configuration;
-  private readonly ConfigWindow _configWindow;
   private readonly ILogger _logger;
 
   public readonly WindowBackgroundNode Frame;
@@ -97,8 +92,8 @@ public unsafe class XivvOverlayNode : OverlayNode
   public XivvOverlayNode(IServiceProvider services)
   {
     _logger = services.GetRequiredService<ILogger>();
-    _configWindow = services.GetRequiredService<ConfigWindow>();
     _configuration = services.GetRequiredService<Configuration>();
+    _windowService = services.GetRequiredService<IWindowService>();
     _playbackService = services.GetRequiredService<IPlaybackService>();
     _messageDispatcher = services.GetRequiredService<IMessageDispatcher>();
     _addonEventManager = services.GetRequiredService<IAddonEventManager>();
@@ -167,8 +162,7 @@ public unsafe class XivvOverlayNode : OverlayNode
       TextTooltip = "Open Configuration",
       OnClick = () =>
       {
-        _configWindow.SelectedTab = ConfigWindowTab.OverlaySettings;
-        _configWindow.IsOpen = !_configWindow.IsOpen;
+        _windowService.OpenTab(ConfigTab.OverlaySettings);
       },
     };
     _configButton.AttachNode(this);
@@ -229,13 +223,12 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _volumeSlider = new SliderNode
     {
-      Y = 2.0f,
       Range = ..100,
-      Width = 200.0f,
       IsEnabled = !_configuration.MuteEnabled,
+      Size = new Vector2(200.0f, 16.0f),
+      Position = new Vector2(180.0f, 56.0f),
       OnValueChanged = (value) =>
       {
-        // If not for this check, we save the config way too much
         if (_configuration.Volume != value)
         {
           _configuration.Volume = value;
@@ -243,6 +236,7 @@ public unsafe class XivvOverlayNode : OverlayNode
         }
       },
     };
+    _volumeSlider.AttachNode(this);
 
     _horizontalList = new HorizontalListNode
     {
@@ -258,7 +252,6 @@ public unsafe class XivvOverlayNode : OverlayNode
         },
         _fastForwardButton,
         _muteButton,
-        _volumeSlider
       ]
     };
     _horizontalList.AttachNode(this);
@@ -304,6 +297,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _volumeSlider.IsEnabled = !_configuration.MuteEnabled;
     _volumeSlider.Value = _configuration.Volume;
+    NativeUtils.FixSliderNode(_volumeSlider);
 
     _pinButton.TextTooltip = _configuration.OverlayPinned ? "Enable Moving" : "Disable Moving";
     _pinButton.AddColor = new(_configuration.OverlayPinned ? 0.0f : 0.2f);
@@ -317,14 +311,15 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   protected override void OnUpdate()
   {
-    IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
+    IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
 
     _pauseButton.String = _playbackService.Paused ? "Play" : "Pause";
     _pauseButton.AddColor = new(_playbackService.Paused ? 0.15f : 0.0f);
 
     XivMessage? message = _playbackService.GetLatestCurrentlyPlayingMessage();
     _textNode.String = message == null ? "Nothing is currently playing." : $"{message.RawSpeaker}: {message.AddName(message.RawSentence)}";
-    Size = new(Size.X, _configuration.OverlayExpanded ? (_horizontalLine2.Bounds.Bottom + 20.0f + _textNode.GetTextDrawSize(false).Y) : 100.0f);
+    Vector2 newSize = new(Size.X, _configuration.OverlayExpanded ? (_horizontalLine2.Bounds.Bottom + 20.0f + _textNode.GetTextDrawSize(false).Y) : 100.0f);
+    if (Size != newSize) Size = newSize;
   }
 
   protected override void OnSizeChanged()
@@ -427,18 +422,3 @@ public unsafe class XivvOverlayNode : OverlayNode
     }
   }
 }
-#endif
-
-#if NO_KTK
-public class OverlayWindow(ILogger _logger) : IOverlayWindow
-{
-  public Task StartAsync(CancellationToken cancellationToken)
-    => _logger.ServiceLifecycle();
-
-  public Task StopAsync(CancellationToken cancellationToken)
-    => _logger.ServiceLifecycle();
-  
-  public unsafe bool CheckCollision(AtkEventData* atkEventData)
-    => false;
-}
-#endif

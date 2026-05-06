@@ -38,13 +38,13 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     _noSoundPtr = noSoundPtr;
     _infoPtr = infoPtr;
 
+#if !NO_HOOKS
     _getResourceSyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceSync>(ResourceManager.Addresses.GetResourceSync.Value, GetResourceSyncDetour);
     _getResourceAsyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceAsync>(ResourceManager.Addresses.GetResourceAsync.Value, GetResourceAsyncDetour);
 
     _playSpecificSoundHook ??= _interopProvider.HookFromSignature<PlaySpecificSoundDelegate>("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 33 F6 8B DA 48 8B F9 0F BA E2 0F", PlaySpecificSoundDetour);
     _loadSoundFileHook ??= _interopProvider.HookFromSignature<LoadSoundFileDelegate>("E8 ?? ?? ?? ?? 48 85 C0 75 12 B0 F6", LoadSoundFileDetour);
 
-#if !NO_HOOKS
     _getResourceSyncHook.Enable();
     _getResourceAsyncHook.Enable();
     _loadSoundFileHook.Enable();

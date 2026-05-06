@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ILogger = XivVoices.Services.ILogger;
 
@@ -69,13 +68,16 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton(addonEventManager);
         collection.AddSingleton(notificationManager);
 
+#if !NO_KTK
+        collection.AddSingleton<ConfigAddon>();
+        collection.AddSingleton<IOverlayAddon, OverlayAddon>();
+#endif
+
         collection.AddSingleton<ConfigWindow>();
-        collection.AddSingleton<OverlayWindow>();
         collection.AddSingleton<ILogger, Logger>();
         collection.AddSingleton<ILipSync, LipSync>();
         collection.AddSingleton<IDataService, DataService>();
         collection.AddSingleton<ISoundFilter, SoundFilter>();
-        collection.AddSingleton<IOverlayWindow, OverlayWindow>();
         collection.AddSingleton<IReportService, ReportService>();
         collection.AddSingleton<IWindowService, WindowService>();
         collection.AddSingleton<ICommandService, CommandService>();
@@ -91,7 +93,6 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
         collection.AddSingleton<IAddonBattleTalkProvider, AddonBattleTalkProvider>();
 
-
         collection.AddSingleton(InitializeConfiguration);
         collection.AddSingleton(new WindowSystem(pluginInterface.InternalName));
 
@@ -99,7 +100,6 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<ILogger>());
         collection.AddHostedService(sp => sp.GetRequiredService<IDataService>());
         collection.AddHostedService(sp => sp.GetRequiredService<ISoundFilter>());
-        collection.AddHostedService(sp => sp.GetRequiredService<IOverlayWindow>());
         collection.AddHostedService(sp => sp.GetRequiredService<IWindowService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IReportService>());
         collection.AddHostedService(sp => sp.GetRequiredService<ICommandService>());
@@ -111,6 +111,10 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<IChatMessageProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonMiniTalkProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonBattleTalkProvider>());
+
+#if !NO_KTK
+        collection.AddHostedService(sp => sp.GetRequiredService<IOverlayAddon>());
+#endif
       }).Build();
 
     _host.StartAsync();

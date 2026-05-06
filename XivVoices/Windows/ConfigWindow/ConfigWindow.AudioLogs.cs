@@ -12,7 +12,7 @@ public partial class ConfigWindow
     ImGui.Indent(ScaledFloat(8));
 
     DrawConfigCheckbox("Enable Automatic Reports", ref _configuration.EnableAutomaticReports);
-    DrawConfigCheckbox("Log Reports to Chat", ref _configuration.LogReportsToChat);
+    DrawConfigCheckbox("Print reported messages to chat", ref _configuration.LogReportsToChat);
     ImGui.Dummy(ScaledVector2(0, 5));
 
     ImGui.Unindent(ScaledFloat(8));

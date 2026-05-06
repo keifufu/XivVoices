@@ -17,6 +17,7 @@ public interface ISelfTestService
   void Stop();
   void Next(bool completed, bool skipped, bool loop = false);
   void SkipTo(SelfTestStep state);
+  List<(string button, bool enabled, System.Action action)> GetButtonsForCurrentStep();
 
   void Report_SoundFilter_GetResourceSync(string path);
   void Report_SoundFilter_GetResourceAsync(string path);
@@ -143,7 +144,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Interop_GetNpcData;
         break;
       case SelfTestStep.Interop_GetNpcData:
-        CurrentInstruction = "Target Nenebaru and press \"LipSync Target\"";
+        CurrentInstruction = "Target Nenebaru and press \"LipSync\"";
         Step = SelfTestStep.LipSync;
         break;
       case SelfTestStep.LipSync:
@@ -231,7 +232,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     }
   }
 
-  private unsafe void OnFrameworkUpdate(IFramework _)
+  private void OnFrameworkUpdate(IFramework _)
   {
     switch (Step)
     {
@@ -410,6 +411,37 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         }
         break;
     }
+  }
+
+  public List<(string button, bool enabled, System.Action action)> GetButtonsForCurrentStep()
+  {
+    List<(string button, bool enabled, System.Action action)> buttons = [];
+
+    // Only certain steps need manual verification and thus a "complete" button.
+    bool completeEnabled = false;
+    switch (Step)
+    {
+      case SelfTestStep.Interop_GetActiveQuests:
+      case SelfTestStep.Interop_GetActiveLeves:
+        completeEnabled = StepState == 2;
+        break;
+      case SelfTestStep.SoundFilter_GetResourceSync:
+      case SelfTestStep.SoundFilter_GetResourceAsync:
+      case SelfTestStep.SoundFilter_LoadSoundFile:
+      case SelfTestStep.SoundFilter_PlaySpecificSound:
+      case SelfTestStep.Provider_Talk_AutoAdvance:
+      case SelfTestStep.LipSync:
+      case SelfTestStep.Interop_Camera:
+        completeEnabled = true;
+        break;
+    }
+
+    buttons.Add(("Complete", completeEnabled, () => Next(true, false)));
+    buttons.Add(("Skip", Step != SelfTestStep.None, () => Next(false, true)));
+    if (Step == SelfTestStep.LipSync)
+      buttons.Add(("LipSync", true, () => LipSyncTarget()));
+
+    return buttons;
   }
 
   public void Report_SoundFilter_GetResourceSync(string path)

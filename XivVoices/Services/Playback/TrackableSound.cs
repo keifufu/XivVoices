@@ -74,7 +74,7 @@ public class TrackableSound : ISampleProvider, IDisposable
     get
     {
       if (_lastUpdateTime is null || _playbackEnded)
-        return TimeSpan.Zero;
+        return TotalTime;
 
       TimeSpan elapsed = DateTime.UtcNow - _lastUpdateTime.Value;
       TimeSpan estimated = _lastKnownTime + elapsed;

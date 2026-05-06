@@ -23,6 +23,7 @@ public interface IGameInteropService
   List<string> GetActiveLeves();
   CameraView GetCameraView();
   bool IsInCutscene();
+  bool IsInCombat();
   bool IsInDuty();
   bool IsOccupiedBySummoningBell();
   string ReadUtf8String(Utf8String str);
@@ -194,6 +195,9 @@ public partial class GameInteropService(ICondition _condition, IDataService _dat
 
   public bool IsInCutscene() =>
     _condition.Any(ConditionFlag.OccupiedInCutSceneEvent, ConditionFlag.WatchingCutscene, ConditionFlag.WatchingCutscene78);
+
+  public bool IsInCombat() =>
+    _condition.Any(ConditionFlag.InCombat);
 
   public bool IsInDuty() =>
     _condition.Any(ConditionFlag.BoundByDuty);

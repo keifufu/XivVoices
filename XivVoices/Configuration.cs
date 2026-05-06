@@ -11,21 +11,33 @@ public enum UnfocusedBehavior
 }
 
 [Serializable]
+public enum PlaybackDeviceType
+{
+  DirectSound,
+  WaveOut,
+}
+
+[Serializable]
 public class Configuration : IPluginConfiguration
 {
   public int Version { get; set; } = 0;
   public string? DataDirectory = null;
 
   // Dialogue Settings
-  public bool QueueChatMessages = true;
+  public bool ChatEnabled = true;
   public bool ChatSayEnabled = true;
   public bool ChatTellEnabled = true;
-  public bool ChatShoutYellEnabled = true;
   public bool ChatPartyEnabled = true;
+  public bool ChatShoutYellEnabled = true;
   public bool ChatAllianceEnabled = true;
   public bool ChatFreeCompanyEnabled = true;
   public bool ChatLinkshellEnabled = true;
   public bool ChatEmotesEnabled = true;
+  public bool QueueChatMessages = true;
+  public bool LocalTTSPlayerSays = true;
+  public bool LocalTTSDisableLocalPlayerChat = false;
+
+  public bool QueueDialogue = true;
 
   public bool AddonTalkEnabled = true;
   public bool AddonBattleTalkEnabled = true;
@@ -38,18 +50,19 @@ public class Configuration : IPluginConfiguration
   public bool AddonTalkNarratorEnabled = true;
   public bool AddonBattleTalkNarratorEnabled = true;
 
+  public bool LipSyncEnabled = true;
   public bool AutoAdvanceEnabled = true;
+  public bool FastForward = false;
   public bool RetainersEnabled = true;
-  public bool PrintBubbleMessages = true;
-  public bool PrintNarratorMessages = true;
-  public bool ReplaceVoicedARRCutscenes = true;
+  public bool ReplaceVoicedARRCutscenes = false;
   public bool PreventAccidentalDialogueAdvance = false;
 
-  // Audio Settings
+  // Playback Settings
   public bool MuteEnabled = false;
-  public bool LipSyncEnabled = false;
-  public bool QueueDialogue = false;
-  public bool FastForward = false;
+
+  public PlaybackDeviceType PlaybackDeviceType = PlaybackDeviceType.DirectSound;
+  public string? WaveOutDevice = null;
+  public Guid? DirectSoundDevice = null;
 
   public int Speed = 100;
   public int Volume = 100;
@@ -60,13 +73,9 @@ public class Configuration : IPluginConfiguration
   public bool DirectionalAudioForAddonMiniTalk = true;
   public int MaximumPan = 95;
 
-  public bool LocalTTSEnabled = true;
   public string LocalTTSDefaultVoice = "Male";
   public int LocalTTSVolume = 100;
   public int LocalTTSSpeed = 100;
-
-  public bool LocalTTSPlayerSays = true;
-  public bool LocalTTSDisableLocalPlayerChat = false;
 
   // Overlay Settings
   public bool OverlayOpen = true;
@@ -76,6 +85,7 @@ public class Configuration : IPluginConfiguration
   public bool OverlayBorder = true;
   public bool OverlayExpanded = true;
   public bool OverlayHideInDuty = false;
+  public bool OverlayHideInCombat = false;
   public bool OverlayHideWhenMuted = false;
 
   // Audio Logs

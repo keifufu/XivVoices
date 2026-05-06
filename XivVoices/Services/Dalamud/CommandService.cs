@@ -4,7 +4,7 @@ namespace XivVoices.Services;
 
 public interface ICommandService : IHostedService;
 
-public class CommandService(ILogger _logger, Configuration _configuration, ConfigWindow _configWindow, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, ICommandManager _commandManager) : ICommandService
+public class CommandService(ILogger _logger, Configuration _configuration, IWindowService _windowService, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, ICommandManager _commandManager) : ICommandService
 {
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
@@ -38,7 +38,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
     string[] args = arguments.Split(" ", StringSplitOptions.RemoveEmptyEntries);
     if (args.Length == 0)
     {
-      _configWindow.Toggle();
+      _windowService.Toggle();
       return;
     }
 
@@ -58,7 +58,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _logger.Chat($"  {command} overview - Open the overview tab");
         _logger.Chat($"  {command} dialogue - Open the dialogue settings tab");
         _logger.Chat($"  {command} overlaycfg - Open the overlay settings tab");
-        _logger.Chat($"  {command} audio - Open the audio settings tab");
+        _logger.Chat($"  {command} playback - Open the playback settings tab");
         _logger.Chat($"  {command} logs - Open the audio logs tab");
         if (Util.IsWine())
           _logger.Chat($"  {command} wine - Open the wine settings tab");
@@ -136,43 +136,36 @@ public class CommandService(ILogger _logger, Configuration _configuration, Confi
         _configuration.Save();
         break;
       case "settings":
-        _configWindow.Toggle();
+        _windowService.Toggle();
         break;
       case "overview":
-        SwitchTab(ConfigWindowTab.Overview);
+        _windowService.OpenTab(ConfigTab.Overview);
         break;
       case "dialogue":
-        SwitchTab(ConfigWindowTab.DialogueSettings);
+        _windowService.OpenTab(ConfigTab.DialogueSettings);
         break;
       case "overlaycfg":
-        SwitchTab(ConfigWindowTab.OverlaySettings);
+        _windowService.OpenTab(ConfigTab.OverlaySettings);
         break;
-      case "audio":
-        SwitchTab(ConfigWindowTab.AudioSettings);
+      case "playback":
+        _windowService.OpenTab(ConfigTab.PlaybackSettings);
         break;
       case "logs":
-        SwitchTab(ConfigWindowTab.AudioLogs);
+        _windowService.OpenTab(ConfigTab.AudioLogs);
         break;
       case "wine":
-        SwitchTab(ConfigWindowTab.WineSettings);
+        _windowService.OpenTab(ConfigTab.WineSettings);
         break;
       case "debug":
-        SwitchTab(ConfigWindowTab.Debug);
+        _windowService.OpenTab(ConfigTab.Debug);
         break;
       case "selftest":
-        SwitchTab(ConfigWindowTab.SelfTest);
+        _windowService.OpenTab(ConfigTab.SelfTest);
         break;
       default:
         _logger.Chat("Invalid command:");
         _logger.Chat($"  {command} {arguments}");
         goto case "help";
     }
-  }
-
-  private void SwitchTab(ConfigWindowTab tab)
-  {
-    bool isDifferentTab = _configWindow.SelectedTab != tab;
-    _configWindow.SelectedTab = tab;
-    _configWindow.IsOpen = isDifferentTab || !_configWindow.IsOpen;
   }
 }

@@ -38,7 +38,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     return _logger.ServiceLifecycle();
   }
 
-  private void OnDataDirectoryChanged(object? sender, string dataDirectory) =>
+  private void OnDataDirectoryChanged() =>
     LoadReports();
 
   private void LoadReports()
@@ -149,6 +149,10 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
 
   private bool CanReport()
   {
+#if NO_HOOKS
+  return false;
+#endif
+
     if (_dataService.DataStatus.UpdateInProgress) return false;
     if (_dataService.IsOutdated) return false;
 
