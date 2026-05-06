@@ -13,8 +13,8 @@ public enum UnfocusedBehavior
 [Serializable]
 public enum PlaybackDeviceType
 {
-  DirectSound,
   WaveOut,
+  DirectSound,
 }
 
 [Serializable]
@@ -60,7 +60,7 @@ public class Configuration : IPluginConfiguration
   // Playback Settings
   public bool MuteEnabled = false;
 
-  public PlaybackDeviceType PlaybackDeviceType = PlaybackDeviceType.DirectSound;
+  public PlaybackDeviceType PlaybackDeviceType = PlaybackDeviceType.WaveOut;
   public string? WaveOutDevice = null;
   public Guid? DirectSoundDevice = null;
 
