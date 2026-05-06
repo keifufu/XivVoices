@@ -277,6 +277,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
       node.IsCollapsed = i != 0;
       node.RecalculateLayout();
     }
+    _changelogNode.RecalculateLayout();
   }
 
   private void OnDataDirectoryChanged()
