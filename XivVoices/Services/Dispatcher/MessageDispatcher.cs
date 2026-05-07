@@ -259,6 +259,20 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
+    // If we still have no voiceline, try not replacing names at all.
+    // This might help in some cases for users with names such as "I'm".
+    if (voicelinePath == null && sentenceHasName)
+    {
+      (_, string fallbackSentence) = CleanMessage(speaker, sentence, "NotAReal Name", false);
+      (id, voicelinePath) = await TryGetVoiceline(voice, npc, fallbackSentence);
+      if (voicelinePath == null) _logger.Debug("Did not find fallback name voiceline");
+      else
+      {
+        _logger.Debug("Found fallback name voiceline");
+        cleanedSentence = fallbackSentence;
+      }
+    }
+
     XivMessage message = new(
       id,
       source,
