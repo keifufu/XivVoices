@@ -9,8 +9,10 @@ public interface IPlaybackService : IHostedService
   event EventHandler<XivMessage>? PlaybackStarted;
   event EventHandler<XivMessage>? PlaybackCompleted;
   event EventHandler<XivMessage>? QueuedLineSkipped;
+  event EventHandler<bool>? OnOutputDeviceChanged;
 
   bool Paused { get; set; }
+  bool IsOutputDeviceInitialized { get; }
 
   public void InitializeOutputDevice();
   public IEnumerable<WaveOutCapabilities> GetWaveOutDevices();
@@ -51,6 +53,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public event EventHandler<XivMessage>? PlaybackStarted;
   public event EventHandler<XivMessage>? PlaybackCompleted;
   public event EventHandler<XivMessage>? QueuedLineSkipped;
+  public event EventHandler<bool>? OnOutputDeviceChanged;
 
   private bool _paused = false;
   public bool Paused
@@ -58,6 +61,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     get => _paused || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Pause && IsWindowUnfocused);
     set => _paused = value;
   }
+
+  public bool IsOutputDeviceInitialized { get; private set; }
 
   private bool _wasWindowUnfocused = false;
   private unsafe bool IsWindowUnfocused => FrameworkStruct.Instance() != null && FrameworkStruct.Instance()->WindowInactive;
@@ -73,6 +78,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private void StopOutputDevice()
   {
+    IsOutputDeviceInitialized = false;
+    OnOutputDeviceChanged?.Invoke(this, IsOutputDeviceInitialized);
     _waveOutputDevice?.Stop();
     _waveOutputDevice?.Dispose();
     _waveOutputDevice = null;
@@ -102,6 +109,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           InitializeDirectSoundDevice();
           break;
       }
+      IsOutputDeviceInitialized = true;
+      OnOutputDeviceChanged?.Invoke(this, IsOutputDeviceInitialized);
     }
     catch (Exception ex)
     {
@@ -121,11 +130,15 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     int deviceNumber = -1;
     for (int i = -1; i < devices; i++)
     {
-      WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
-      _logger.Debug($"[Wave] Device {i} ({deviceInfo.ProductName})");
+      try
+      {
+        WaveOutCapabilities deviceInfo = WaveOut.GetCapabilities(i);
+        _logger.Debug($"[Wave] Device {i} ({deviceInfo.ProductName})");
 
-      if (deviceInfo.ProductName == _configuration.WaveOutDevice)
-        deviceNumber = i;
+        if (deviceInfo.ProductName == _configuration.WaveOutDevice)
+          deviceNumber = i;
+      }
+      catch { }
     }
 
     _waveOutputDevice = new WaveOutEvent()
@@ -154,7 +167,18 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public IEnumerable<WaveOutCapabilities> GetWaveOutDevices()
   {
     for (int i = -1; i < WaveOut.DeviceCount; i++)
-      yield return WaveOut.GetCapabilities(i);
+    {
+      WaveOutCapabilities caps;
+      try
+      {
+        caps = WaveOut.GetCapabilities(i);
+      }
+      catch
+      {
+        continue;
+      }
+      yield return caps;
+    }
   }
 
   public IEnumerable<DirectSoundDeviceInfo> GetDirectSoundDevices()

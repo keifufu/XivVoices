@@ -346,6 +346,12 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       return;
     }
 
+    if (!_playbackService.IsOutputDeviceInitialized)
+    {
+      _logger.Error("Output device is not initialized, not even attempting to queue or play message");
+      return;
+    }
+
     if (queued || _playbackService.Paused)
     {
       _logger.Debug($"Queueing message: {message.Id}");

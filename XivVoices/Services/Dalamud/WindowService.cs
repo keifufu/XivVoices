@@ -38,7 +38,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.Overview);
+    OpenTab(ConfigTab.PlaybackSettings);
 #endif
 
     return _logger.ServiceLifecycle();
@@ -59,11 +59,12 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
   public void OpenTab(ConfigTab tab, bool forceOpen = false)
   {
-    bool isDifferentTab = _configWindow.SelectedTab != tab;
 #if NO_KTK
+    bool isDifferentTab = _configWindow.SelectedTab != tab;
     _configWindow.SelectedTab = tab;
     _configWindow.IsOpen = forceOpen || isDifferentTab || !_configWindow.IsOpen;
 #else
+    bool isDifferentTab = _configAddon.CurrentTab != tab;
     _configAddon.SetTab(tab);
     bool shouldBeOpen = forceOpen || isDifferentTab || !_configAddon.IsOpen;
     if (shouldBeOpen) _configAddon.Open();

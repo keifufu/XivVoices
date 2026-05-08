@@ -11,6 +11,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   private IDataService _dataService = null!;
   private ILogger _logger = null!;
 
+  private bool _initialized = false;
+
   private ImGuiImageNode _logoNode = null!;
   private TextNode _welcomeNode = null!;
   private TextNode _serverStatusNode = null!;
@@ -231,6 +233,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
       _changelogNode.AddCategoryNode(categoryNode);
     }
+
+    _initialized = true;
   }
 
   private bool IsImport(string path)
@@ -313,6 +317,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void UpdateLoginInstallUpdateState()
   {
+    if (!_initialized) return;
+
     _actionButtonNode.IsEnabled = true;
     _loginNoteNode.IsVisible = false;
     _selectDriveNode.IsVisible = false;

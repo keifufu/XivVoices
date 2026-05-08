@@ -14,6 +14,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   private CheckboxNode _muteEnabledNode = null!;
 
+  private LabelTextNode _outputDeviceNode = null!;
   private TextDropDownNode _playbackDeviceTypeNode = null!;
   private TextDropDownNode _waveOutDeviceNode = null!;
   private TextDropDownNode _directSoundDeviceNode = null!;
@@ -36,6 +37,8 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _configuration = _services.GetRequiredService<Configuration>();
     _playbackService = _services.GetRequiredService<IPlaybackService>();
     _messageDispatcher = _services.GetRequiredService<IMessageDispatcher>();
+
+    _playbackService.OnOutputDeviceChanged += OnOutputDeviceChanged;
 
     ConfigSectionNode masterToggleSectionNode = new("Master Toggle");
 
@@ -88,12 +91,13 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     };
     outputDeviceSectionNode.AttachNode(_playbackDeviceTypeNode, inline: true, padding: -2.0f);
 
-    outputDeviceSectionNode.AttachNode(new LabelTextNode()
+    _outputDeviceNode = new()
     {
       String = "Output Device",
       Height = 18.0f,
       FontSize = 14,
-    }, padding: 6.0f);
+    };
+    outputDeviceSectionNode.AttachNode(_outputDeviceNode, padding: 6.0f);
 
     _waveOutDeviceNode = new TextDropDownNode()
     {
@@ -372,6 +376,18 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     AttachNode(unfocusedWindowBehaviorSectionNode);
   }
 
+  protected override void Dispose(bool disposing, bool isNativeDestructor)
+  {
+    base.Dispose(disposing, isNativeDestructor);
+
+    _playbackService.OnOutputDeviceChanged -= OnOutputDeviceChanged;
+  }
+
+  private void OnOutputDeviceChanged(object? sender, bool initialized)
+  {
+    _outputDeviceNode.TextColor = ColorHelper.GetColor(initialized ? 8u : 15u);
+  }
+
   public override void ConfigurationSaved()
   {
     _muteEnabledNode.IsChecked = _configuration.MuteEnabled;
@@ -408,6 +424,8 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     NativeUtils.FixSliderNode(_directionalAudioPanNode);
 
     _unfocusedWindowBehaviorNode.SelectedOption = GetUnfocusedWindowBehaviourString(_configuration.UnfocusedBehavior);
+
+    OnOutputDeviceChanged(null, _playbackService.IsOutputDeviceInitialized);
   }
 
   private string ShortenDeviceName(string device) =>
