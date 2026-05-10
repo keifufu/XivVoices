@@ -17,7 +17,7 @@ public interface IAddonTalkProvider : IHostedService;
 // being played or something like that.
 public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IDataService _dataService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle
 #if !NO_KTK
-, IOverlayAddon _overlayWindow
+, IOverlayAddon _overlayWindow, ConfigAddon _configAddon
 #endif
 ) : IAddonTalkProvider
 {
@@ -51,6 +51,12 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     if (args is not AddonReceiveEventArgs eventArgs || (AtkEventType)eventArgs.AtkEventType is not AtkEventType.MouseClick) return;
 
 #if !NO_KTK
+    if (_configAddon.CheckCollision((AtkEventData*)eventArgs.AtkEventData))
+    {
+      eventArgs.AtkEventType = 0;
+      return;
+    }
+
     if (_overlayWindow.CheckCollision((AtkEventData*)eventArgs.AtkEventData))
     {
       eventArgs.AtkEventType = 0;

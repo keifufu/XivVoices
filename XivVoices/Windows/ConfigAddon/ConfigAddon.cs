@@ -239,4 +239,9 @@ public class ConfigAddon : NativeAddon
         SetTab(ConfigTab.Overview);
     }
   }
+
+  public unsafe bool CheckCollision(AtkEventData* atkEventData)
+  {
+    return WindowNode?.CheckCollision(atkEventData) ?? false;
+  }
 }
