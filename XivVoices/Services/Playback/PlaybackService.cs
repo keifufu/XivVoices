@@ -39,7 +39,7 @@ public interface IPlaybackService : IHostedService
   int Debug_GetMixerSourceCount();
 }
 
-public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IAudioPostProcessor _audioPostProcessor, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable) : IPlaybackService
+public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable) : IPlaybackService
 {
   private WaveOutEvent? _waveOutputDevice;
   private DirectSoundOut? _directSoundOutputDevice;
@@ -55,12 +55,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public event EventHandler<XivMessage>? QueuedLineSkipped;
   public event EventHandler<bool>? OnOutputDeviceChanged;
 
-  private bool _paused = false;
   public bool Paused
   {
-    get => _paused || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Pause && IsWindowUnfocused);
-    set => _paused = value;
-  }
+    get => field || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Pause && IsWindowUnfocused);
+    set => field = value;
+  } = false;
 
   public bool IsOutputDeviceInitialized { get; private set; }
 
@@ -231,6 +230,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (track.IsStopping) return;
       track.IsMuted = _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused;
       track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
+      track.Speed = track.Message.IsLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
 
       if (
         (track.Message.Source == MessageSource.AddonMiniTalk && _configuration.DirectionalAudioForAddonMiniTalk) ||
@@ -333,11 +333,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
     bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
 
-    if (useLocalTTS) voicelinePath = await _localTTSService.WriteLocalTTSToDisk(message);
+    WaveStream? ttsSourceStream = null;
+    if (useLocalTTS) ttsSourceStream = await _localTTSService.Generate(message);
     else if (useLocalGen) voicelinePath = await localGen(message);
 
     // Generation failed
-    if (voicelinePath == null)
+    if (ttsSourceStream == null && voicelinePath == null)
     {
       string method = useLocalTTS ? "LocalTTS" : "LocalGen";
       _logger.Error($"Generation failed. Method: {method}. Message: {message.Id}");
@@ -349,25 +350,16 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       return;
     }
 
-    if (useLocalGen) message.VoicelinePath = voicelinePath;
-
     // Since TTS can take some time to generate, this solves some headaches for now.
     if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
       Stop(MessageSource.AddonTalk);
 
-    WaveStream? sourceStream = await _audioPostProcessor.PostProcessToPCM(voicelinePath, message.IsLocalTTS, message);
-    if (useLocalTTS) File.Delete(voicelinePath);
+    WaveStream? sourceStream = ttsSourceStream ?? DecodeOggOpusToPCM(voicelinePath!);
     lock (_playbackHistoryLock)
     {
       _queuedMessages.Remove(message);
     }
     message.IsGenerating = false;
-
-    if (sourceStream == null)
-    {
-      _logger.Debug($"AudioPostProcessor failed. Message: {message.Id}");
-      return;
-    }
 
     if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
     {
@@ -375,7 +367,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       oldTrack.Dispose();
     }
 
-    TrackableSound track = new(_logger, message, sourceStream);
+    TrackableSound track = new(_logger, message, sourceStream)
+    {
+      Pitch = _localTTSService.ResolvePitch(message)
+    };
+    _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
+
     await UpdateTrack(track);
     track.OnPlaybackStopped += t =>
     {
@@ -387,7 +384,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       // Sleep a little before finishing the playback and thus auto advancing.
       // I personally don't think this is needed but after trimming audio files of silence
       // some people are of the opinion there needs to be a bit of a pause after the line.
-      Thread.Sleep(200);
+      // LocalTTS lines already have some padding afterwards.
+      if (!message.IsLocalTTS) Thread.Sleep(200);
 
       _playing.TryRemove(message.Id, out _);
       _logger.Debug($"Finished playing message: {message.Id}");
@@ -419,6 +417,39 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         //   _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
       }
     }
+  }
+
+  private static RawSourceWaveStream DecodeOggOpusToPCM(string filePath)
+  {
+    using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read);
+    IOpusDecoder decoder = OpusCodecFactory.CreateDecoder(48000, 1);
+    OpusOggReadStream oggStream = new(decoder, fileStream);
+
+    List<float> pcmSamples = [];
+
+    while (oggStream.HasNextPacket)
+    {
+      short[] packet = oggStream.DecodeNextPacket();
+      if (packet != null)
+      {
+        foreach (short sample in packet)
+        {
+          pcmSamples.Add(sample / 32768f);
+        }
+      }
+    }
+
+    WaveFormat waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 1);
+    MemoryStream stream = new();
+    using (BinaryWriter writer = new(stream, Encoding.Default, leaveOpen: true))
+    {
+      foreach (float sample in pcmSamples)
+      {
+        writer.Write(sample);
+      }
+    }
+    stream.Position = 0;
+    return new RawSourceWaveStream(stream, waveFormat);
   }
 
   private async Task<string?> localGen(XivMessage message)
@@ -605,7 +636,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _mixer?.MixerInputs.Count() ?? -1;
   }
 
-  private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 150)
+  private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 250)
   {
     if (track.IsStopping) return;
     track.IsStopping = true;
@@ -613,14 +644,16 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     track.Message.GenerationToken.Cancel();
     _lipSync.TryStopLipSync(track.Message);
 
-    const int intervalMs = 25;
-    int steps = fadeDurationMs / intervalMs;
+    const int intervalMs = 1;
+    int steps = Math.Max(1, fadeDurationMs / intervalMs);
     float initialVolume = track.Volume;
+    double gamma = 4.0;
 
     for (int i = 0; i < steps; i++)
     {
-      float newVolume = initialVolume * (1 - ((float)(i + 1) / steps));
-      track.Volume = newVolume;
+      double t = (double)(i + 1) / steps;
+      float newVolume = (float)(initialVolume * Math.Pow(1 - t, gamma));
+      track.Volume = Math.Max(0, newVolume);
       await Task.Delay(intervalMs);
     }
 

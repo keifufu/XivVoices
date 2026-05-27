@@ -38,7 +38,7 @@ public class ConfigAddon : NativeAddon
 
     foreach (ConfigTab tab in Enum.GetValues<ConfigTab>())
     {
-      (uint iconId, string tooltip, bool visible) = GetTabDetail(tab);
+      (uint iconId, string tooltip, bool enabled, bool visible) = GetTabDetail(tab);
       TabButtonNode node = new()
       {
         IconId = iconId,
@@ -48,12 +48,11 @@ public class ConfigAddon : NativeAddon
         Index = _visibleTabButtons,
         Tab = tab,
         IsActive = CurrentTab == tab,
-        // IsVisible = visible,
-        IsEnabled = visible,
+        IsVisible = visible,
+        IsEnabled = enabled,
         OnClick = () => SetTab(tab),
       };
-      // if (visible) _visibleTabButtons++;
-      _visibleTabButtons++;
+      if (visible) _visibleTabButtons++;
       node.AttachNode(this);
       _tabButtons.Add(node);
     }
@@ -97,9 +96,10 @@ public class ConfigAddon : NativeAddon
     AddTabPanel<OverviewTabPanelNode>();
     AddTabPanel<DialogueSettingsTabPanelNode>();
     AddTabPanel<PlaybackSettingsTabPanelNode>();
+    AddTabPanel<LocalTTSSettingsTabPanelNode>();
+    AddTabPanel<LocalTTSLexiconTabPanelNode>();
     AddTabPanel<OverlaySettingsTabPanelNode>();
     AddTabPanel<AudioLogsTabPanelNode>();
-    AddTabPanel<WineSettingsTabPanelNode>();
     AddTabPanel<DebugTabPanelNode>();
     AddTabPanel<SelfTestTabPanelNode>();
 
@@ -121,11 +121,10 @@ public class ConfigAddon : NativeAddon
     _visibleTabButtons = 0;
     foreach (TabButtonNode node in _tabButtons)
     {
-      // node.IsVisible = GetTabDetail(node.Tab).visible;
-      node.IsEnabled = GetTabDetail(node.Tab).visible;
+      node.IsVisible = GetTabDetail(node.Tab).visible;
+      node.IsEnabled = GetTabDetail(node.Tab).enabled;
       node.Index = _visibleTabButtons;
-      // if (node.IsVisible) _visibleTabButtons++;
-      _visibleTabButtons++;
+      if (node.IsVisible) _visibleTabButtons++;
     }
 
     foreach (TabPanelNode node in _tabPanels)
@@ -177,24 +176,25 @@ public class ConfigAddon : NativeAddon
     T node = (T)Activator.CreateInstance(typeof(T), _services)!;
     node.Size = new Vector2(ContentSize.X - 60.0f, ContentSize.Y);
     node.Position = new Vector2(72.0f, ContentStartPosition.Y);
+    node.SetTab = SetTab;
     node.AttachNode(this);
     _tabPanels.Add(node);
   }
 
-  private (uint iconId, string tooltip, bool visible) GetTabDetail(ConfigTab tab)
+  private (uint iconId, string tooltip, bool enabled, bool visible) GetTabDetail(ConfigTab tab)
   {
-    bool disabled = _dataService.DataDirectory == null;
+    bool enabled = _dataService.DataDirectory != null;
     return tab switch
     {
-      ConfigTab.Overview => (1, "Overview", true),
-      ConfigTab.DialogueSettings => (29, "Dialogue Settings", !disabled),
-      ConfigTab.PlaybackSettings => (36, "Playback Settings", !disabled),
-      ConfigTab.OverlaySettings => (42, "Overlay Settings", !disabled),
-      ConfigTab.AudioLogs => (45, "Audio Logs", !disabled),
-      ConfigTab.WineSettings => (35, "Wine Settings", !disabled && Util.IsWine()),
-      ConfigTab.Debug => (28, "Debug", !disabled && _configuration.DebugMode),
-      ConfigTab.SelfTest => (73, "Self-Test", !disabled && _configuration.DebugMode),
-      _ => (0, "", false),
+      ConfigTab.Overview => (1, "Overview", true, true),
+      ConfigTab.DialogueSettings => (29, "Dialogue Settings", enabled, true),
+      ConfigTab.PlaybackSettings => (36, "Playback Settings", enabled, true),
+      ConfigTab.LocalTTSSettings => (40, "Local TTS Settings", enabled, true),
+      ConfigTab.OverlaySettings => (42, "Overlay Settings", enabled, true),
+      ConfigTab.AudioLogs => (45, "Audio Logs", enabled, true),
+      ConfigTab.Debug => (28, "Debug", enabled && _configuration.DebugMode, true),
+      ConfigTab.SelfTest => (73, "Self-Test", enabled && _configuration.DebugMode, true),
+      _ => (0, "", false, false),
     };
   }
 
@@ -202,7 +202,7 @@ public class ConfigAddon : NativeAddon
   {
     CurrentTab = tab;
     foreach (TabButtonNode node in _tabButtons)
-      node.IsActive = node.Tab == tab;
+      node.IsActive = node.Tab == tab || (tab == ConfigTab.LocalTTSLexicon && node.Tab == ConfigTab.LocalTTSSettings);
 
     foreach (TabPanelNode node in _tabPanels)
       node.IsActive = node.Tab == tab;

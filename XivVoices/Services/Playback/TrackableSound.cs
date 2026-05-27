@@ -1,3 +1,5 @@
+using SoundTouch.Net.NAudioSupport;
+
 namespace XivVoices.Services;
 
 public class TrackableSound : ISampleProvider, IDisposable
@@ -7,63 +9,67 @@ public class TrackableSound : ISampleProvider, IDisposable
   private readonly ISampleProvider _innerProvider;
   private readonly VolumeSampleProvider _volumeProvider;
   private readonly PanningSampleProvider _panningProvider;
+  private readonly SoundTouchWaveProvider _soundTouchProvider;
+  private readonly WaveStream _sourceStream;
 
   private bool _playbackEnded = false;
   private float _currentVolume = 1.0f;
-  private float _currentPan = 0.0f;
 
-  private TimeSpan _lastKnownTime = TimeSpan.Zero;
-  private DateTime? _lastUpdateTime = null;
+  private readonly Lock _positionLock = new();
+  private long _lastSamplesPlayedAtRead;
+  private DateTime _lastReadTimeUtc;
+  private long _samplesPlayed;
 
   public XivMessage Message { get; }
-  public WaveStream SourceStream { get; }
   public bool IsStopping { get; set; } = false;
   public bool IsMuted = false;
 
   public Action<TrackableSound>? OnPlaybackStopped;
 
-  public TimeSpan CurrentTime => SourceStream.CurrentTime;
-  public TimeSpan TotalTime => SourceStream.TotalTime;
-
   public TrackableSound(ILogger logger, XivMessage message, WaveStream sourceStream)
   {
-    _logger = logger;
     Message = message;
-    SourceStream = sourceStream;
+    _logger = logger;
+    _sourceStream = sourceStream;
 
-    ISampleProvider sourceSampleProvider = sourceStream.ToSampleProvider();
+    ISampleProvider sourceSampleProvider = _sourceStream.ToSampleProvider();
     if (sourceSampleProvider.WaveFormat.SampleRate != 48000)
     {
       _logger.Debug($"Resampling from {sourceSampleProvider.WaveFormat.SampleRate}hz to 48000hz");
       sourceSampleProvider = new WdlResamplingSampleProvider(sourceSampleProvider, 48000);
     }
-    _innerProvider = sourceSampleProvider;
 
+    _innerProvider = sourceSampleProvider;
     _volumeProvider = new VolumeSampleProvider(_innerProvider) { Volume = 1.0f };
     _panningProvider = new PanningSampleProvider(_volumeProvider) { Pan = 0.0f };
+    _soundTouchProvider = new SoundTouchWaveProvider(_panningProvider.ToWaveProvider());
 
-    _lastKnownTime = SourceStream.CurrentTime;
-    _lastUpdateTime = DateTime.UtcNow;
+    _samplesPlayed = 0;
+    _lastSamplesPlayedAtRead = 0;
+    _lastReadTimeUtc = DateTime.UtcNow;
   }
 
-  public WaveFormat WaveFormat => _panningProvider.WaveFormat;
+  public WaveFormat WaveFormat => _soundTouchProvider.WaveFormat;
+  public TimeSpan TotalTime => _sourceStream.TotalTime;
 
   public int Read(float[] buffer, int offset, int count)
   {
-    int read = _panningProvider.Read(buffer, offset, count);
+    int read = _soundTouchProvider.ToSampleProvider().Read(buffer, offset, count);
 
     if (read > 0)
     {
-      _lastKnownTime = SourceStream.CurrentTime;
-      _lastUpdateTime = DateTime.UtcNow;
+      lock (_positionLock)
+      {
+        _samplesPlayed += read;
+        _lastSamplesPlayedAtRead = _samplesPlayed;
+        _lastReadTimeUtc = DateTime.UtcNow;
+      }
     }
 
-    if (!_playbackEnded && (read == 0 || SourceStream.Position >= SourceStream.Length))
+    if (!_playbackEnded && read < count)
     {
       _playbackEnded = true;
-      _lastKnownTime = TotalTime;
-      _lastUpdateTime = null;
-      OnPlaybackStopped?.Invoke(this);
+      Task.Run(() => OnPlaybackStopped?.Invoke(this));
     }
 
     return read;
@@ -73,19 +79,20 @@ public class TrackableSound : ISampleProvider, IDisposable
   {
     get
     {
-      if (_lastUpdateTime is null || _playbackEnded)
-        return TotalTime;
-
-      TimeSpan elapsed = DateTime.UtcNow - _lastUpdateTime.Value;
-      TimeSpan estimated = _lastKnownTime + elapsed;
-
-      return estimated > TotalTime ? TotalTime : estimated;
+      if (_playbackEnded) return TotalTime;
+      double elapsedSec = (DateTime.UtcNow - _lastReadTimeUtc).TotalSeconds;
+      if (elapsedSec <= 0) elapsedSec = 0;
+      long extrapolatedSamples = _lastSamplesPlayedAtRead + (long)(elapsedSec * WaveFormat.SampleRate * WaveFormat.Channels);
+      double seconds = (double)extrapolatedSamples / (WaveFormat.SampleRate * WaveFormat.Channels);
+      TimeSpan estimated = TimeSpan.FromSeconds(seconds);
+      TimeSpan result = TimeSpan.FromSeconds(Math.Min(estimated.TotalSeconds, TotalTime.TotalSeconds) * (Speed / 100.0));
+      return result > TotalTime ? TotalTime : result;
     }
   }
 
-  public void Dispose() => SourceStream.Dispose();
+  public void Dispose() => _sourceStream.Dispose();
 
-  public bool IsPlaying => !IsStopping && !_playbackEnded && SourceStream.Position < SourceStream.Length;
+  public bool IsPlaying => !IsStopping && !_playbackEnded && _sourceStream.Position < _sourceStream.Length;
 
   public float Volume
   {
@@ -99,12 +106,29 @@ public class TrackableSound : ISampleProvider, IDisposable
 
   public float Pan
   {
-    get => _currentPan;
+    get;
     set
     {
-      _currentPan = Math.Clamp(value, -1f, 1f);
-      _panningProvider.Pan = _currentPan;
+      field = Math.Clamp(value, -1f, 1f);
+      _panningProvider.Pan = value;
+    }
+  } = 0.0f;
+
+  public double Speed
+  {
+    get => _soundTouchProvider.TempoChange + 100;
+    set
+    {
+      _soundTouchProvider.TempoChange = value - 100;
+    }
+  }
+
+  public double Pitch
+  {
+    get => _soundTouchProvider.Pitch * 100;
+    set
+    {
+      _soundTouchProvider.Pitch = value / 100;
     }
   }
 }
-

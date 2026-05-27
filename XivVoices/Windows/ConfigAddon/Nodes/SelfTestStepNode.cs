@@ -46,36 +46,33 @@ public class SelfTestStepNode : ResNode
     _stateNode.TextColor = ColorHelper.GetColor((uint)(Active ? 25 : Skipped ? 3 : Completed ? 45 : 2));
   }
 
-  private bool _active = false;
   public bool Active
   {
-    get => _active;
+    get;
     set
     {
-      _active = value;
+      field = value;
       UpdateState();
     }
-  }
+  } = false;
 
-  private bool _skipped = false;
   public bool Skipped
   {
-    get => _skipped;
+    get;
     set
     {
-      _skipped = value;
+      field = value;
       UpdateState();
     }
-  }
+  } = false;
 
-  private bool _completed = false;
   public bool Completed
   {
-    get => _completed;
+    get;
     set
     {
-      _completed = value;
+      field = value;
       UpdateState();
     }
-  }
+  } = false;
 }

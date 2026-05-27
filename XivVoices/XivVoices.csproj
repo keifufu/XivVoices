@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="assets/ffmpeg-wine.sh">
+    <Content Include="assets/espeak-ng.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>ffmpeg-wine.sh</TargetPath>
+      <TargetPath>espeak-ng.dll</TargetPath>
       <Visible>false</Visible>
     </Content>
     <Content Include="assets/logo.png">
@@ -30,27 +30,20 @@
       <TargetPath>logo.png</TargetPath>
       <Visible>false</Visible>
     </Content>
-    <Content Include="assets/discord.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>discord.png</TargetPath>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="assets/patreon.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>patreon.png</TargetPath>
-      <Visible>false</Visible>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="KokoroSharp" Version="0.6.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Concentus.OggFile" Version="1.0.7" />
-    <PackageReference Include="Xabe.FFmpeg" Version="6.0.2" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.26.0" />
+    <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
+    <PackageReference Include="SoundTouch.Net.NAudioSupport.Core" Version="2.3.2" />
     <PackageReference Include="NAudio" Version="2.3.0" />
   </ItemGroup>
 
   <ItemGroup Condition="!$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">
-    <PackageReference Include="KamiToolKit" Version="1.1.11" />
+    <PackageReference Include="KamiToolKit" Version="1.1.23" />
   </ItemGroup>
 
   <ItemGroup Condition="$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">

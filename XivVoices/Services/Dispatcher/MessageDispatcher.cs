@@ -2,11 +2,12 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null);
   void ClearQueue();
   string ReplaceName(string sentence, string playerName);
   (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
   void DispatchTestMessage();
+  void DispatchLocalTTSMessage(string voice, int pitch, string sentence);
 }
 
 public enum PlaybackQueueState
@@ -23,7 +24,7 @@ public class PlaybackQueue
   public DateTime PlaybackStartTime { get; set; }
 }
 
-public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState, IObjectTable _objectTable) : IMessageDispatcher
+public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
 {
   private Dictionary<MessageSource, PlaybackQueue> _queues = [];
   private InterceptedSound? _interceptedSound;
@@ -140,7 +141,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -167,7 +168,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
-    string? playerName = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue ?? null);
+    string? playerName = _gameInteropService.PlayerName;
     if (playerName == null)
     {
       if (isFake) playerName = "Fake Name";
@@ -284,7 +285,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       voice,
       voicelinePath,
       playerName,
-      isFake
+      isFake,
+      voiceOverride,
+      pitchOverride,
+      speakerWorld
     );
 
     _logger.Debug($"Constructed message: {message}");
@@ -369,5 +373,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   {
     string sentence = Random.Shared.Next(100) == 0 ? "Testing.... Ardbert, can you hear me? I can speak now. Will you come home soon?" : "This is a test message.";
     _ = TryDispatch(MessageSource.AddonTalk, "Narrator", sentence, null, true);
+  }
+
+  public void DispatchLocalTTSMessage(string voice, int pitch, string sentence)
+  {
+    _ = TryDispatch(MessageSource.AddonTalk, "Preview", sentence, null, true, voice, pitch);
   }
 }

@@ -26,34 +26,32 @@ public class TabButtonNode : ButtonBase
     IconNode.IconExtras.HoveredBorderImageNode.AddTimeline(new TimelineBuilder().Build());
     IsActive = false;
 
-    AddEvent(AtkEventType.MouseOut, OnHoverEnd);
     AddEvent(AtkEventType.MouseOver, OnHoverStart);
+    AddEvent(AtkEventType.MouseOut, OnHoverEnd);
 
     LoadTwoPartTimelines(this, IconNode);
     InitializeComponentEvents();
   }
 
-  private int _index = 0;
   public int Index
   {
-    get => _index;
+    get;
     set
     {
-      _index = value;
+      field = value;
       Position = new Vector2(StartPosition.X, StartPosition.Y + (48.0f * Index));
     }
-  }
+  } = 0;
 
-  private bool _isActive = false;
   public bool IsActive
   {
-    get => _isActive;
+    get;
     set
     {
-      _isActive = value;
+      field = value;
       IconNode.IconExtras.HoveredBorderImageNode.IsVisible = IsActive;
     }
-  }
+  } = false;
 
   private void OnHoverStart()
     => IconNode.IconExtras.HoveredBorderImageNode.IsVisible = IsActive || true;

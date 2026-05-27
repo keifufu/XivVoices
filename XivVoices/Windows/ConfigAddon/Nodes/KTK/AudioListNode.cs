@@ -24,12 +24,12 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
 
   public AudioListNode()
   {
-    itemHeight = TU.ItemHeight;
+    _itemHeight = TU.ItemHeight;
 
     ScrollBarNode = new ScrollBarNode
     {
       OnValueChanged = OnScrollUpdate,
-      ScrollSpeed = (int)itemHeight,
+      ScrollSpeed = (int)_itemHeight,
       HideWhenDisabled = true,
     };
     ScrollBarNode.AttachNode(this);
@@ -44,13 +44,13 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
     ScrollBarNode.Size = new Vector2(8.0f, Height);
     ScrollBarNode.Position = new Vector2(Width - 8.0f, 0.0f);
 
-    var newNodeCount = (int)(Height / (itemHeight + ItemSpacing));
+    var newNodeCount = (int)(Height / (_itemHeight + ItemSpacing));
     if (newNodeCount != nodeCount)
     {
       FullRebuild();
     }
 
-    foreach (var node in nodeList)
+    foreach (var node in _nodeList)
     {
       node.Width = ScrollBarNode.Bounds.Left - 8.0f;
     }
@@ -77,7 +77,7 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
     {
       field = value;
 
-      var newNodeCount = (int)(Height / (itemHeight + ItemSpacing));
+      var newNodeCount = (int)(Height / (_itemHeight + ItemSpacing));
       if (newNodeCount != nodeCount)
       {
         FullRebuild();
@@ -90,8 +90,8 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
     }
   } = [];
 
-  private readonly List<TU> nodeList = [];
-  private readonly float itemHeight;
+  private readonly List<TU> _nodeList = [];
+  private readonly float _itemHeight;
   private T? selectedItem;
   private int scrollPosition;
   private int nodeCount;
@@ -101,11 +101,11 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
   /// </summary>
   public void FullRebuild()
   {
-    foreach (var node in nodeList)
+    foreach (var node in _nodeList)
     {
       node.Dispose();
     }
-    nodeList.Clear();
+    _nodeList.Clear();
 
     scrollPosition = Math.Clamp(scrollPosition, 0, Math.Max(OptionsList.Count - nodeCount, 0));
     selectedItem = default;
@@ -119,7 +119,7 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
   {
     PopulateNodes();
 
-    foreach (var node in nodeList)
+    foreach (var node in _nodeList)
     {
       if (node.IsVisible)
       {
@@ -130,15 +130,15 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
 
   private void RebuildNodeList()
   {
-    nodeCount = (int)(Height / (itemHeight + ItemSpacing));
+    nodeCount = (int)(Height / (_itemHeight + ItemSpacing));
     if (nodeCount < 1) return;
 
     foreach (var index in Enumerable.Range(0, nodeCount))
     {
       var node = new TU
       {
-        Size = new Vector2(ScrollBarNode.Bounds.Left - 8.0f, itemHeight),
-        Position = new Vector2(0.0f, index * (itemHeight + ItemSpacing)),
+        Size = new Vector2(ScrollBarNode.Bounds.Left - 8.0f, _itemHeight),
+        Position = new Vector2(0.0f, index * (_itemHeight + ItemSpacing)),
         NodeId = (uint)index + 2,
         OnClick = (clickedNode, isRightClick) =>
         {
@@ -148,13 +148,13 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
         IsVisible = false,
       };
       node.AttachNode(this);
-      nodeList.Add(node);
+      _nodeList.Add(node);
     }
   }
 
   private void PopulateNodes()
   {
-    foreach (var (nodeIndex, node) in nodeList.Index())
+    foreach (var (nodeIndex, node) in _nodeList.Index())
     {
       var dataIndex = scrollPosition + nodeIndex;
 
@@ -178,7 +178,7 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
 
     selectedItem = item;
 
-    foreach (var node in nodeList)
+    foreach (var node in _nodeList)
     {
       if (node.ItemData is null)
       {
@@ -199,14 +199,14 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
       ScrollBarNode.IsEnabled = false;
     }
 
-    var totalHeight = (int)(OptionsList.Count * (itemHeight + ItemSpacing) + ItemSpacing);
-    ScrollBarNode.UpdateScrollParams((int)(nodeList.Count * (itemHeight + ItemSpacing)), totalHeight);
-    ScrollBarNode.ScrollPosition = (int)(scrollPosition * (itemHeight + ItemSpacing));
+    var totalHeight = (int)(OptionsList.Count * (_itemHeight + ItemSpacing) + ItemSpacing);
+    ScrollBarNode.UpdateScrollParams((int)(_nodeList.Count * (_itemHeight + ItemSpacing)), totalHeight);
+    ScrollBarNode.ScrollPosition = (int)(scrollPosition * (_itemHeight + ItemSpacing));
   }
 
   private void OnScrollUpdate(int newPosition)
   {
-    scrollPosition = (int)(newPosition / (itemHeight + ItemSpacing));
+    scrollPosition = (int)(newPosition / (_itemHeight + ItemSpacing));
     PopulateNodes();
   }
 
@@ -215,7 +215,7 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
     scrollPosition += atkEventData->MouseData.WheelDirection >= 1 ? -1 : 1;
     scrollPosition = Math.Clamp(scrollPosition, 0, Math.Max(0, OptionsList.Count - nodeCount));
 
-    ScrollBarNode.ScrollPosition = (int)(scrollPosition * (itemHeight + ItemSpacing));
+    ScrollBarNode.ScrollPosition = (int)(scrollPosition * (_itemHeight + ItemSpacing));
     PopulateNodes();
 
     atkEvent->SetEventIsHandled();

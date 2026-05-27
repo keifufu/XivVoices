@@ -66,8 +66,9 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
 
   private string SanitizeLog(string log)
   {
-    if (string.IsNullOrEmpty(_configuration.StreamElementsApiKey)) return log;
-    return log.Replace(_configuration.StreamElementsApiKey, "REDACTED");
+    // if (string.IsNullOrEmpty(_configuration.StreamElementsApiKey)) return log;
+    // return log.Replace(_configuration.StreamElementsApiKey, "REDACTED");
+    return log;
   }
 
   private void AddLogHistory(string logEntry)

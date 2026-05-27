@@ -11,9 +11,10 @@ public class ConfigSectionNode : ResNode
   public float LastNodeY = 0.0f;
   public float CurrentY = 0.0f;
 
-  public ConfigSectionNode(string header, ConfigSectionNode? previousSection = null)
+  public ConfigSectionNode(string header, ConfigSectionNode? previousSection = null, float offset = 0)
   {
-    Y = previousSection == null ? 0.0f : previousSection.Y + previousSection.Height + 5.0f;
+    Y = previousSection == null ? 0.0f : previousSection.Y + previousSection.Height + 0.0f;
+    Y += offset;
 
     AttachNode(new CategoryTextNode()
     {

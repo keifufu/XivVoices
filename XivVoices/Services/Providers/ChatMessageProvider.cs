@@ -6,7 +6,7 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IChatGui _chatGui, IObjectTable _objectTable) : IChatMessageProvider
+public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IObjectTable _objectTable, IPlayerState _playerState) : IChatMessageProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -25,6 +25,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
   private void OnChatMessage(IChatMessage message)
   {
     string speaker = "";
+    string? speakerWorld = null;
     try
     {
       foreach (Payload item in message.Sender.Payloads)
@@ -32,12 +33,16 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
         if (item is PlayerPayload player)
         {
           speaker = player.PlayerName;
+          speakerWorld = player.World.Value.Name.ToString();
           break;
         }
 
+        // This should only be used for messages from the local player, as everyone else should always have a PlayerPayload.
+        // So we will always set the world to our home world here.
         if (item is TextPayload text && text.Text != null && text.Text.ToString().Trim().Contains(' '))
         {
           speaker = text.Text;
+          speakerWorld = _playerState.HomeWorld.Value.Name.ToString();
           break;
         }
       }
@@ -54,8 +59,6 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
         allowed = _configuration.ChatSayEnabled;
         break;
       case XivChatType.TellOutgoing:
-        if (_objectTable.LocalPlayer != null)
-          speaker = _objectTable.LocalPlayer.Name.ToString();
         allowed = _configuration.ChatTellEnabled;
         break;
       case XivChatType.TellIncoming:
@@ -105,10 +108,13 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     if (!_configuration.ChatEnabled)
       allowed = false;
 
+    if (_configuration.LocalTTSIgnoreChatDuringCutscenes && _gameInteropService.IsInCutscene())
+      allowed = false;
+
     if (allowed)
     {
-      _logger.Debug($"speaker::{speaker} sentence::{message.Message}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString());
+      _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{message.Message}");
+      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(), speakerWorld: speakerWorld);
     }
   }
 }

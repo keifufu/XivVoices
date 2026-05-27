@@ -38,7 +38,7 @@ public class AudioLogNode : AudioListItemNode<(XivMessage message, bool isPlayin
 
   protected override void SetNodeData((XivMessage message, bool isPlaying, float percentage, bool isQueued) itemData)
   {
-    string message = $"{itemData.message.RawSpeaker}: {itemData.message.RawSentence}";
+    string message = $"{itemData.message.RawSpeaker}: {itemData.message.AddName(itemData.message.RawSentence)}";
     TextTooltip = message;
     _textNode.String = message;
     _progressBarNode.Progress = itemData.percentage;

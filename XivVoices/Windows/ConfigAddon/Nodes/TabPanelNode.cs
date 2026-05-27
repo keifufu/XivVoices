@@ -7,6 +7,7 @@ namespace XivVoices.Windows;
 public abstract class TabPanelNode : SimpleComponentNode
 {
   public readonly ScrollingAreaNode<ResNode>? _containerNode = null;
+  public bool SetupComplete = false;
 
   protected TabPanelNode(bool container)
   {
@@ -22,7 +23,14 @@ public abstract class TabPanelNode : SimpleComponentNode
     }
 
     OnSetup();
+    SetupComplete = true;
     ConfigurationSaved();
+  }
+
+  protected override void Dispose(bool disposing, bool isNativeDestructor)
+  {
+    base.Dispose(disposing, isNativeDestructor);
+    SetupComplete = false;
   }
 
   protected override void OnSizeChanged()
@@ -59,4 +67,5 @@ public abstract class TabPanelNode : SimpleComponentNode
   public virtual void OnSetup() { }
   public virtual void ConfigurationSaved() { }
   public virtual void OnUpdate() { }
+  public Action<ConfigTab>? SetTab;
 }

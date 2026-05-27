@@ -48,6 +48,15 @@ public class XivMessage
   [JsonIgnore]
   public bool IsFake { get; set; } = false;
 
+  [JsonIgnore]
+  public string? VoiceOverride { get; set; } = null;
+
+  [JsonIgnore]
+  public int? PitchOverride { get; set; } = null;
+
+  [JsonIgnore]
+  public string? SpeakerWorld { get; set; } = null;
+
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 
@@ -62,7 +71,10 @@ public class XivMessage
     VoiceEntry? voice,
     string? voicelinePath,
     string? playerName,
-    bool isFake)
+    bool isFake,
+    string? voiceOverride,
+    int? pitchOverride,
+    string? speakerWorld)
   {
     Id = id;
     Source = source;
@@ -75,6 +87,9 @@ public class XivMessage
     VoicelinePath = voicelinePath;
     PlayerName = playerName;
     IsFake = isFake;
+    VoiceOverride = voiceOverride;
+    PitchOverride = pitchOverride;
+    SpeakerWorld = speakerWorld;
   }
 
   [JsonConstructor]

@@ -4,6 +4,16 @@ public static class Changelog
 {
   // Newest ones go to the top.
   public readonly static Dictionary<string, string[]> Versions = new() {
+    { "1.5.0.0", new[]
+    {
+      "Added new Local TTS Engine with 27 voices.",
+      "Added NPC or Player specific voice and pitch overrides for Local TTS.",
+      "Added persistent voice and pitch randomization for Local TTS.",
+      "Added a customizable replacement lexicon for Local TTS.",
+      "Added an option to ignore chat messages during cutscenes.",
+      "Added '/xivv localtts' and '/xivv lexicon'.",
+      "Removed FFmpeg dependency and its wine workarounds.",
+    }},
     { "1.4.0.0", new[]
     {
       "Refactored configuration window.",
@@ -57,7 +67,7 @@ public static class Changelog
     { "1.0.0.0", new[] {
       "Initial rewrite release!",
       "Starting from scratch, this plugin is way more maintainable and extendable than the old one, while maintaining feature parity.",
-      "The new data architecture has fixed a lot of issues will make voice generation much simpler in the future.",
+      "The new data architecture has fixed a lot of issues and will make voice generation much simpler in the future.",
       "Improved error handling and logging has been added.",
       "The UI has been mostly revamped! It features a better setup/updater and more configurable options.",
       "Automatic reports now include more information to help us generate the voicelines.",

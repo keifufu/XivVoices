@@ -14,12 +14,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   private LabelTextNode _mixerSourcesNode = null!;
   private CheckboxNode _debugLoggingNode = null!;
   private ConfigTextEditNode _serverUrlNode = null!;
-  private ConfigTextEditNode _localTTSVoiceMaleNode = null!;
-  private ConfigTextEditNode _localTTSVoiceFemaleNode = null!;
-  private CheckboxNode _useStreamElementsLocalTTSNode = null!;
-  private ConfigTextEditNode _streamElementsApiKeyNode = null!;
-  private ConfigTextEditNode _streamElementsMaleVoiceNode = null!;
-  private ConfigTextEditNode _streamElementsFemaleVoiceNode = null!;
   private CheckboxNode _enableLocalGenerationNode = null!;
   private CheckboxNode _forceLocalGenerationNode = null!;
   private CheckboxNode _limitFpsDuringLocalGenerationNode = null!;
@@ -79,103 +73,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
       }
     };
     debugSectionNode.AttachNode(_serverUrlNode);
-
-    _localTTSVoiceMaleNode = new("LocalTTSVoiceMale")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.LocalTTSVoiceMale;
-        _overlayNode.Title = "Edit LocalTTSVoiceMale";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.LocalTTSVoiceMale = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_localTTSVoiceMaleNode);
-
-    _localTTSVoiceFemaleNode = new("LocalTTSVoiceFemale")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.LocalTTSVoiceFemale;
-        _overlayNode.Title = "Edit LocalTTSVoiceFemale";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.LocalTTSVoiceFemale = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_localTTSVoiceFemaleNode);
-
-    _useStreamElementsLocalTTSNode = new()
-    {
-      String = "UseStreamElementsLocalTTS",
-      Size = new Vector2(240.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.UseStreamElementsLocalTTS = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_useStreamElementsLocalTTSNode);
-
-    _streamElementsApiKeyNode = new("StreamElementsApiKey")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.StreamElementsApiKey;
-        _overlayNode.Title = "Edit StreamElementsApiKey";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.StreamElementsApiKey = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_streamElementsApiKeyNode);
-
-    _streamElementsMaleVoiceNode = new("StreamElementsMaleVoice")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.StreamElementsMaleVoice;
-        _overlayNode.Title = "Edit StreamElementsMaleVoice";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.StreamElementsMaleVoice = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_streamElementsMaleVoiceNode);
-
-    _streamElementsFemaleVoiceNode = new("StreamElementsFemaleVoice")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.StreamElementsFemaleVoice;
-        _overlayNode.Title = "Edit StreamElementsFemaleVoice";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.StreamElementsFemaleVoice = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_streamElementsFemaleVoiceNode);
 
     _enableLocalGenerationNode = new()
     {
@@ -315,12 +212,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   {
     _debugLoggingNode.IsChecked = _configuration.DebugLogging;
     _serverUrlNode.Value = _configuration.ServerUrl ?? "";
-    _localTTSVoiceMaleNode.Value = _configuration.LocalTTSVoiceMale;
-    _localTTSVoiceFemaleNode.Value = _configuration.LocalTTSVoiceFemale;
-    _useStreamElementsLocalTTSNode.IsChecked = _configuration.UseStreamElementsLocalTTS;
-    _streamElementsApiKeyNode.Value = _configuration.StreamElementsApiKey;
-    _streamElementsMaleVoiceNode.Value = _configuration.StreamElementsMaleVoice;
-    _streamElementsFemaleVoiceNode.Value = _configuration.StreamElementsFemaleVoice;
     _enableLocalGenerationNode.IsChecked = _configuration.EnableLocalGeneration;
     _forceLocalGenerationNode.IsChecked = _configuration.ForceLocalGeneration;
     _limitFpsDuringLocalGenerationNode.IsChecked = _configuration.LimitFpsDuringLocalGeneration;

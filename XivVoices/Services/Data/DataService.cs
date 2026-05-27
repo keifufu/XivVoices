@@ -21,6 +21,7 @@ public partial interface IDataService : IHostedService
   event System.Action? OnLatestVersionChanged;
   event System.Action? OnServerStatusChanged;
   event System.Action? OnUpdateFinished;
+  event System.Action? OnToolsDownloaded;
   void SetDataDirectory(string dataDirectory);
   void SetServerUrl(string serverUrl);
   Task Update(bool isManual);
@@ -49,6 +50,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   public event System.Action? OnLatestVersionChanged;
   public event System.Action? OnServerStatusChanged;
   public event System.Action? OnUpdateFinished;
+  public event System.Action? OnToolsDownloaded;
 
   private bool _dataDirectoryExists;
   public string? DataDirectory
@@ -465,6 +467,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         ZipFile.ExtractToDirectory(zipPath, toolsPath);
         File.Delete(zipPath);
         File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
+        OnToolsDownloaded?.Invoke();
         _logger.Debug("Successfully downloaded tools");
       }
       else

@@ -10,8 +10,9 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 
 namespace XivVoices.Services;
 
-public interface IGameInteropService
+public interface IGameInteropService : IHostedService
 {
+  string? PlayerName { get; }
   Task<T> RunOnFrameworkThread<T>(Func<T> func);
   Task RunOnFrameworkThread(System.Action action);
   IGameObject? GetTarget();
@@ -38,8 +39,27 @@ public class CameraView
   public Vector3 Right;
 }
 
-public partial class GameInteropService(ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, IPlayerState _playerState, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(ILogger _logger, ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, IPlayerState _playerState, ITargetManager _targetManager) : IGameInteropService
 {
+  public Task StartAsync(CancellationToken cancellationToken)
+  {
+    RunOnFrameworkThread(() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue);
+    _clientState.Login += OnLogin;
+    _clientState.Logout += OnLogout;
+    return _logger.ServiceLifecycle();
+  }
+
+  public Task StopAsync(CancellationToken cancellationToken)
+  {
+    _clientState.Login -= OnLogin;
+    _clientState.Logout -= OnLogout;
+    return _logger.ServiceLifecycle();
+  }
+
+  private void OnLogin() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue;
+  private void OnLogout(int type, int code) => PlayerName = null;
+  public string? PlayerName { get; private set; } = null;
+
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
 

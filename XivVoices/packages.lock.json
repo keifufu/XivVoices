@@ -25,11 +25,21 @@
       },
       "KamiToolKit": {
         "type": "Direct",
-        "requested": "[1.1.11, )",
-        "resolved": "1.1.11",
-        "contentHash": "Il283ZMHu2HTAWhh4KloomOKDQrziEXjO3mGuo8l+Ou7/fcw8xXGNxFxwQE6ns63Lemrstm4J4y9N3IFeF+Qtg==",
+        "requested": "[1.1.23, )",
+        "resolved": "1.1.23",
+        "contentHash": "q7ZKTsKqXnSEep/kopkOvB5Pt+z5JUhTs4RwRtsY+cy4u2/26oodwu3PjfsUNfMh7B2bhbs3bCJeGf1ii2iSqg=="
+      },
+      "KokoroSharp": {
+        "type": "Direct",
+        "requested": "[0.6.7, )",
+        "resolved": "0.6.7",
+        "contentHash": "WqtNHTEsmqV5DyxROY8wqnaNDEF05KA6XkBrSADn0CF5gFvKmDzeZq9pYGxDhGnCLQOqjuWSo8K1as/h42P1Nw==",
         "dependencies": {
-          "SixLabors.ImageSharp": "3.1.12"
+          "Microsoft.ML.OnnxRuntime.Managed": "1.22.0",
+          "NAudio": "2.2.1",
+          "NumSharp": "0.30.0",
+          "OpenTK.Audio.OpenAL": "5.0.0-pre.13",
+          "System.Numerics.Tensors": "9.0.5"
         }
       },
       "Microsoft.Extensions.Hosting": {
@@ -62,6 +72,15 @@
           "Microsoft.Extensions.Options": "10.0.1"
         }
       },
+      "Microsoft.ML.OnnxRuntime": {
+        "type": "Direct",
+        "requested": "[1.26.0, )",
+        "resolved": "1.26.0",
+        "contentHash": "wiylawSnyspmJdZxilJUuUq3Tp/nT9BsngHHKvrCGWsADo15Z7y0G6kYAU0Pqb5af+f/EzwIi2aHaNUlzp/eww==",
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.26.0"
+        }
+      },
       "NAudio": {
         "type": "Direct",
         "requested": "[2.3.0, )",
@@ -76,11 +95,21 @@
           "NAudio.WinMM": "2.3.0"
         }
       },
-      "Xabe.FFmpeg": {
+      "SoundTouch.Net": {
         "type": "Direct",
-        "requested": "[6.0.2, )",
-        "resolved": "6.0.2",
-        "contentHash": "82rhJD6NRXJ71g+Spk3gLINUmoNK3AGmUDCIUSOqR7wW1Z1JHMpkg3RTxeg4Hw7cEaQvuBePCrz4CvPQeNzjLA=="
+        "requested": "[2.3.2, )",
+        "resolved": "2.3.2",
+        "contentHash": "5A29Pll/n4kEEPvCD5DFot3MJG+VgiaRG6LbNQVkF94VerC1b5iZtJKfdLQXZPFrl3LiVbKm3txKBe5/pbv5rw=="
+      },
+      "SoundTouch.Net.NAudioSupport.Core": {
+        "type": "Direct",
+        "requested": "[2.3.2, )",
+        "resolved": "2.3.2",
+        "contentHash": "I5UZ7RQCj/bBfDc2u1NpfedUeO7pGRlONio6upysM3Ks+MQ8IEk2f3eszeilr/XPV40pb9JNLyvi5FNcAfME3w==",
+        "dependencies": {
+          "NAudio.Core": "2.0.0",
+          "SoundTouch.Net": "2.3.2"
+        }
       },
       "Concentus": {
         "type": "Transitive",
@@ -337,6 +366,14 @@
         "resolved": "10.0.1",
         "contentHash": "DO8XrJkp5x4PddDuc/CH37yDBCs9BYN6ijlKyR3vMb55BP1Vwh90vOX8bNfnKxr5B2qEI3D8bvbY1fFbDveDHQ=="
       },
+      "Microsoft.ML.OnnxRuntime.Managed": {
+        "type": "Transitive",
+        "resolved": "1.26.0",
+        "contentHash": "hEmwYh5WL8n1xjNvmfdSUOqGGXAKCLtxfgUfGZRRAen9IWuSk7ieoBFH08+wlrYp1Vma80HtAirL3QLDbTeEzQ==",
+        "dependencies": {
+          "System.Numerics.Tensors": "9.0.0"
+        }
+      },
       "NAudio.Asio": {
         "type": "Transitive",
         "resolved": "2.3.0",
@@ -382,15 +419,39 @@
           "NAudio.Core": "2.3.0"
         }
       },
-      "SixLabors.ImageSharp": {
+      "NumSharp": {
         "type": "Transitive",
-        "resolved": "3.1.12",
-        "contentHash": "iAg6zifihXEFS/t7fiHhZBGAdCp3FavsF4i2ZIDp0JfeYeDVzvmlbY1CNhhIKimaIzrzSi5M/NBFcWvZT2rB/A=="
+        "resolved": "0.30.0",
+        "contentHash": "1f8m2B/m/ZSsICaqLszspCyA9/sTHK7wBKEH5KsxGg/r3QCYTc2HnfYOGMeCytvo8/j0v/umn5umLOLhdExlFA=="
+      },
+      "OpenTK.Audio.OpenAL": {
+        "type": "Transitive",
+        "resolved": "5.0.0-pre.13",
+        "contentHash": "q+YYwBHlP54/wjlapXRmv8Wy6IiCfoL8nz/+laMKXrlCxIBQ807dh2GowOc5Z6Sllr9I45GRQlqL8xbeniqrIQ==",
+        "dependencies": {
+          "OpenTK.Core": "[5.0.0-pre.13, 6.0.0-pre)",
+          "OpenTK.Mathematics": "[5.0.0-pre.13, 6.0.0-pre)"
+        }
+      },
+      "OpenTK.Core": {
+        "type": "Transitive",
+        "resolved": "5.0.0-pre.13",
+        "contentHash": "NohlYrmuR/H8dMMFzTEdTD7GgWa+mLpXzgnVa1Wixp8tzojdoalO+HYW/ixG1lzzYyBSMoENrZyRgt6njZxnkw=="
+      },
+      "OpenTK.Mathematics": {
+        "type": "Transitive",
+        "resolved": "5.0.0-pre.13",
+        "contentHash": "65qbZS49AfrTM6jtZ2RDTWAzLe13ywCXIiSP5QrAJLmZT6sQqHGd1LfFXLhx8Ccp77qy7qh/LHsxpUOlkgZTCg=="
       },
       "System.Diagnostics.EventLog": {
         "type": "Transitive",
         "resolved": "10.0.1",
         "contentHash": "xfaHEHVDkMOOZR5S6ZGezD0+vekdH1Nx/9Ih8/rOqOGSOk1fxiN3u94bYkBW/wigj0Uw2Wt3vvRj9mtYdgwEjw=="
+      },
+      "System.Numerics.Tensors": {
+        "type": "Transitive",
+        "resolved": "9.0.5",
+        "contentHash": "hS5G2PmTFHt534LfQB1WIKALMHrZu2rNdzzRr1UfDBSpFcJrKBL38ShOr/yy5s11GFzZKyLp55jdLN5LRA5t2A=="
       }
     }
   }

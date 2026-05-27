@@ -1,3 +1,4 @@
+using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node;
 
@@ -19,6 +20,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _chatEmotesEnabledNode = null!;
   private CheckboxNode _queueChatMessagesNode = null!;
   private CheckboxNode _localTTSPlayerSaysNode = null!;
+  private CheckboxNode _localTTSIgnoreChatDuringCutscenesNode = null!;
   private CheckboxNode _localTTSDisableLocalPlayerChatNode = null!;
 
   private CheckboxNode _queueDialogueNode = null!;
@@ -49,7 +51,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     chatSettingsSectionNode.AttachNode(new ConfigTooltipNode()
     {
-      TextTooltip = "Chat Messages are voiced using LocalTTS.",
+      TextTooltip = "Chat Messages are voiced using Local TTS.",
     }, inline: true);
 
     _chatEnabledNode = new()
@@ -192,6 +194,19 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     };
     chatSettingsSectionNode.AttachNode(_localTTSPlayerSaysNode);
 
+    _localTTSIgnoreChatDuringCutscenesNode = new()
+    {
+      String = "Ignore Chat Messages during Cutscenes",
+      TextTooltip = "Chat Messages will be entirely ignored during cutscenes. They will not be re-played once the cutscene ends.",
+      Size = new Vector2(300.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.LocalTTSIgnoreChatDuringCutscenes = value;
+        _configuration.Save();
+      }
+    };
+    chatSettingsSectionNode.AttachNode(_localTTSIgnoreChatDuringCutscenesNode);
+
     _localTTSDisableLocalPlayerChatNode = new()
     {
       String = "Ignore your own Chat Messages",
@@ -216,7 +231,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       Enabled
       Master toggle, will use proper voicelines when available.
 
-      TTS
+      Local TTS
       When proper voicelines are not available, will fall back to Local TTS.
 
       Narrator
@@ -242,6 +257,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       String = "Regular Dialogue",
       Height = 16.0f,
+      TextColor = ColorHelper.GetColor(2),
     }, padding: 4.0f);
 
     _addonTalkEnabledNode = new()
@@ -259,7 +275,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _addonTalkTTSEnabledNode = new()
     {
-      String = "TTS",
+      String = "Local TTS",
       Size = new Vector2(60.0f, 20.0f),
       X = 145.0f,
       OnClick = (value) =>
@@ -274,7 +290,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       String = "Narrator",
       Size = new Vector2(90.0f, 20.0f),
-      X = 220.0f,
+      X = 260.0f,
       OnClick = (value) =>
       {
         _configuration.AddonTalkNarratorEnabled = value;
@@ -287,6 +303,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       String = "Battle Dialogue",
       Height = 16.0f,
+      TextColor = ColorHelper.GetColor(2),
     }, padding: 4.0f);
 
     _addonBattleTalkEnabledNode = new()
@@ -304,7 +321,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _addonBattleTalkTTSEnabledNode = new()
     {
-      String = "TTS",
+      String = "Local TTS",
       Size = new Vector2(60.0f, 20.0f),
       X = 145.0f,
       OnClick = (value) =>
@@ -319,7 +336,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       String = "Narrator",
       Size = new Vector2(90.0f, 20.0f),
-      X = 220.0f,
+      X = 260.0f,
       OnClick = (value) =>
       {
         _configuration.AddonBattleTalkNarratorEnabled = value;
@@ -332,6 +349,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       String = "Bubble Dialogue",
       Height = 16.0f,
+      TextColor = ColorHelper.GetColor(2),
     }, padding: 4.0f);
 
     _addonMiniTalkEnabledNode = new()
@@ -349,7 +367,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _addonMiniTalkTTSEnabledNode = new()
     {
-      String = "TTS",
+      String = "Local TTS",
       Size = new Vector2(60.0f, 20.0f),
       X = 145.0f,
       OnClick = (value) =>

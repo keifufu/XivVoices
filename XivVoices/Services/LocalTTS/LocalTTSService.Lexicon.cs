@@ -2,41 +2,44 @@ namespace XivVoices.Services;
 
 public partial class LocalTTSService
 {
-  private async Task<string> ProcessPlayerChat(string sentence, string speaker)
+  public string ApplyLexicon(XivMessage message)
   {
-    string playerName = speaker.Split(" ")[0];
-    bool iAmSpeaking = await _gameInteropService.RunOnFrameworkThread(() => _objectTable.LocalPlayer?.Name.TextValue == speaker);
-    if (iAmSpeaking) playerName = "You";
+    string sentence = message.AddName(message.Sentence);
+
+    if (message.Source == MessageSource.ChatMessage)
+      sentence = ProcessPlayerChat(sentence, message.Speaker);
+
+    sentence = ApplyUserLexicon(sentence);
+    sentence = ApplyManifestLexicon(sentence);
+    sentence = ApplyBuiltInLexicon(sentence);
+
+    return sentence;
+  }
+
+  private string ApplyUserLexicon(string sentence)
+  {
+    foreach (KeyValuePair<string, string> entry in _configuration.LocalTTSLexicon)
+    {
+      string pattern = "\\b" + entry.Key + "\\b";
+      sentence = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+    }
+    return sentence;
+  }
+
+  private string ApplyManifestLexicon(string sentence)
+  {
+    if (_dataService.Manifest == null) return sentence;
+    foreach (KeyValuePair<string, string> entry in _dataService.Manifest.Lexicon)
+    {
+      string pattern = "\\b" + entry.Key + "\\b";
+      sentence = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+    }
+    return sentence;
+  }
+
+  private string ApplyBuiltInLexicon(string sentence)
+  {
     RegexOptions regexOptions = RegexOptions.IgnoreCase;
-
-    // Regex: remove links
-    sentence = Regex.Replace(sentence, @"https?\S*", "", regexOptions);
-
-    // Regex: remove coordinates
-    sentence = Regex.Replace(sentence, @"(\ue0bb[^\(]*?)\([^\)]*\)", "$1", regexOptions);
-
-    // Check if the player is waving
-    if (sentence.Equals("o/"))
-    {
-      if (iAmSpeaking)
-        return playerName + " wave.";
-      else
-        return playerName + " is waving.";
-    }
-
-    if (_configuration.LocalTTSPlayerSays && !sentence.StartsWith(playerName))
-    {
-      string says = iAmSpeaking ? " say " : " says ";
-      sentence = playerName + says + sentence;
-    }
-
-    // Replace "min" following numbers with "minutes", ensuring proper pluralization
-    sentence = Regex.Replace(sentence, @"(\b\d+)\s*min\b", m =>
-    {
-      return int.Parse(m.Groups[1].Value) == 1 ? $"{m.Groups[1].Value} minute" : $"{m.Groups[1].Value} minutes";
-    }, regexOptions);
-
-    // Regex: replacements
     sentence = Regex.Replace(sentence, @"\bggty\b", "good game, thank you", regexOptions);
     sentence = Regex.Replace(sentence, @"\btyfp\b", "thank you for the party!", regexOptions);
     sentence = Regex.Replace(sentence, @"\bty4p\b", "thank you for the party!", regexOptions);
@@ -55,7 +58,6 @@ public partial class LocalTTSService
     sentence = Regex.Replace(sentence, @"\bfl\b", "friend list", regexOptions);
     sentence = Regex.Replace(sentence, @"\bfc\b", "free company", regexOptions);
     sentence = Regex.Replace(sentence, @"\bdot\b", "damage over time", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bcrit\b", "critical hit", regexOptions);
     sentence = Regex.Replace(sentence, @"\blol\b", "\"L-O-L\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\blmao\b", "\"Lah-mao\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bgg\b", "good game", regexOptions);
@@ -72,7 +74,7 @@ public partial class LocalTTSService
     sentence = Regex.Replace(sentence, @"\bggs\b", "good game", regexOptions);
     sentence = Regex.Replace(sentence, @"\bwp\b", "well played", regexOptions);
     sentence = Regex.Replace(sentence, @"\bgn\b", "good night", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bnn\b", "ight night", regexOptions);
+    sentence = Regex.Replace(sentence, @"\bnn\b", "night night", regexOptions);
     sentence = Regex.Replace(sentence, @"\bdd\b", "damage dealer", regexOptions);
     sentence = Regex.Replace(sentence, @"\bbis\b", "best in slot", regexOptions);
     sentence = Regex.Replace(sentence, @"(?<=\s|^):\)(?=\s|$)", "smile", regexOptions);
@@ -80,25 +82,47 @@ public partial class LocalTTSService
     sentence = Regex.Replace(sentence, @"\b<3\b", "heart", regexOptions);
     sentence = Regex.Replace(sentence, @"\bARR\b", "A Realm Reborn", regexOptions);
     sentence = Regex.Replace(sentence, @"\bHW\b", "Heavensward");
-    sentence = Regex.Replace(sentence, @"\bSB\b", "Storm Blood");
+    sentence = Regex.Replace(sentence, @"\bSB\b", "Stormblood");
     sentence = Regex.Replace(sentence, @"\bSHB\b", "Shadowbringers", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bEW\b", "End Walker");
-    sentence = Regex.Replace(sentence, @"\bucob\b", "ultimate coils of bahamut", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bIT\b", "it");
-    sentence = Regex.Replace(sentence, @"r says", "rr says");
-    sentence = Regex.Replace(sentence, @"Eleanorr says", "el-uh-ner says");
+    sentence = Regex.Replace(sentence, @"\bEW\b", "Endwalker");
+    sentence = Regex.Replace(sentence, @"\bDT\b", "Dawntrail");
+    sentence = Regex.Replace(sentence, @"\bEC\b", "Evercold");
     sentence = Regex.Replace(sentence, @"\bm1\b", "\"Melee one\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bm2\b", "\"Melee two\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bot\b", "\"Off-Tank\"", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bMt\b", "\"Main-Tank\"");
-    sentence = Regex.Replace(sentence, @"\bMT\b", "\"Main-Tank\"");
-    sentence = Regex.Replace(sentence, @"\bmt\b", "\"mistake\"");
+    sentence = Regex.Replace(sentence, @"\bmt\b", "\"Main-Tank\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\br1\b", "\"Ranged One\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\br2\b", "\"Ranged Two\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bh1\b", "\"Healer One\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\bh2\b", "\"Healer Two\"", regexOptions);
     sentence = Regex.Replace(sentence, @"\brn\b", "\"right now\"", regexOptions);
-    sentence = Regex.Replace(sentence, @"\bsaya\b", "\"sah-ya\"", regexOptions);
+    return sentence;
+  }
+
+  private string ProcessPlayerChat(string sentence, string speaker)
+  {
+    string playerName = speaker.Split(" ")[0];
+    bool iAmSpeaking = _gameInteropService.PlayerName == speaker;
+    if (iAmSpeaking) playerName = "You";
+    RegexOptions regexOptions = RegexOptions.IgnoreCase;
+
+    // Regex: remove links
+    sentence = Regex.Replace(sentence, @"https?\S*", "", regexOptions);
+
+    // Regex: remove coordinates
+    sentence = Regex.Replace(sentence, @"(\ue0bb[^\(]*?)\([^\)]*\)", "$1", regexOptions);
+
+    if (_configuration.LocalTTSPlayerSays && !sentence.StartsWith(playerName))
+    {
+      string says = iAmSpeaking ? " say " : " says ";
+      sentence = playerName + says + sentence;
+    }
+
+    // Replace "min" following numbers with "minutes", ensuring proper pluralization
+    sentence = Regex.Replace(sentence, @"(\b\d+)\s*min\b", m =>
+    {
+      return int.Parse(m.Groups[1].Value) == 1 ? $"{m.Groups[1].Value} minute" : $"{m.Groups[1].Value} minutes";
+    }, regexOptions);
 
     sentence = JobReplacement(sentence);
     return sentence;
@@ -164,18 +188,5 @@ public partial class LocalTTSService
       sentence = Regex.Replace(sentence, $@"\b{job.Key}\b", job.Value);
 
     return sentence;
-  }
-
-  private string ApplyLexicon(string sentence)
-  {
-    if (_dataService.Manifest == null) return sentence;
-
-    string cleanedSentence = sentence;
-    foreach (KeyValuePair<string, string> entry in _dataService.Manifest.Lexicon)
-    {
-      string pattern = "\\b" + entry.Key + "\\b";
-      cleanedSentence = Regex.Replace(cleanedSentence, pattern, entry.Value, RegexOptions.IgnoreCase);
-    }
-    return cleanedSentence;
   }
 }

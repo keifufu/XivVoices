@@ -34,7 +34,8 @@ public class Configuration : IPluginConfiguration
   public bool ChatLinkshellEnabled = true;
   public bool ChatEmotesEnabled = true;
   public bool QueueChatMessages = true;
-  public bool LocalTTSPlayerSays = true;
+  public bool LocalTTSPlayerSays = false;
+  public bool LocalTTSIgnoreChatDuringCutscenes = false;
   public bool LocalTTSDisableLocalPlayerChat = false;
 
   public bool QueueDialogue = true;
@@ -73,9 +74,20 @@ public class Configuration : IPluginConfiguration
   public bool DirectionalAudioForAddonMiniTalk = true;
   public int MaximumPan = 95;
 
-  public string LocalTTSDefaultVoice = "Male";
+  // LocalTTS Settings
   public int LocalTTSVolume = 100;
   public int LocalTTSSpeed = 100;
+
+  public string LocalTTSDefaultVoice = "Male";
+  public string LocalTTSMaleVoice = "Echo";
+  public string LocalTTSFemaleVoice = "Heart";
+
+  public bool LocalTTSVoiceRandomization = true;
+  public bool LocalTTSPitchRandomization = true;
+  public List<string> LocalTTSDisallowedVoices = [];
+
+  public Dictionary<string, (string voice, int pitch)> LocalTTSOverrides = [];
+  public Dictionary<string, string> LocalTTSLexicon = [];
 
   // Overlay Settings
   public bool OverlayOpen = true;
@@ -92,20 +104,10 @@ public class Configuration : IPluginConfiguration
   public bool EnableAutomaticReports = true;
   public bool LogReportsToChat = false;
 
-  // Wine Settings
-  public bool WineUseNativeFFmpeg = true;
-  public string ProtonUsername = "";
-
   // Debug Settings
   public bool DebugMode = false;
   public bool DebugLogging = true;
   public string? ServerUrl = null;
-  public string LocalTTSVoiceMale = "en-gb-northern_english_male-medium";
-  public string LocalTTSVoiceFemale = "en-gb-jenny_dioco-medium";
-  public bool UseStreamElementsLocalTTS = false;
-  public string StreamElementsApiKey = "";
-  public string StreamElementsMaleVoice = "Brian";
-  public string StreamElementsFemaleVoice = "Emma";
   public bool EnableLocalGeneration = false;
   public bool ForceLocalGeneration = false;
   public bool LimitFpsDuringLocalGeneration = false;
@@ -135,7 +137,7 @@ public class Configuration : IPluginConfiguration
 
   private bool IsKeySecret(string key)
   {
-    if (key == "StreamElementsApiKey") return true;
+    if (key == "SecretKey") return true;
     return false;
   }
 

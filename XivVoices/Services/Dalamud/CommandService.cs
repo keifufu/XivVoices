@@ -59,9 +59,9 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
         _logger.Chat($"  {command} dialogue - Open the dialogue settings tab");
         _logger.Chat($"  {command} overlaycfg - Open the overlay settings tab");
         _logger.Chat($"  {command} playback - Open the playback settings tab");
+        _logger.Chat($"  {command} localtts - Open the LocalTTS settings tab");
+        _logger.Chat($"  {command} lexicon - Open the Lexicon settings tab");
         _logger.Chat($"  {command} logs - Open the audio logs tab");
-        if (Util.IsWine())
-          _logger.Chat($"  {command} wine - Open the wine settings tab");
         if (_configuration.DebugMode)
         {
           _logger.Chat($"  {command} debug - Open the debug tab");
@@ -150,11 +150,14 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
       case "playback":
         _windowService.OpenTab(ConfigTab.PlaybackSettings);
         break;
+      case "localtts":
+        _windowService.OpenTab(ConfigTab.LocalTTSSettings);
+        break;
+      case "lexicon":
+        _windowService.OpenTab(ConfigTab.LocalTTSLexicon);
+        break;
       case "logs":
         _windowService.OpenTab(ConfigTab.AudioLogs);
-        break;
-      case "wine":
-        _windowService.OpenTab(ConfigTab.WineSettings);
         break;
       case "debug":
         _windowService.OpenTab(ConfigTab.Debug);

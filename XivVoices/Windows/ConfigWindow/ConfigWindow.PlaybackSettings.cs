@@ -2,10 +2,6 @@ namespace XivVoices.Windows;
 
 public partial class ConfigWindow
 {
-  // FFmpeg 'atempo' limitations.
-  private readonly int _minSpeed = 50;
-  private readonly int _maxSpeed = 200;
-
   private void DrawPlaybackSettingsTab()
   {
     ImGui.Dummy(ScaledVector2(0, 10));
@@ -111,10 +107,10 @@ public partial class ConfigWindow
 
     ImGui.Dummy(ScaledVector2(0, 10));
     DrawConfigSlider("Volume", ref _configuration.Volume, 0, 100);
-    DrawConfigSlider("Speed", ref _configuration.Speed, _minSpeed, _maxSpeed);
+    DrawConfigSlider("Speed", ref _configuration.Speed, 50, 200);
 
     DrawConfigSlider("TTS Volume", ref _configuration.LocalTTSVolume, 0, 100);
-    DrawConfigSlider("TTS Speed", ref _configuration.LocalTTSSpeed, _minSpeed, _maxSpeed);
+    DrawConfigSlider("TTS Speed", ref _configuration.LocalTTSSpeed, 50, 200);
 
     ImGui.Dummy(ScaledVector2(0, 10));
     string[] genders = ["Male", "Female"];

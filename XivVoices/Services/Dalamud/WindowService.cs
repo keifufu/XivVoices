@@ -11,9 +11,10 @@ public enum ConfigTab
   Overview,
   DialogueSettings,
   PlaybackSettings,
+  LocalTTSSettings,
+  LocalTTSLexicon,
   OverlaySettings,
   AudioLogs,
-  WineSettings,
   Debug,
   SelfTest,
 }
@@ -38,7 +39,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.PlaybackSettings);
+    OpenTab(ConfigTab.Overview);
 #endif
 
     return _logger.ServiceLifecycle();

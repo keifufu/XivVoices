@@ -24,7 +24,6 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   private SliderNode _ttsVolumeSliderNode = null!;
   private SliderNode _ttsSpeedSliderNode = null!;
-  private TextDropDownNode _ttsDefaultVoiceNode = null!;
 
   private CheckboxNode _directionalAudioChatNode = null!;
   private CheckboxNode _directionalAudioBubblesNode = null!;
@@ -226,7 +225,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     playbackSettingsSectionNode.AttachNode(new LabelTextNode()
     {
-      String = "TTS Volume",
+      String = "Local TTS Volume",
       X = 240.0f,
       Height = 16.0f,
       TextColor = ColorHelper.GetColor(2),
@@ -249,31 +248,11 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     playbackSettingsSectionNode.AttachNode(new LabelTextNode()
     {
-      String = "TTS Speed",
+      String = "Local TTS Speed",
       X = 240.0f,
       Height = 16.0f,
       TextColor = ColorHelper.GetColor(2),
     }, inline: true);
-
-    playbackSettingsSectionNode.AttachNode(new LabelTextNode()
-    {
-      String = "Default Voice",
-      Height = 18.0f,
-      FontSize = 14,
-    }, padding: 5.0f);
-
-    _ttsDefaultVoiceNode = new TextDropDownNode()
-    {
-      Options = ["Male", "Female"],
-      X = 140.0f,
-      Size = new Vector2(220.0f, 24.0f),
-      OnOptionSelected = (option) =>
-      {
-        _configuration.LocalTTSDefaultVoice = option;
-        _configuration.Save();
-      }
-    };
-    playbackSettingsSectionNode.AttachNode(_ttsDefaultVoiceNode, inline: true);
 
     AttachNode(playbackSettingsSectionNode);
 
@@ -414,8 +393,6 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _ttsSpeedSliderNode.Value = _configuration.LocalTTSSpeed;
     NativeUtils.FixSliderNode(_ttsSpeedSliderNode);
-
-    _ttsDefaultVoiceNode.SelectedOption = _configuration.LocalTTSDefaultVoice;
 
     _directionalAudioChatNode.IsChecked = _configuration.DirectionalAudioForChat;
     _directionalAudioBubblesNode.IsChecked = _configuration.DirectionalAudioForAddonMiniTalk;

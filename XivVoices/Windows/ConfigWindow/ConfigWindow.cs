@@ -5,7 +5,7 @@ using Dalamud.Interface.Textures;
 
 namespace XivVoices.Windows;
 
-public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IAudioPostProcessor _audioPostProcessor, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
+public partial class ConfigWindow(ILogger _logger, Configuration _configuration, IDataService _dataService, IReportService _reportService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, ITextureProvider _textureProvider, IDalamudPluginInterface _pluginInterface) : Window("XivVoices###XivVoicesConfigWindow")
 {
   public ConfigTab SelectedTab { get; set; } = ConfigTab.Overview;
 
@@ -58,8 +58,6 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         DrawImageButton(ConfigTab.PlaybackSettings, "Playback Settings", GetImGuiHandleForIconId(36));
         DrawImageButton(ConfigTab.OverlaySettings, "Overlay Settings", GetImGuiHandleForIconId(42));
         DrawImageButton(ConfigTab.AudioLogs, "Audio Logs", GetImGuiHandleForIconId(45));
-        if (Util.IsWine())
-          DrawImageButton(ConfigTab.WineSettings, "Wine Settings", GetImGuiHandleForIconId(24423));
         if (_configuration.DebugMode)
         {
           DrawImageButton(ConfigTab.Debug, "Debug", GetImGuiHandleForIconId(28));
@@ -96,9 +94,6 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         case ConfigTab.AudioLogs:
           DrawAudioLogsTab();
           break;
-        case ConfigTab.WineSettings:
-          DrawWineSettingsTab();
-          break;
         case ConfigTab.Debug:
           DrawDebugTab();
           break;
@@ -113,13 +108,11 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawPatreonButton()
   {
-    Dalamud.Interface.Textures.TextureWraps.IDalamudTextureWrap? patreon = _textureProvider.GetFromFile(Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "patreon.png")).GetWrapOrDefault();
-    if (patreon == null) return;
     using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0)))
     {
       using (ImRaii.Disabled(_dataService.DataDirectory == null))
       {
-        if (ImGui.ImageButton(patreon.Handle, ScaledVector2(42, 42)))
+        if (ImGui.ImageButton(GetImGuiHandleForIconId(54), ScaledVector2(42, 42)))
         {
           Util.OpenLink("https://xivv.keifufu.dev/patreon");
         }
@@ -133,13 +126,11 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawDiscordButton()
   {
-    Dalamud.Interface.Textures.TextureWraps.IDalamudTextureWrap? discord = _textureProvider.GetFromFile(Path.Join(_pluginInterface.AssemblyLocation.Directory?.FullName!, "discord.png")).GetWrapOrDefault();
-    if (discord == null) return;
     using (ImRaii.PushColor(ImGuiCol.Button, new Vector4(0, 0, 0, 0)))
     {
       using (ImRaii.Disabled(_dataService.DataDirectory == null))
       {
-        if (ImGui.ImageButton(discord.Handle, ScaledVector2(42, 42)))
+        if (ImGui.ImageButton(GetImGuiHandleForIconId(83), ScaledVector2(42, 42)))
         {
           Util.OpenLink("https://xivv.keifufu.dev/discord");
         }

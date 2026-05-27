@@ -11,8 +11,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   private IDataService _dataService = null!;
   private ILogger _logger = null!;
 
-  private bool _initialized = false;
-
   private ImGuiImageNode _logoNode = null!;
   private TextNode _welcomeNode = null!;
   private TextNode _serverStatusNode = null!;
@@ -217,24 +215,50 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
         OnToggle = _ => _changelogNode.RecalculateLayout(),
       };
 
+      categoryNode.AddNode(new ResNode() { Height = 2.0f });
       foreach (string changelog in version.Value)
       {
-        TextNode textNode = new()
+        IEnumerable<string> sections = Wrap(changelog);
+        for (int i = 0; i < sections.Count(); i++)
         {
-          String = " " + changelog,
-          Width = _changelogNode.TreeListNode.Width,
-          TextFlags = TextFlags.MultiLine | TextFlags.WordWrap,
-          X = 18.0f,
-        };
-        textNode.Height = textNode.GetTextDrawSize(textNode.String).Y;
+          string section = sections.ElementAt(i);
+          TextNode textNode = new()
+          {
+            String = i == 0 ? " " + section : section,
+            Width = _changelogNode.TreeListNode.Width,
+            Height = 12.0f,
+            X = i == 0 ? 18.0f : 33.0f,
+          };
+          categoryNode.AddNode(textNode);
+        }
 
-        categoryNode.AddNode(textNode);
+        categoryNode.AddNode(new ResNode() { Height = 2.0f });
       }
 
       _changelogNode.AddCategoryNode(categoryNode);
     }
+  }
 
-    _initialized = true;
+  private static IEnumerable<string> Wrap(string? s, int max = 44)
+  {
+    if (string.IsNullOrWhiteSpace(s) || max <= 0) yield break;
+    StringBuilder cur = new();
+    foreach (string word in s.Split(Array.Empty<char>(), StringSplitOptions.RemoveEmptyEntries))
+    {
+      if (word.Length > max)
+      {
+        if (cur.Length > 0) { yield return cur.ToString(); cur.Clear(); }
+        for (int i = 0; i < word.Length; i += max)
+          yield return word.Substring(i, Math.Min(max, word.Length - i));
+        continue;
+      }
+
+      if (cur.Length == 0) cur.Append(word);
+      else if (cur.Length + 1 + word.Length <= max) cur.Append(' ').Append(word);
+      else { yield return cur.ToString(); cur.Clear(); cur.Append(word); }
+    }
+
+    if (cur.Length > 0) yield return cur.ToString();
   }
 
   private bool IsImport(string path)
@@ -291,6 +315,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnServerStatusChanged()
   {
+    if (!SetupComplete) return;
+
     using RentedSeStringBuilder builder = new();
     _serverStatusNode.String = builder.Builder.Append("Server Status: ").PushColorType(_dataService.ServerStatus == ServerStatus.ONLINE ? 45u : 15u).Append(_dataService.ServerStatus).GetViewAsSpan();
     _serverStatusNode.Position = new Vector2((Width - _serverStatusNode.Size.X) / 2.0f, _welcomeNode.Bounds.Bottom);
@@ -300,6 +326,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnVoicelinesChanged()
   {
+    if (!SetupComplete) return;
+
     using RentedSeStringBuilder builder = new();
     bool allVoicelinesDownloaded = _dataService.Manifest != null && _dataService.DataStatus.VoicelinesDownloaded == _dataService.Manifest.Voicelines.Count;
     bool mostVoicelinesDownloaded = _dataService.Manifest != null && (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
@@ -309,6 +337,8 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnLatestVersionChanged()
   {
+    if (!SetupComplete) return;
+
     using RentedSeStringBuilder builder = new();
     _versionNode.String = builder.Builder.Append("Version: ").PushColorType(_dataService.IsOutdated ? 15u : 45u).Append(_dataService.Version).GetViewAsSpan();
     _versionNode.Position = new Vector2((Width - _versionNode.Size.X) / 2.0f, _voicelinesNode.Bounds.Bottom);
@@ -317,7 +347,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void UpdateLoginInstallUpdateState()
   {
-    if (!_initialized) return;
+    if (!SetupComplete) return;
 
     _actionButtonNode.IsEnabled = true;
     _loginNoteNode.IsVisible = false;

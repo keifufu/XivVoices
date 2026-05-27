@@ -13,7 +13,7 @@ public interface ISoundFilter : IHostedService
 // This intercepts all sounds that are loaded and played,
 // allowing us to block XIVV's voices if a line is voiced,
 // and to block ARR's in-game voices.
-public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IGameInteropProvider _interopProvider) : ISoundFilter
+public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IGameInteropService _gameInteropService, IGameInteropProvider _interopProvider) : ISoundFilter
 {
   private const int ResourceDataPointerOffset = 0xB0;
   private readonly ConcurrentDictionary<IntPtr, string> _scds = new();
@@ -205,8 +205,9 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     // POST-ARR cut/ffxiv/sound/voicem/voiceman_02500/vo_voiceman_02500_w00010_m_en.scd/0
     if (path.StartsWith("cut/ffxiv") && (path.Contains("vo_man") || path.Contains("vo_voiceman")))
     {
-      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(!_configuration.ReplaceVoicedARRCutscenes, path));
-      return _configuration.ReplaceVoicedARRCutscenes;
+      bool shouldBlock = _configuration.ReplaceVoicedARRCutscenes && _gameInteropService.IsInCutscene();
+      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(!shouldBlock, path));
+      return shouldBlock;
     }
 
     // AddonTalk

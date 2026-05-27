@@ -1,0 +1,11 @@
+<Project>
+  <Target Name="CopyContent" DependsOnTargets="" />
+  <Target Name="RemoveRuntimes" AfterTargets="Build" BeforeTargets="GetCopyToOutputDirectoryItems">
+    <RemoveDir Directories="$(OutputPath)runtimes/android" />
+    <RemoveDir Directories="$(OutputPath)runtimes/ios" />
+    <RemoveDir Directories="$(OutputPath)runtimes/linux-arm64" />
+    <RemoveDir Directories="$(OutputPath)runtimes/linux-x64" />
+    <RemoveDir Directories="$(OutputPath)runtimes/osx-arm64" />
+    <RemoveDir Directories="$(OutputPath)runtimes/win-arm64" />
+  </Target>
+</Project>

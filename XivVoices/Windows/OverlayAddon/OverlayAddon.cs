@@ -85,6 +85,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly HorizontalLineNode _horizontalLine2;
   private readonly TextNode _textNode;
 
+  private bool _hasVisitedOverlaySettings = false;
   private Vector2 _clickStartPosition = Vector2.Zero;
   private bool _isCursorSet = false;
   private bool _isMoving = false;
@@ -162,7 +163,15 @@ public unsafe class XivvOverlayNode : OverlayNode
       TextTooltip = "Open Configuration",
       OnClick = () =>
       {
-        _windowService.OpenTab(ConfigTab.OverlaySettings);
+        if (!_hasVisitedOverlaySettings)
+        {
+          _windowService.OpenTab(ConfigTab.OverlaySettings);
+          _hasVisitedOverlaySettings = true;
+        }
+        else
+        {
+          _windowService.Toggle();
+        }
       },
     };
     _configButton.AttachNode(this);
@@ -288,6 +297,8 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   private void ConfigurationSaved()
   {
+    if (!IsVisible) return;
+
     Scale = new(_configuration.OverlayScale / 100.0f);
     _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
 
@@ -311,7 +322,10 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   protected override void OnUpdate()
   {
+    bool previouslyVisible = IsVisible;
     IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
+    if (IsVisible && !previouslyVisible) ConfigurationSaved();
+    if (!IsVisible) return;
 
     _pauseButton.String = _playbackService.Paused ? "Play" : "Pause";
     _pauseButton.AddColor = new(_playbackService.Paused ? 0.15f : 0.0f);
