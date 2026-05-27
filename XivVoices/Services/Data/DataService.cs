@@ -1,4 +1,5 @@
 using Dalamud.Interface.ImGuiFileDialog;
+using Dalamud.Interface.ImGuiNotification;
 
 namespace XivVoices.Services;
 
@@ -451,28 +452,39 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
     if (!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5)
     {
-      string toolsPath = Path.Join(dataDirectory, "tools");
-      if (Directory.Exists(toolsPath))
+      try
       {
-        _toolsDirectoryExists = false;
-        Directory.Delete(toolsPath, recursive: true);
-      }
+        string toolsPath = Path.Join(dataDirectory, "tools");
+        if (Directory.Exists(toolsPath))
+        {
+          _toolsDirectoryExists = false;
+          Directory.Delete(toolsPath, recursive: true);
+        }
 
-      string zipPath = Path.Join(dataDirectory, "tools.zip");
-      await DownloadFile(zipPath, "tools.zip", token);
+        string zipPath = Path.Join(dataDirectory, "tools.zip");
+        await DownloadFile(zipPath, "tools.zip", token);
 
-      if (File.Exists(zipPath))
-      {
-        // Note: tools.zip is expected NOT to have a subdirectory.
-        ZipFile.ExtractToDirectory(zipPath, toolsPath);
-        File.Delete(zipPath);
-        File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
-        OnToolsDownloaded?.Invoke();
-        _logger.Debug("Successfully downloaded tools");
+        if (File.Exists(zipPath))
+        {
+          // Note: tools.zip is expected NOT to have a subdirectory.
+          ZipFile.ExtractToDirectory(zipPath, toolsPath);
+          File.Delete(zipPath);
+          File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
+          OnToolsDownloaded?.Invoke();
+          _logger.Debug("Successfully downloaded tools");
+        }
+        else
+        {
+          _logger.Error("Failed to download tools.zip");
+        }
       }
-      else
+      catch (Exception ex)
       {
-        _logger.Error("Failed to download tools.zip");
+        _logger.Error(ex);
+        _logger.DalamudToast(NotificationType.Error, "Failed to update tools.", "Please restart your game.", 60);
+        DataStatus.UpdateInProgress = false;
+        OnUpdateFinished?.Invoke();
+        return;
       }
     }
 
