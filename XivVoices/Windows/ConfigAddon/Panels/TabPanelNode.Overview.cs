@@ -97,7 +97,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
         }
         else
         {
-          if (_keyState[VirtualKey.CONTROL] && _keyState[VirtualKey.CONTROL])
+          if (_keyState[VirtualKey.CONTROL] && _keyState[VirtualKey.SHIFT])
             _dataService.CancelUpdate();
           else
             _dataService.Update(true);
