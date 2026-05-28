@@ -14,7 +14,7 @@ public enum ConfigTab
   LocalTTSSettings,
   LocalTTSLexicon,
   OverlaySettings,
-  AudioLogs,
+  AudioHistory,
   Debug,
   SelfTest,
 }
@@ -39,7 +39,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.Overview);
+    OpenTab(ConfigTab.LocalTTSLexicon);
 #endif
 
     return _logger.ServiceLifecycle();

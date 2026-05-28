@@ -4,14 +4,14 @@ using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
-public class AudioLogNode : AudioListItemNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued)>, IAudioListItemNode
+public class AudioHistoryNode : AudioListItemNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued)>, IAudioListItemNode
 {
   public static float ItemHeight => 36.0f;
 
   private readonly TextNode _textNode;
   private readonly ProgressBarNode _progressBarNode;
 
-  public AudioLogNode()
+  public AudioHistoryNode()
   {
     _textNode = new()
     {

@@ -99,7 +99,7 @@ public class ConfigAddon : NativeAddon
     AddTabPanel<LocalTTSSettingsTabPanelNode>();
     AddTabPanel<LocalTTSLexiconTabPanelNode>();
     AddTabPanel<OverlaySettingsTabPanelNode>();
-    AddTabPanel<AudioLogsTabPanelNode>();
+    AddTabPanel<AudioHistoryTabPanelNode>();
     AddTabPanel<DebugTabPanelNode>();
     AddTabPanel<SelfTestTabPanelNode>();
 
@@ -191,7 +191,7 @@ public class ConfigAddon : NativeAddon
       ConfigTab.PlaybackSettings => (36, "Playback Settings", enabled, true),
       ConfigTab.LocalTTSSettings => (40, "Local TTS Settings", enabled, true),
       ConfigTab.OverlaySettings => (42, "Overlay Settings", enabled, true),
-      ConfigTab.AudioLogs => (45, "Audio Logs", enabled, true),
+      ConfigTab.AudioHistory => (45, "Audio History", enabled, true),
       ConfigTab.Debug => (28, "Debug", enabled && _configuration.DebugMode, true),
       ConfigTab.SelfTest => (73, "Self-Test", enabled && _configuration.DebugMode, true),
       _ => (0, "", false, false),

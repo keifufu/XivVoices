@@ -57,7 +57,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         DrawImageButton(ConfigTab.DialogueSettings, "Dialogue Settings", GetImGuiHandleForIconId(29));
         DrawImageButton(ConfigTab.PlaybackSettings, "Playback Settings", GetImGuiHandleForIconId(36));
         DrawImageButton(ConfigTab.OverlaySettings, "Overlay Settings", GetImGuiHandleForIconId(42));
-        DrawImageButton(ConfigTab.AudioLogs, "Audio Logs", GetImGuiHandleForIconId(45));
+        DrawImageButton(ConfigTab.AudioHistory, "Audio History", GetImGuiHandleForIconId(45));
         if (_configuration.DebugMode)
         {
           DrawImageButton(ConfigTab.Debug, "Debug", GetImGuiHandleForIconId(28));
@@ -91,8 +91,8 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         case ConfigTab.OverlaySettings:
           DrawOverlaySettingsTab();
           break;
-        case ConfigTab.AudioLogs:
-          DrawAudioLogsTab();
+        case ConfigTab.AudioHistory:
+          DrawAudioHistoryTab();
           break;
         case ConfigTab.Debug:
           DrawDebugTab();

@@ -100,7 +100,7 @@ public class Configuration : IPluginConfiguration
   public bool OverlayHideInCombat = false;
   public bool OverlayHideWhenMuted = false;
 
-  // Audio Logs
+  // Audio History
   public bool EnableAutomaticReports = true;
   public bool LogReportsToChat = false;
 

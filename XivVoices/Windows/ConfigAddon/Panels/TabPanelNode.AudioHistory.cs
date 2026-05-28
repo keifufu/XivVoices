@@ -3,9 +3,9 @@ using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class AudioLogsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
-  public override ConfigTab Tab => ConfigTab.AudioLogs;
+  public override ConfigTab Tab => ConfigTab.AudioHistory;
   private Configuration _configuration = null!;
   private IReportService _reportService = null!;
   private IPlaybackService _playbackService = null!;
@@ -14,7 +14,7 @@ public class AudioLogsTabPanelNode(IServiceProvider _services) : TabPanelNode(co
   private CheckboxNode _logReportsToChatNode = null!;
 
   private ConfigSectionNode _audioLogsSectionNode = null!;
-  private AudioListNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued), AudioLogNode> _audioLogsNode = null!;
+  private AudioListNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued), AudioHistoryNode> _audioLogsNode = null!;
   private LabelTextNode _noAudioLogsNode = null!;
 
   private ConfigOverlayNode _overlayNode = null!;
@@ -66,7 +66,7 @@ public class AudioLogsTabPanelNode(IServiceProvider _services) : TabPanelNode(co
 
     AttachNode(reportSettingsSectionNode);
 
-    _audioLogsSectionNode = new("Audio Logs", reportSettingsSectionNode);
+    _audioLogsSectionNode = new("Audio History", reportSettingsSectionNode);
 
     _audioLogsSectionNode.AttachNode(new ConfigTooltipNode()
     {

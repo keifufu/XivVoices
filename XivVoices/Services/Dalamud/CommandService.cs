@@ -61,7 +61,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
         _logger.Chat($"  {command} playback - Open the playback settings tab");
         _logger.Chat($"  {command} localtts - Open the LocalTTS settings tab");
         _logger.Chat($"  {command} lexicon - Open the Lexicon settings tab");
-        _logger.Chat($"  {command} logs - Open the audio logs tab");
+        _logger.Chat($"  {command} history - Open the audio history tab");
         if (_configuration.DebugMode)
         {
           _logger.Chat($"  {command} debug - Open the debug tab");
@@ -156,8 +156,9 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
       case "lexicon":
         _windowService.OpenTab(ConfigTab.LocalTTSLexicon);
         break;
-      case "logs":
-        _windowService.OpenTab(ConfigTab.AudioLogs);
+      case "logs": // legacy alias
+      case "history":
+        _windowService.OpenTab(ConfigTab.AudioHistory);
         break;
       case "debug":
         _windowService.OpenTab(ConfigTab.Debug);
