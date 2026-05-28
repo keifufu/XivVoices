@@ -84,7 +84,7 @@ public class Configuration : IPluginConfiguration
 
   public bool LocalTTSVoiceRandomization = true;
   public bool LocalTTSPitchRandomization = true;
-  public List<string> LocalTTSDisallowedVoices = [];
+  public List<string> LocalTTSDisallowedVoices = ["Nicole"];
 
   public Dictionary<string, (string voice, int pitch)> LocalTTSOverrides = [];
   public Dictionary<string, string> LocalTTSLexicon = [];
