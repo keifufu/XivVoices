@@ -59,6 +59,7 @@ public class RaceMapping
 public class ManifestJson
 {
   public required string ToolsMd5 { get; set; }
+  public required string ToolsMinimumVersion { get; set; }
   public required List<VoiceEntry> Voices { get; set; }
   public required List<NpcEntry> Npcs { get; set; }
   public required Dictionary<string, long> Voicelines { get; set; }
@@ -72,6 +73,7 @@ public class Manifest
 {
   // Unchanged
   public required string ToolsMd5 { get; set; }
+  public required string ToolsMinimumVersion { get; set; }
 
   // Id -> VoiceEntry
   public required Dictionary<string, VoiceEntry> Voices { get; set; }

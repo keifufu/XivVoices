@@ -277,7 +277,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     OnLatestVersionChanged?.Invoke();
   }
 
-  private async Task LoadManifest(CancellationToken token)
+  private async Task LoadManifest(bool isManual, CancellationToken token)
   {
     string? dataDirectory = DataDirectory;
     if (dataDirectory == null)
@@ -294,7 +294,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     // do it if the local manifest is over 3 hours old.
     // Only do this check for the initial manifest load, otherwise
     // manual update checks are also affected.
-    if (Manifest == null && manifestExists && Version == "0.0.0.0")
+    if (Manifest == null && manifestExists && Version == "0.0.0.0" && !isManual)
     {
       DateTime lastModified = File.GetLastWriteTimeUtc(manifestPath);
       if (DateTime.UtcNow - lastModified < TimeSpan.FromHours(3))
@@ -317,6 +317,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       Manifest manifest = new()
       {
         ToolsMd5 = json.ToolsMd5,
+        ToolsMinimumVersion = json.ToolsMinimumVersion,
         Voices = [],
         Npcs = [],
         Npcs_Generic = [],
@@ -415,7 +416,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     await UpdateServerStatus(token);
 
     // We want to load the manifest even if the server is offline.
-    await LoadManifest(token);
+    await LoadManifest(isManual, token);
 
     string? dataDirectory = DataDirectory;
     if (dataDirectory == null)
@@ -450,7 +451,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
 
     string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
-    if (!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5)
+    if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
     {
       try
       {
@@ -461,8 +462,9 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
           Directory.Delete(toolsPath, recursive: true);
         }
 
-        string zipPath = Path.Join(dataDirectory, "tools.zip");
-        await DownloadFile(zipPath, "tools.zip", token);
+        string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
+        string zipPath = Path.Join(dataDirectory, toolsZip);
+        await DownloadFile(zipPath, toolsZip, token);
 
         if (File.Exists(zipPath))
         {
@@ -471,11 +473,11 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
           File.Delete(zipPath);
           File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
           OnToolsDownloaded?.Invoke();
-          _logger.Debug("Successfully downloaded tools");
+          _logger.Debug($"Successfully downloaded {toolsZip}");
         }
         else
         {
-          _logger.Error("Failed to download tools.zip");
+          _logger.Error($"Failed to download {toolsZip}");
         }
       }
       catch (Exception ex)
@@ -587,6 +589,21 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       OnUpdateFinished?.Invoke();
       _logger.Debug("Update completed.");
     }
+  }
+
+  private bool IsVersionGreaterOrSame(string a, string b)
+  {
+    if (a == "0.0.0.0") return true;
+    string[] A = a.Split('.');
+    string[] B = b.Split('.');
+    int n = Math.Max(A.Length, B.Length);
+    for (int i = 0; i < n; i++)
+    {
+      int va = i < A.Length ? int.Parse(A[i]) : 0;
+      int vb = i < B.Length ? int.Parse(B[i]) : 0;
+      if (va != vb) return va > vb;
+    }
+    return true;
   }
 
   public void CancelUpdate()
