@@ -153,7 +153,6 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   return false;
 #endif
 
-    if (_dataService.DataStatus.UpdateInProgress) return false;
     if (_dataService.IsOutdated) return false;
 
     if (_clientState.ClientLanguage != Dalamud.Game.ClientLanguage.English)

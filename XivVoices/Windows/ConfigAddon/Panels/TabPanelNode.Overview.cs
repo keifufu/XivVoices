@@ -9,6 +9,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   public override ConfigTab Tab => ConfigTab.Overview;
   private IDalamudPluginInterface _pluginInterface = null!;
   private IDataService _dataService = null!;
+  private IKeyState _keyState = null!;
   private ILogger _logger = null!;
 
   private ImGuiImageNode _logoNode = null!;
@@ -32,6 +33,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   {
     _pluginInterface = _services.GetRequiredService<IDalamudPluginInterface>();
     _dataService = _services.GetRequiredService<IDataService>();
+    _keyState = _services.GetRequiredService<IKeyState>();
     _logger = _services.GetRequiredService<ILogger>();
 
     _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
@@ -95,7 +97,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
         }
         else
         {
-          if (_dataService.DataStatus.UpdateInProgress)
+          if (_keyState[VirtualKey.CONTROL] && _keyState[VirtualKey.CONTROL])
             _dataService.CancelUpdate();
           else
             _dataService.Update(true);

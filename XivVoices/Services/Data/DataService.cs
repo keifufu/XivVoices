@@ -220,10 +220,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
   private void UpdateTimerElapsed(object? source, ElapsedEventArgs e)
   {
-    if (!DataStatus.UpdateInProgress)
-    {
-      _ = Update(false);
-    }
+    _ = Update(false);
   }
 
   private async Task SetLatestVersion()
@@ -367,6 +364,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         manifest.Lexicon.Add(entry.From, entry.To);
       }
 
+      _logger.Debug("Manifest loaded successfully");
       Manifest = manifest;
     }
     catch (Exception ex)
@@ -380,204 +378,184 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
   private async Task UpdateInternal(bool isManual)
   {
+    if (DataStatus.UpdateInProgress) return;
     await Task.Delay(1); // hopefully get us off the main thread
+    _logger.Debug("Update started");
 
-    if (_updateCts != null)
-    {
-      _updateCts.Cancel();
-      _updateCts.Dispose();
-    }
+    _updateCts?.Cancel();
+    _updateCts?.Dispose();
 
     _updateCts = new CancellationTokenSource();
     CancellationToken token = _updateCts.Token;
     DataStatus.UpdateInProgress = true;
 
-    await UpdateServerStatus(token);
-
-    // We want to load the manifest even if the server is offline.
-    await LoadManifest(isManual, token);
-
-    string? dataDirectory = DataDirectory;
-    if (dataDirectory == null)
+    try
     {
-      _logger.Debug("DataDirectory not found, can't update.");
-      DataStatus.UpdateInProgress = false;
-      OnUpdateFinished?.Invoke();
-      return;
-    }
+      await UpdateServerStatus(token);
 
-    string voicelinesDirectory = VoicelinesDirectory!; // We know that DataDirectory exists, we check right above this.
-    DataStatus.VoicelinesDownloaded = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Length;
+      // We want to load the manifest even if the server is offline.
+      await LoadManifest(isManual, token);
 
-    if (Manifest == null)
-    {
-      _logger.Debug("Manifest not loaded, can't update.");
-      DataStatus.UpdateInProgress = false;
-      OnUpdateFinished?.Invoke();
-      return;
-    }
-
-    DataStatus.UpdateTotalFiles = Manifest.Voicelines.Count;
-    DataStatus.UpdateSkippedFiles = 0;
-    DataStatus.UpdateCompletedFiles = 0;
-
-    if (ServerStatus != ServerStatus.ONLINE)
-    {
-      _logger.Debug($"ServerStatus is {ServerStatus}, can't update.");
-      DataStatus.UpdateInProgress = false;
-      OnUpdateFinished?.Invoke();
-      return;
-    }
-
-    string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
-    if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
-    {
-      string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
-      string zipPath = Path.Join(dataDirectory, toolsZip);
-      try
+      string? dataDirectory = DataDirectory;
+      if (dataDirectory == null)
       {
-        await DownloadFile(zipPath, toolsZip, token);
-        string downloadedToolsMd5 = CalculateMD5(zipPath);
-        if (downloadedToolsMd5 != Manifest.ToolsMd5)
-        {
-          _logger.Error($"{toolsZip} md5 does not match. Got: {downloadedToolsMd5}. Expected: {Manifest.ToolsMd5}");
-          DataStatus.UpdateInProgress = false;
-          OnUpdateFinished?.Invoke();
-          return;
-        }
+        _logger.Debug("DataDirectory not found, can't update.");
+        return;
+      }
 
-        string toolsPath = Path.Join(dataDirectory, "tools");
-        if (Directory.Exists(toolsPath))
-        {
-          _toolsDirectoryExists = false;
-          Directory.Delete(toolsPath, recursive: true);
-        }
+      string voicelinesDirectory = VoicelinesDirectory!; // We know that DataDirectory exists, we check right above this.
+      DataStatus.VoicelinesDownloaded = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Length;
 
-        if (File.Exists(zipPath))
+      if (Manifest == null)
+      {
+        _logger.Debug("Manifest not loaded, can't update.");
+        return;
+      }
+
+      DataStatus.UpdateTotalFiles = Manifest.Voicelines.Count;
+      DataStatus.UpdateSkippedFiles = 0;
+      DataStatus.UpdateCompletedFiles = 0;
+
+      if (ServerStatus != ServerStatus.ONLINE)
+      {
+        _logger.Debug($"ServerStatus is {ServerStatus}, can't update.");
+        return;
+      }
+
+      string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
+      if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
+      {
+        _logger.Debug($"Updating tools. Current: {File.ReadAllText(toolsMd5Path)}. Latest: {Manifest.ToolsMd5}. Version {Version}/{Manifest.ToolsMinimumVersion}");
+        string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
+        string zipPath = Path.Join(dataDirectory, toolsZip);
+        try
         {
+          bool success = await DownloadFile(zipPath, toolsZip, token);
+          if (!success) return;
+
+          string downloadedToolsMd5 = CalculateMD5(zipPath);
+          if (downloadedToolsMd5 != Manifest.ToolsMd5)
+          {
+            _logger.Error($"{toolsZip} md5 does not match. Got: {downloadedToolsMd5}. Expected: {Manifest.ToolsMd5}");
+            return;
+          }
+
+          string toolsPath = Path.Join(dataDirectory, "tools");
+          if (Directory.Exists(toolsPath))
+          {
+            _toolsDirectoryExists = false;
+            Directory.Delete(toolsPath, recursive: true);
+          }
+
           // Note: tools.zip is expected NOT to have a subdirectory.
           ZipFile.ExtractToDirectory(zipPath, toolsPath);
           File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
           OnToolsDownloaded?.Invoke();
           _logger.Debug($"Successfully downloaded {toolsZip}");
         }
-        else
-        {
-          _logger.Error($"Failed to download {toolsZip}");
-        }
-      }
-      catch (Exception ex)
-      {
-        _logger.Error(ex);
-        _logger.DalamudToast(NotificationType.Error, "Failed to update tools.", "Please restart your game.", 60);
-        DataStatus.UpdateInProgress = false;
-        OnUpdateFinished?.Invoke();
-        return;
-      }
-      finally
-      {
-        if (File.Exists(zipPath)) File.Delete(zipPath);
-      }
-    }
-
-    List<(string filePath, string fileName)> missingFiles = [];
-    Dictionary<string, long> fileSizeMap = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).ToDictionary(f => f.Name, f => f.Length);
-
-    foreach (KeyValuePair<string, long> voiceline in Manifest.Voicelines)
-    {
-      if (token.IsCancellationRequested) break;
-      string filePath = Path.Join(voicelinesDirectory, voiceline.Key);
-      if (!fileSizeMap.TryGetValue(voiceline.Key, out long size))
-      {
-        missingFiles.Add((filePath, voiceline.Key));
-      }
-      else if (size != voiceline.Value)
-      {
-        Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
-        missingFiles.Add((filePath, voiceline.Key));
-      }
-      else
-      {
-        Interlocked.Increment(ref DataStatus.UpdateSkippedFiles);
-      }
-    }
-
-    foreach (string file in fileSizeMap.Keys)
-    {
-      if (!Manifest.Voicelines.ContainsKey(file))
-      {
-        try
-        {
-          string filePath = Path.Join(voicelinesDirectory, file);
-          _logger.Debug($"Deleting unknown file: {file}");
-          File.Delete(filePath);
-          Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
-        }
         catch (Exception ex)
         {
           _logger.Error(ex);
-        }
-      }
-    }
-
-    _logger.Debug($"{missingFiles.Count} files need to be updated");
-    if (missingFiles.Count == 0)
-    {
-      DataStatus.UpdateInProgress = false;
-      OnUpdateFinished?.Invoke();
-      return;
-    }
-
-    List<Task> tasks = [];
-    DataStatus.UpdateStartTime = DateTime.UtcNow;
-
-    foreach ((string filePath, string fileName) in missingFiles)
-    {
-      try
-      {
-        if (isManual) await _manualUpdateSemaphore.WaitAsync(token);
-        else await _automaticUpdateSemaphore.WaitAsync(token);
-      }
-      catch (OperationCanceledException)
-      {
-        _logger.Debug("Cancellation requested during semaphore wait, breaking loop.");
-        break;
-      }
-
-      if (ServerStatus != ServerStatus.ONLINE)
-      {
-        _logger.Debug($"ServerStatus turned {ServerStatus} during Update loop, breaking.");
-        break;
-      }
-
-      tasks.Add(Task.Run(async () =>
-      {
-        try
-        {
-          bool success = await DownloadFile(filePath, fileName, token);
-          if (success)
-          {
-            Interlocked.Increment(ref DataStatus.UpdateCompletedFiles);
-            Interlocked.Increment(ref DataStatus.VoicelinesDownloaded);
-          }
+          _logger.DalamudToast(NotificationType.Error, "Failed to update tools.", "A game restart might resolve this.", 60);
+          return;
         }
         finally
         {
-          if (isManual) _manualUpdateSemaphore.Release();
-          else _automaticUpdateSemaphore.Release();
+          if (File.Exists(zipPath)) File.Delete(zipPath);
         }
-      }, token));
-    }
+      }
 
-    try
-    {
+      List<(string filePath, string fileName)> missingFiles = [];
+      Dictionary<string, long> fileSizeMap = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).ToDictionary(f => f.Name, f => f.Length);
+
+      foreach (KeyValuePair<string, long> voiceline in Manifest.Voicelines)
+      {
+        if (token.IsCancellationRequested) break;
+        string filePath = Path.Join(voicelinesDirectory, voiceline.Key);
+        if (!fileSizeMap.TryGetValue(voiceline.Key, out long size))
+        {
+          missingFiles.Add((filePath, voiceline.Key));
+        }
+        else if (size != voiceline.Value)
+        {
+          Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
+          missingFiles.Add((filePath, voiceline.Key));
+        }
+        else
+        {
+          Interlocked.Increment(ref DataStatus.UpdateSkippedFiles);
+        }
+      }
+
+      foreach (string file in fileSizeMap.Keys)
+      {
+        if (!Manifest.Voicelines.ContainsKey(file))
+        {
+          try
+          {
+            string filePath = Path.Join(voicelinesDirectory, file);
+            _logger.Debug($"Deleting unknown file: {file}");
+            File.Delete(filePath);
+            Interlocked.Decrement(ref DataStatus.VoicelinesDownloaded);
+          }
+          catch (Exception ex)
+          {
+            _logger.Error(ex);
+          }
+        }
+      }
+
+      _logger.Debug($"{missingFiles.Count} files need to be updated");
+      if (missingFiles.Count == 0) return;
+
+      List<Task> tasks = [];
+      DataStatus.UpdateStartTime = DateTime.UtcNow;
+
+      foreach ((string filePath, string fileName) in missingFiles)
+      {
+        try
+        {
+          if (isManual) await _manualUpdateSemaphore.WaitAsync(token);
+          else await _automaticUpdateSemaphore.WaitAsync(token);
+        }
+        catch (OperationCanceledException)
+        {
+          _logger.Debug("Cancellation requested during semaphore wait, breaking loop.");
+          break;
+        }
+
+        if (ServerStatus != ServerStatus.ONLINE)
+        {
+          _logger.Debug($"ServerStatus turned {ServerStatus} during Update loop, breaking.");
+          break;
+        }
+
+        tasks.Add(Task.Run(async () =>
+        {
+          try
+          {
+            bool success = await DownloadFile(filePath, fileName, token);
+            if (success)
+            {
+              Interlocked.Increment(ref DataStatus.UpdateCompletedFiles);
+              Interlocked.Increment(ref DataStatus.VoicelinesDownloaded);
+            }
+          }
+          finally
+          {
+            if (isManual) _manualUpdateSemaphore.Release();
+            else _automaticUpdateSemaphore.Release();
+          }
+        }, token));
+      }
+
       await Task.WhenAll(tasks);
     }
     finally
     {
+      _logger.Debug(token.IsCancellationRequested ? "Update cancelled." : "Update completed.");
       DataStatus.UpdateInProgress = false;
       OnUpdateFinished?.Invoke();
-      _logger.Debug("Update completed.");
     }
   }
 
