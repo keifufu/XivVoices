@@ -334,7 +334,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
 
     WaveStream? ttsSourceStream = null;
-    if (useLocalTTS) ttsSourceStream = await _localTTSService.Generate(message);
+    int relativeVolume = 0;
+    if (useLocalTTS) (ttsSourceStream, relativeVolume) = await _localTTSService.Generate(message);
     else if (useLocalGen) voicelinePath = await localGen(message);
 
     // Generation failed
@@ -371,6 +372,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     if (message.IsLocalTTS)
     {
       track.Pitch = _localTTSService.ResolvePitch(message);
+      track.RelativeVolume = relativeVolume;
       _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
     }
 

@@ -8,7 +8,7 @@ namespace XivVoices.Services;
 public interface ILocalTTSService : IHostedService
 {
   List<LocalTTSVoice> Voices { get; }
-  Task<WaveStream?> Generate(XivMessage message);
+  Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message);
   int ResolvePitch(XivMessage message);
   event System.Action? OnInitialized;
 }
@@ -84,7 +84,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     DisposePhonemizer();
   }
 
-  public Task<WaveStream?> Generate(XivMessage message) => Task.Run(() => Generate_Internal(message));
+  public Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message) => Task.Run(() => Generate_Internal(message));
 
   public int ResolvePitch(XivMessage message)
   {
@@ -133,13 +133,50 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     return Voices.FirstOrDefault(v => v.Name == defaultVoice);
   }
 
-  private async Task<WaveStream?> Generate_Internal(XivMessage message)
+  private int GetRelativeVolume(LocalTTSVoice voice)
   {
-    if (!_initialized) return null;
+    return voice.Name switch
+    {
+      // Male Voices
+      "Adam" => 0,
+      "Daniel" => 50,
+      "Echo" => 30,
+      "Eric" => 50,
+      "Fable" => 40,
+      "Fenrir" => 0,
+      "George" => 40,
+      "Lewis" => 10,
+      "Liam" => 20,
+      "Michael" => 50,
+      "Onyx" => 60,
+      "Puck" => -10,
+      // Female Voices
+      "Alice" => 30,
+      "Alloy" => 50,
+      "Aoede" => 20,
+      "Bella" => 30,
+      "Emma" => 0,
+      "Heart" => 20,
+      "Isabella" => -10,
+      "Jessica" => 30,
+      "Kore" => 10,
+      "Lily" => 20,
+      "Nicole" => 10,
+      "Nova" => 80,
+      "River" => 0,
+      "Sarah" => -20,
+      "Sky" => 40,
+      _ => 0,
+    };
+  }
+
+  private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
+  {
+    if (!_initialized) return (null, 0);
     Stopwatch sw = Stopwatch.StartNew();
 
     LocalTTSVoice? voice = ResolveVoice(message);
-    if (voice == null) return null;
+    if (voice == null) return (null, 0);
     _logger.Debug($"Using LocalTTS Voice: {voice.Name}");
 
     int[] tokens = Tokenize(ApplyLexicon(message));
@@ -166,6 +203,6 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     using (RawSourceWaveStream reader = new(new MemoryStream(pcm.ToArray()), new WaveFormat(24000, 16, 1)))
       WaveFileWriter.WriteWavFileToStream(ms, reader);
     ms.Position = 0;
-    return new WaveFileReader(ms);
+    return (new WaveFileReader(ms), GetRelativeVolume(voice));
   }
 }

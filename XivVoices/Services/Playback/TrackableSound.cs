@@ -100,9 +100,19 @@ public class TrackableSound : ISampleProvider, IDisposable
     set
     {
       _currentVolume = Math.Clamp(value, 0f, 3f);
-      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume;
+      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume + (RelativeVolume / 100);
     }
   }
+
+  public float RelativeVolume
+  {
+    get;
+    set
+    {
+      field = value;
+      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume + (RelativeVolume / 100);
+    }
+  } = 0;
 
   public float Pan
   {
