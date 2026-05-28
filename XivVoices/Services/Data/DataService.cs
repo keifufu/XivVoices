@@ -425,7 +425,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
       if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
       {
-        _logger.Debug($"Updating tools. Current: {File.ReadAllText(toolsMd5Path)}. Latest: {Manifest.ToolsMd5}. Version {Version}/{Manifest.ToolsMinimumVersion}");
+        string currentToolsMd5 = File.Exists(toolsMd5Path) ? File.ReadAllText(toolsMd5Path) : "";
+        _logger.Debug($"Updating tools. Current: {currentToolsMd5}. Latest: {Manifest.ToolsMd5}. Version {Version}/{Manifest.ToolsMinimumVersion}");
         string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
         string zipPath = Path.Join(dataDirectory, toolsZip);
         try
