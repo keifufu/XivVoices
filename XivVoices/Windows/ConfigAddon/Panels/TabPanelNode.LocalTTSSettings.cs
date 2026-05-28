@@ -9,6 +9,7 @@ using LocalTTSOverride = (string speaker, (string voice, int pitch) options);
 public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSSettings;
+  private IKeyState _keyState = null!;
   private Configuration _configuration = null!;
   private ILocalTTSService _localTTSService = null!;
   private IMessageDispatcher _messageDispatcher = null!;
@@ -25,6 +26,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   private ConfigSectionNode _localTTSOverridesSectionNode = null!;
   private LocalTTSModifyListNode<LocalTTSOverride, LocalTTSOverrideItemNode> _localTTSOverridesListNode = null!;
+  private Dictionary<string, (string voice, int pitch)> _localTTSOverridesUndoState = [];
 
   private ConfigOverlayNode _overrideOverlayNode = null!;
   private TextInputNode _overrideOverlaySpeakerNode = null!;
@@ -47,6 +49,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   public override void OnSetup()
   {
+    _keyState = _services.GetRequiredService<IKeyState>();
     _configuration = _services.GetRequiredService<Configuration>();
     _localTTSService = _services.GetRequiredService<ILocalTTSService>();
     _messageDispatcher = _services.GetRequiredService<IMessageDispatcher>();
@@ -227,7 +230,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       """,
     }, inline: true);
 
-    _localTTSOverridesListNode = new()
+    _localTTSOverridesListNode = new(_keyState)
     {
       AddNewEntry = () =>
       {
@@ -264,6 +267,50 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       {
         _configuration.LocalTTSOverrides.Remove(data.speaker);
         _configuration.Save();
+      },
+      OnImport = (shouldOverride) =>
+      {
+        _localTTSOverridesUndoState = new Dictionary<string, (string voice, int pitch)>(_configuration.LocalTTSOverrides);
+
+        Dictionary<string, (string voice, int pitch)>? localTTSOverrides = _configuration.DeserializeFromBase64<Dictionary<string, (string voice, int pitch)>>(ImGui.GetClipboardText());
+        if (localTTSOverrides == null || localTTSOverrides.Count == 0) return ("Nothing found to Import.", false);
+
+        int replaced = 0;
+        int done = 0;
+        foreach (KeyValuePair<string, (string voice, int pitch)> kvp in localTTSOverrides)
+        {
+          if (_configuration.LocalTTSOverrides.TryGetValue(kvp.Key, out (string voice, int pitch) oldValue))
+          {
+            if (oldValue != kvp.Value)
+            {
+              if (!shouldOverride) continue;
+              replaced++;
+            }
+            else
+            {
+              continue;
+            }
+          }
+          _configuration.LocalTTSOverrides[kvp.Key] = kvp.Value;
+          done++;
+        }
+
+        if (done == 0) return ("Nothing found to Import.", false);
+
+        _configuration.Save();
+        string str = replaced == 1 ? "override" : "overrides";
+        return (replaced > 0 ? $"Imported ({replaced} {str})." : "Successfully Imported!", true);
+      },
+      OnExport = () =>
+      {
+        ImGui.SetClipboardText(_configuration.SerializeToBase64(_configuration.LocalTTSOverrides));
+        return ("Copied to Clipboard!", true);
+      },
+      OnUndo = () =>
+      {
+        _configuration.LocalTTSOverrides = _localTTSOverridesUndoState;
+        _configuration.Save();
+        return ("Import undone.", true);
       },
       ItemComparer = (left, right, mode) => left.speaker.CompareTo(right.speaker),
       IsSearchMatch = (data, search) => data.speaker.Contains(search, StringComparison.OrdinalIgnoreCase),
@@ -559,5 +606,10 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       if (prevContentHeight > _allowedVoicesContainerNode.ContentHeight)
         _allowedVoicesContainerNode.ContentHeight = prevContentHeight;
     });
+  }
+
+  public override void OnUpdate()
+  {
+    _localTTSOverridesListNode.OnUpdate();
   }
 }

@@ -164,6 +164,38 @@ public class Configuration : IPluginConfiguration
 
   private Dictionary<string, object?> GetAllFields() =>
     GetType().GetFields(BindingFlags.Public | BindingFlags.Instance).ToDictionary(x => x.Name, x => x.GetValue(this));
+
+  public string SerializeToBase64(object obj)
+  {
+    string json = Newtonsoft.Json.JsonConvert.SerializeObject(obj);
+    byte[] bytes = Encoding.UTF8.GetBytes(json);
+    using MemoryStream compressedStream = new();
+    using (GZipStream zipStream = new(compressedStream, CompressionMode.Compress))
+      zipStream.Write(bytes, 0, bytes.Length);
+    return Convert.ToBase64String(compressedStream.ToArray());
+  }
+
+  public T? DeserializeFromBase64<T>(string base64)
+  {
+    try
+    {
+      byte[] bytes = Convert.FromBase64String(base64);
+      using MemoryStream compressedStream = new(bytes);
+      using GZipStream zipStream = new(compressedStream, CompressionMode.Decompress);
+      using MemoryStream resultStream = new();
+      zipStream.CopyTo(resultStream);
+      bytes = resultStream.ToArray();
+      string json = Encoding.UTF8.GetString(bytes);
+      T? deserializedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<T>(json);
+      if (deserializedObject is T typedObject)
+      {
+        return typedObject;
+      }
+    }
+    catch { }
+
+    return default;
+  }
 }
 
 public static class ConfigurationMigrator

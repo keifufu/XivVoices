@@ -21,6 +21,7 @@ global using System.Timers;
 global using Concentus;
 global using Concentus.Oggfile;
 global using Dalamud.Bindings.ImGui;
+global using Dalamud.Game.ClientState.Keys;
 global using Dalamud.Game.Command;
 global using Dalamud.Game.NativeWrapper;
 global using Dalamud.Game.Text;

@@ -3,7 +3,7 @@ using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node.Simple;
 
-namespace KamiToolKit.Premade.Node;
+namespace XivVoices.Windows;
 
 public class AudioListSelectableNode : SimpleComponentNode
 {

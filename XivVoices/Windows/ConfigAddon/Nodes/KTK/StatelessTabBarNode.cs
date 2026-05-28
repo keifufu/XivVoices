@@ -4,7 +4,7 @@ using KamiToolKit.Premade.Node.Simple;
 using KamiToolKit.Timelines;
 using Lumina.Text.ReadOnly;
 
-namespace KamiToolKit.Premade.Node;
+namespace XivVoices.Windows;
 
 public class StatelessTabBarNode : SimpleComponentNode
 {

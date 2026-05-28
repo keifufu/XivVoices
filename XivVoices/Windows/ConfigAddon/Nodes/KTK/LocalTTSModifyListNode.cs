@@ -1,21 +1,25 @@
-
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node;
 using KamiToolKit.Premade.Node.Simple;
 
-namespace KamiToolKit.Premade.Node;
+namespace XivVoices.Windows;
 
 public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struct where TU : ListItemNode<T>, IListItemNode, new()
 {
+  private readonly IKeyState _keyState;
   private readonly SearchWidget _searchWidget;
+  private readonly CircleButtonNode _exportButton;
   private readonly ListNode<T, TU> _listNode;
 
   private readonly TextButtonNode _addButton;
   private readonly TextButtonNode _editButton;
   private readonly TextButtonNode _removeButton;
 
-  public LocalTTSModifyListNode()
+  public LocalTTSModifyListNode(IKeyState keyState)
   {
+    _keyState = keyState;
     _searchWidget = new SearchWidget
     {
       OnSortOrderChanged = OnSortOrderChanged,
@@ -23,6 +27,38 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     };
     _searchWidget.InputNode.PlaceholderString = "Search ...";
     _searchWidget.AttachNode(this);
+
+    _exportButton = new CircleButtonNode()
+    {
+      Size = new Vector2(30.0f, 30.0f),
+      OnClick = () =>
+      {
+        if (_exportButton?.Icon == ButtonIcon.CheckedBox || _exportButton?.Icon == ButtonIcon.Cross) return;
+
+        (string result, bool success) result;
+        if (_exportButton?.Icon == ButtonIcon.Undo)
+        {
+          result = OnUndo?.Invoke() ?? default;
+          _lastWasImport = false;
+        }
+        else if (_keyState[VirtualKey.SHIFT])
+        {
+          result = OnImport?.Invoke(_keyState[VirtualKey.CONTROL]) ?? default;
+          _lastWasImport = true;
+        }
+        else
+        {
+          result = OnExport?.Invoke() ?? default;
+          _lastWasImport = false;
+        }
+        _lastImportExport = DateTime.Now;
+        _lastImportExportResult = result.result;
+        _lastImportExportSuccess = result.success;
+      }
+    };
+    _exportButton.AttachNode(this);
+    _exportButton.AddEvent(AtkEventType.MouseOver, MouseOver);
+    _exportButton.AddEvent(AtkEventType.MouseOut, MouseOut);
 
     _listNode = new ListNode<T, TU>
     {
@@ -55,12 +91,62 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     UpdateButtonStates();
   }
 
+  private DateTime _lastImportExport = new();
+  private bool _lastImportExportSuccess = false;
+  private string _lastImportExportResult = "";
+  private bool _lastWasImport = false;
+  public Func<bool, (string result, bool success)>? OnImport { get; init; }
+  public Func<(string result, bool success)>? OnExport { get; init; }
+  public Func<(string result, bool success)>? OnUndo { get; init; }
+
+  bool tooltipVisible = false;
+  private void MouseOver() => tooltipVisible = true;
+  private void MouseOut() => tooltipVisible = false;
+
+  public void OnUpdate()
+  {
+    bool showImportExportResult = (DateTime.Now - _lastImportExport).TotalSeconds <= 3;
+    ButtonIcon importExportResultIcon = _lastImportExportSuccess ? ButtonIcon.CheckedBox : ButtonIcon.Cross;
+    if (showImportExportResult && _lastImportExportSuccess && _lastWasImport && _exportButton.Icon != ButtonIcon.Undo)
+    {
+      _exportButton.Icon = ButtonIcon.Undo;
+      _exportButton.TextTooltip = _lastImportExportResult + " Click to undo.";
+      if (tooltipVisible) _exportButton.ShowTooltip();
+    }
+    else if (showImportExportResult && _exportButton.Icon != importExportResultIcon && !(_lastWasImport && _lastImportExportSuccess))
+    {
+      _exportButton.Icon = importExportResultIcon;
+      _exportButton.TextTooltip = _lastImportExportResult;
+      if (tooltipVisible) _exportButton.ShowTooltip();
+    }
+    else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && _keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Override duplicates)"))
+    {
+      _exportButton.Icon = ButtonIcon.Add;
+      _exportButton.TextTooltip = "Import (Override duplicates)";
+      if (tooltipVisible) _exportButton.ShowTooltip();
+    }
+    else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Hold Control"))
+    {
+      _exportButton.Icon = ButtonIcon.Add;
+      _exportButton.TextTooltip = "Import (Hold Control to override duplicates)";
+      if (tooltipVisible) _exportButton.ShowTooltip();
+    }
+    else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != ButtonIcon.Document)
+    {
+      _exportButton.Icon = ButtonIcon.Document;
+      _exportButton.TextTooltip = "Export (Hold Shift to Import)";
+      if (tooltipVisible) _exportButton.ShowTooltip();
+    }
+  }
+
   protected override void OnSizeChanged()
   {
     base.OnSizeChanged();
 
-    _searchWidget.Size = new Vector2(Width, 30.0f);
+    _searchWidget.Size = new Vector2(Width - _exportButton.Width - 4.0f, 30.0f);
     _searchWidget.Position = Vector2.Zero;
+
+    _exportButton.Position = new Vector2(_searchWidget.Bounds.Right, 5.0f);
 
     _listNode.Size = new Vector2(Width, Height - _searchWidget.Height - 40.0f);
     _listNode.Position = new Vector2(0.0f, _searchWidget.Y + _searchWidget.Height + 8.0f);

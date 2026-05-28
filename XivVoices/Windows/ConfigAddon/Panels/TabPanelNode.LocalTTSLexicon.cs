@@ -1,6 +1,5 @@
-using KamiToolKit.Enums;
+using System.Collections.Immutable;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
@@ -9,6 +8,7 @@ using LocalTTSLexicon = (string from, string to);
 public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSLexicon;
+  private IKeyState _keyState = null!;
   private Configuration _configuration = null!;
   private IMessageDispatcher _messageDispatcher = null!;
 
@@ -16,6 +16,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
   private StatelessTabBarNode _tabBarNode = null!;
 
   private LocalTTSModifyListNode<LocalTTSLexicon, LocalTTSLexiconItemNode> _localTTSLexiconListNode = null!;
+  private Dictionary<string, string> _localTTSLexiconUndoState = [];
 
   private ConfigOverlayNode _lexiconOverlayNode = null!;
   private TextInputNode _lexiconOverlayFromNode = null!;
@@ -26,6 +27,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
 
   public override void OnSetup()
   {
+    _keyState = _services.GetRequiredService<IKeyState>();
     _configuration = _services.GetRequiredService<Configuration>();
     _messageDispatcher = _services.GetRequiredService<IMessageDispatcher>();
 
@@ -46,7 +48,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
       """,
     }, inline: true);
 
-    _localTTSLexiconListNode = new()
+    _localTTSLexiconListNode = new(_keyState)
     {
       AddNewEntry = () =>
       {
@@ -81,6 +83,50 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
       {
         _configuration.LocalTTSLexicon.Remove(data.from);
         _configuration.Save();
+      },
+      OnImport = (shouldOverride) =>
+      {
+        _localTTSLexiconUndoState = new Dictionary<string, string>(_configuration.LocalTTSLexicon);
+
+        Dictionary<string, string>? localTTSLexicon = _configuration.DeserializeFromBase64<Dictionary<string, string>>(ImGui.GetClipboardText());
+        if (localTTSLexicon == null || localTTSLexicon.Count == 0) return ("Nothing found to Import.", false);
+
+        int replaced = 0;
+        int done = 0;
+        foreach (KeyValuePair<string, string> kvp in localTTSLexicon)
+        {
+          if (_configuration.LocalTTSLexicon.TryGetValue(kvp.Key, out string? oldValue))
+          {
+            if (oldValue != kvp.Value)
+            {
+              if (!shouldOverride) continue;
+              replaced++;
+            }
+            else
+            {
+              continue;
+            }
+          }
+          _configuration.LocalTTSLexicon[kvp.Key] = kvp.Value;
+          done++;
+        }
+
+        if (done == 0) return ("Nothing found to Import.", false);
+
+        _configuration.Save();
+        string str = replaced == 1 ? "override" : "overrides";
+        return (replaced > 0 ? $"Imported ({replaced} {str})." : "Successfully Imported!", true);
+      },
+      OnExport = () =>
+      {
+        ImGui.SetClipboardText(_configuration.SerializeToBase64(_configuration.LocalTTSLexicon));
+        return ("Copied to Clipboard!", true);
+      },
+      OnUndo = () =>
+      {
+        _configuration.LocalTTSLexicon = _localTTSLexiconUndoState;
+        _configuration.Save();
+        return ("Import undone.", true);
       },
       ItemComparer = (left, right, mode) => left.from.CompareTo(right.from),
       IsSearchMatch = (data, search) => data.from.Contains(search, StringComparison.OrdinalIgnoreCase) || data.to.Contains(search, StringComparison.OrdinalIgnoreCase),
@@ -173,5 +219,10 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
   {
     _localTTSLexiconListNode.Options = _configuration.LocalTTSLexicon.Select(kv => (kv.Key, kv.Value)).ToList();
     _localTTSLexiconListNode.RefreshList();
+  }
+
+  public override void OnUpdate()
+  {
+    _localTTSLexiconListNode.OnUpdate();
   }
 }
