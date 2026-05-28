@@ -367,11 +367,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       oldTrack.Dispose();
     }
 
-    TrackableSound track = new(_logger, message, sourceStream)
+    TrackableSound track = new(_logger, message, sourceStream);
+    if (message.IsLocalTTS)
     {
-      Pitch = _localTTSService.ResolvePitch(message)
-    };
-    _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
+      track.Pitch = _localTTSService.ResolvePitch(message);
+      _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
+    }
 
     await UpdateTrack(track);
     track.OnPlaybackStopped += t =>
