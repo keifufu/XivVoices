@@ -21,7 +21,7 @@ public enum ServerStatus
 public partial class DataService
 {
   public ServerStatus ServerStatus { get; private set; } = ServerStatus.OFFLINE;
-  public HttpClient HttpClient { get; private set; } = new();
+  public HttpClient HttpClient { get; private set; } = new() { Timeout = TimeSpan.FromSeconds(600) };
   public bool IsLoggingIn { get; private set; } = false;
   private CancellationTokenSource? _loginCts;
 
