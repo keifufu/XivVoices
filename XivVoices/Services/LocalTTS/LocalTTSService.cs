@@ -44,7 +44,14 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     if (_dataService.ToolsDirectory == null) return false;
     if (!File.Exists(Path.Join(_dataService.ToolsDirectory, "kokoro-quant.onnx"))) return false;
     if (!Directory.Exists(Path.Join(_dataService.ToolsDirectory, "voices"))) return false;
-    if (!Directory.Exists(Path.Join(_dataService.ToolsDirectory, "espeak-ng-data"))) return false;
+
+    // espeak-ng crashes without these at the minimum.
+    // just make sure they exist to prevent crashes after a corrupt tools update
+    if (!File.Exists(Path.Join(_dataService.ToolsDirectory, "espeak-ng-data", "intonations"))) return false;
+    if (!File.Exists(Path.Join(_dataService.ToolsDirectory, "espeak-ng-data", "phondata"))) return false;
+    if (!File.Exists(Path.Join(_dataService.ToolsDirectory, "espeak-ng-data", "phonindex"))) return false;
+    if (!File.Exists(Path.Join(_dataService.ToolsDirectory, "espeak-ng-data", "phontab"))) return false;
+
     return true;
   }
 
