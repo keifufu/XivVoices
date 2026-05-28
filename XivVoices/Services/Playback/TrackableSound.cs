@@ -13,7 +13,6 @@ public class TrackableSound : ISampleProvider, IDisposable
   private readonly WaveStream _sourceStream;
 
   private bool _playbackEnded = false;
-  private float _currentVolume = 1.0f;
 
   private readonly Lock _positionLock = new();
   private long _lastSamplesPlayedAtRead;
@@ -96,11 +95,11 @@ public class TrackableSound : ISampleProvider, IDisposable
 
   public float Volume
   {
-    get => IsMuted ? 0 : _currentVolume;
+    get => IsMuted ? 0 : field;
     set
     {
-      _currentVolume = Math.Clamp(value, 0f, 3f);
-      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume + (RelativeVolume / 100);
+      field = Math.Clamp(value, 0f, 3f);
+      _volumeProvider.Volume = IsMuted ? 0f : Math.Clamp(field * (1f + (RelativeVolume / 100f)), 0f, 3f);
     }
   }
 
@@ -110,7 +109,7 @@ public class TrackableSound : ISampleProvider, IDisposable
     set
     {
       field = value;
-      _volumeProvider.Volume = IsMuted ? 0 : _currentVolume + (RelativeVolume / 100);
+      _volumeProvider.Volume = IsMuted ? 0f : Math.Clamp(Volume * (1f + (RelativeVolume / 100f)), 0f, 3f);
     }
   } = 0;
 
