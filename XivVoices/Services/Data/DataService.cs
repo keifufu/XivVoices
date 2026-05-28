@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using Dalamud.Interface.ImGuiFileDialog;
 using Dalamud.Interface.ImGuiNotification;
 
@@ -190,7 +191,6 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
 
-    Cleanup();
     AuthStart();
     _ = Update(false);
     LoadCachedPlayers();
@@ -216,27 +216,6 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _updateTimer = null;
 
     return _logger.ServiceLifecycle();
-  }
-
-  private void Cleanup()
-  {
-    string? dataDirectory = DataDirectory;
-    if (dataDirectory == null) return;
-
-    IEnumerable<FileInfo> files = new DirectoryInfo(dataDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).Where(f => f.Extension.Equals(".mp3") || f.Extension.Equals(".ogg"));
-
-    foreach (FileInfo file in files)
-    {
-      try
-      {
-        _logger.Debug($"Deleting leftover file: {file.Name}");
-        file.Delete();
-      }
-      catch (Exception ex)
-      {
-        _logger.Error(ex);
-      }
-    }
   }
 
   private void UpdateTimerElapsed(object? source, ElapsedEventArgs e)
@@ -453,8 +432,20 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
     if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
     {
+      string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
+      string zipPath = Path.Join(dataDirectory, toolsZip);
       try
       {
+        await DownloadFile(zipPath, toolsZip, token);
+        string downloadedToolsMd5 = CalculateMD5(zipPath);
+        if (downloadedToolsMd5 != Manifest.ToolsMd5)
+        {
+          _logger.Error($"{toolsZip} md5 does not match. Got: {downloadedToolsMd5}. Expected: {Manifest.ToolsMd5}");
+          DataStatus.UpdateInProgress = false;
+          OnUpdateFinished?.Invoke();
+          return;
+        }
+
         string toolsPath = Path.Join(dataDirectory, "tools");
         if (Directory.Exists(toolsPath))
         {
@@ -462,15 +453,10 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
           Directory.Delete(toolsPath, recursive: true);
         }
 
-        string toolsZip = $"tools-{Manifest.ToolsMd5}.zip";
-        string zipPath = Path.Join(dataDirectory, toolsZip);
-        await DownloadFile(zipPath, toolsZip, token);
-
         if (File.Exists(zipPath))
         {
           // Note: tools.zip is expected NOT to have a subdirectory.
           ZipFile.ExtractToDirectory(zipPath, toolsPath);
-          File.Delete(zipPath);
           File.WriteAllText(toolsMd5Path, Manifest.ToolsMd5);
           OnToolsDownloaded?.Invoke();
           _logger.Debug($"Successfully downloaded {toolsZip}");
@@ -487,6 +473,10 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
         DataStatus.UpdateInProgress = false;
         OnUpdateFinished?.Invoke();
         return;
+      }
+      finally
+      {
+        if (File.Exists(zipPath)) File.Delete(zipPath);
       }
     }
 
@@ -588,6 +578,18 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       DataStatus.UpdateInProgress = false;
       OnUpdateFinished?.Invoke();
       _logger.Debug("Update completed.");
+    }
+  }
+
+  private string CalculateMD5(string filename)
+  {
+    using (MD5 md5 = MD5.Create())
+    {
+      using (FileStream stream = File.OpenRead(filename))
+      {
+        byte[] hash = md5.ComputeHash(stream);
+        return System.Convert.ToHexStringLower(hash);
+      }
     }
   }
 
