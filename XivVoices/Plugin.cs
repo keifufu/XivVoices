@@ -89,6 +89,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<IClientStateService, ClientStateService>();
         collection.AddSingleton<IGameInteropService, GameInteropService>();
         collection.AddSingleton<IChatMessageProvider, ChatMessageProvider>();
+        collection.AddSingleton<ISelectStringProvider, CutSceneSelectStringProvider>();
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
         collection.AddSingleton<IAddonBattleTalkProvider, AddonBattleTalkProvider>();
 
@@ -109,6 +110,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonTalkProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IGameInteropService>());
         collection.AddHostedService(sp => sp.GetRequiredService<IChatMessageProvider>());
+        collection.AddHostedService(sp => sp.GetRequiredService<ISelectStringProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonMiniTalkProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonBattleTalkProvider>());
 

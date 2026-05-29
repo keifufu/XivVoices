@@ -23,10 +23,11 @@ public interface ISelfTestService
   void Report_SoundFilter_GetResourceAsync(string path);
   void Report_SoundFilter_LoadSoundFile(string name);
   void Report_SoundFilter_PlaySpecificSound(long a1, int idx);
-  void Report_Provider_Chat(XivChatType type, string speaker, string sentence);
+  void Report_Provider_Chat(XivChatType type, string speaker, string? speakerWorld, string sentence);
   void Report_Provider_Talk(string speaker, string sentence);
   unsafe void Report_Provider_MiniTalk(GameObject* actor, string sentence);
   void Report_Provider_BattleTalk(string speaker, string sentence);
+  void Report_Provider_CutSceneSelectString(string speaker, string speakerWorld, string sentence);
 
   void LipSyncTarget();
 }
@@ -62,6 +63,8 @@ public enum SelfTestStep : long
   Provider_BattleTalk = 1L << 17,
   Interop_IsInDuty = 1L << 18,
   Interop_IsInCutscene = 1L << 19,
+
+  Provider_CutSceneSelectString = 1L << 20,
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
@@ -188,6 +191,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Interop_IsInCutscene;
         break;
       case SelfTestStep.Interop_IsInCutscene:
+        CurrentInstruction = "View the first cutscene of \"Shadowbringers\".";
+        Step = SelfTestStep.Provider_CutSceneSelectString;
+        break;
+      case SelfTestStep.Provider_CutSceneSelectString:
         if (!loop)
         {
           Stop();
@@ -410,6 +417,18 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
             break;
         }
         break;
+      case SelfTestStep.Provider_CutSceneSelectString:
+        switch (StepState)
+        {
+          case 0:
+            if (_gameInteropService.IsInCutscene())
+            {
+              StepState = 1;
+              CurrentInstruction = "Select \"We came here for the Exarch.\".";
+            }
+            break;
+        }
+        break;
     }
   }
 
@@ -456,7 +475,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   public void Report_SoundFilter_PlaySpecificSound(long a1, int idx)
     => AddLog($"{a1}:{idx}");
 
-  public void Report_Provider_Chat(XivChatType type, string speaker, string sentence)
+  public void Report_Provider_Chat(XivChatType type, string speaker, string? speakerWorld, string sentence)
   {
     _gameInteropService.RunOnFrameworkThread(() =>
     {
@@ -465,21 +484,23 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         AddLog("LocalPlayer is null");
         return;
       }
-      string playerName = _objectTable.LocalPlayer.Name.ToString();
+
+      string? playerName = _gameInteropService.PlayerName;
+      string? playerWorld = _gameInteropService.PlayerWorld; ;
 
       switch (StepState)
       {
         case 0:
-          if (type == XivChatType.TellOutgoing && speaker == playerName && sentence == "banana")
+          if (type == XivChatType.TellOutgoing && speaker == playerName && speakerWorld == playerWorld && sentence == "banana")
             StepState = 1;
           else
-            AddLog($"Unexpected message: {type}, {speaker}, {sentence}");
+            AddLog($"Unexpected message: {type}, {speaker}@{speakerWorld}, {sentence}");
           break;
         case 1:
-          if (type == XivChatType.TellIncoming && speaker == playerName && sentence == "banana")
+          if (type == XivChatType.TellIncoming && speaker == playerName && speakerWorld == playerWorld && sentence == "banana")
             Next(true, false);
           else
-            AddLog($"Unexpected message: {type}, {speaker}, {sentence}");
+            AddLog($"Unexpected message: {type}, {speaker}@{speakerWorld}, {sentence}");
           break;
       }
     });
@@ -507,6 +528,18 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
       Next(true, false);
     else
       AddLog($"Unexpected message: {speaker}, {sentence}");
+  }
+
+  public void Report_Provider_CutSceneSelectString(string speaker, string speakerWorld, string sentence)
+  {
+    string? s = _gameInteropService.PlayerName;
+    string? w = _gameInteropService.PlayerWorld;
+    string expectedSentence = "We came here for the Exarch.";
+
+    if (speaker == s && speakerWorld == w && sentence == expectedSentence)
+      Next(true, false);
+    else
+      AddLog($"Unexpected message: {speaker}@{speakerWorld}, {sentence}");
   }
 
   public void LipSyncTarget()

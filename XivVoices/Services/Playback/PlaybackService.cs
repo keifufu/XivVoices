@@ -341,13 +341,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     // Generation failed
     if (ttsSourceStream == null && voicelinePath == null)
     {
-      string method = useLocalTTS ? "LocalTTS" : "LocalGen";
-      _logger.Error($"Generation failed. Method: {method}. Message: {message.Id}");
       lock (_playbackHistoryLock)
       {
         _queuedMessages.Remove(message);
       }
       message.IsGenerating = false;
+      PlaybackCompleted?.Invoke(this, message);
       return;
     }
 
@@ -475,6 +474,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (response.IsSuccessStatusCode)
       {
         return await response.Content.ReadAsStringAsync();
+      }
+      else
+      {
+        _logger.Error($"localGen failed with {response.StatusCode}");
       }
     }
 

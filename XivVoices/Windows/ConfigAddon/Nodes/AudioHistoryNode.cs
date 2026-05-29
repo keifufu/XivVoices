@@ -38,7 +38,8 @@ public class AudioHistoryNode : AudioListItemNode<(XivMessage message, bool isPl
 
   protected override void SetNodeData((XivMessage message, bool isPlaying, float percentage, bool isQueued) itemData)
   {
-    string message = $"{itemData.message.RawSpeaker}: {itemData.message.AddName(itemData.message.RawSentence)}";
+    string localTTSVoice = itemData.message.LocalTTSVoice == null ? "" : $" ({itemData.message.LocalTTSVoice})";
+    string message = $"{itemData.message.RawSpeaker}{localTTSVoice}: {itemData.message.AddName(itemData.message.RawSentence)}";
     TextTooltip = message;
     _textNode.String = message;
     _progressBarNode.Progress = itemData.percentage;

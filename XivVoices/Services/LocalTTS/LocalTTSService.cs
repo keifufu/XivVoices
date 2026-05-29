@@ -90,7 +90,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     if (message.PitchOverride != null) return message.PitchOverride.Value;
 
-    string speaker = message.Source == MessageSource.ChatMessage ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
+    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.CutSceneSelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
     if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options)) return options.pitch;
 
     if (_configuration.LocalTTSPitchRandomization)
@@ -113,7 +113,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       if (match != null) return match;
     }
 
-    string speaker = message.Source == MessageSource.ChatMessage ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
+    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.CutSceneSelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
     if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options))
     {
       LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == options.voice);
@@ -156,13 +156,13 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       "Aoede" => 20,
       "Bella" => 30,
       "Emma" => 0,
-      "Heart" => 20,
+      "Heart" => 40,
       "Isabella" => -10,
       "Jessica" => 30,
       "Kore" => 10,
       "Lily" => 20,
       "Nicole" => 10,
-      "Nova" => 80,
+      "Nova" => 140,
       "River" => 0,
       "Sarah" => -20,
       "Sky" => 40,
@@ -172,14 +172,25 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
   {
-    if (!_initialized) return (null, 0);
+    if (!_initialized)
+    {
+      _logger.Debug("Not generating LocalTTS: not initialized.");
+      return (null, 0);
+    }
     Stopwatch sw = Stopwatch.StartNew();
 
     LocalTTSVoice? voice = ResolveVoice(message);
-    if (voice == null) return (null, 0);
+    if (voice == null)
+    {
+      _logger.Error("Failed to resolve LocalTTS voice");
+      return (null, 0);
+    }
     _logger.Debug($"Using LocalTTS Voice: {voice.Name}");
 
-    int[] tokens = Tokenize(ApplyLexicon(message));
+    string finalMessage = ApplyLexicon(message);
+    if (finalMessage.IsNullOrWhitespace()) return (null, 0);
+
+    int[] tokens = Tokenize(finalMessage);
     List<int[]> segments = _pipelineConfig.SegmentationFunc(tokens);
     KokoroJob job = KokoroJob.Create(segments, voice, _pipelineConfig.Speed, null);
 
@@ -198,6 +209,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     while (!job.isDone) { job.Progress(_model); }
 
     _logger.Debug($"LocalTTS took {sw.ElapsedMilliseconds}ms");
+    message.LocalTTSVoice = voice.Name;
 
     MemoryStream ms = new();
     using (RawSourceWaveStream reader = new(new MemoryStream(pcm.ToArray()), new WaveFormat(24000, 16, 1)))

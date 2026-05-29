@@ -6,7 +6,7 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IObjectTable _objectTable, IPlayerState _playerState) : IChatMessageProvider
+public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IObjectTable _objectTable) : IChatMessageProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
@@ -42,7 +42,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
         if (item is TextPayload text && text.Text != null && text.Text.ToString().Trim().Contains(' '))
         {
           speaker = text.Text;
-          speakerWorld = _playerState.HomeWorld.Value.Name.ToString();
+          speakerWorld = _gameInteropService.PlayerWorld;
           break;
         }
       }
@@ -50,7 +50,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     catch { }
 
     if (_selfTestService.Step == SelfTestStep.Provider_Chat)
-      _selfTestService.Report_Provider_Chat(message.LogKind, speaker, message.Message.ToString());
+      _selfTestService.Report_Provider_Chat(message.LogKind, speaker, speakerWorld, message.Message.ToString());
 
     bool allowed = false;
     switch (message.LogKind)
@@ -59,6 +59,8 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
         allowed = _configuration.ChatSayEnabled;
         break;
       case XivChatType.TellOutgoing:
+        speaker = _gameInteropService.PlayerName ?? "Unknown";
+        speakerWorld = _gameInteropService.PlayerWorld;
         allowed = _configuration.ChatTellEnabled;
         break;
       case XivChatType.TellIncoming:

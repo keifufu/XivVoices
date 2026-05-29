@@ -66,10 +66,16 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     _logNode = new()
     {
       Position = new Vector2(0.0f, (20.0f * _stepNodes.Count) + 50.0f),
-      Size = new Vector2(360.0f, 100.0f),
       Flags = TextInputFlags.MultiLine | TextInputFlags.WordWrap
     };
     AttachNode(_logNode);
+  }
+
+  protected override void OnSizeChanged()
+  {
+    base.OnSizeChanged();
+
+    _logNode.Size = new Vector2(Width, Height - _logNode.Y);
   }
 
   private int _updateCount = 0;

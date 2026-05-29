@@ -1,3 +1,4 @@
+using KamiToolKit;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using KamiToolKit.Premade.Node;
@@ -36,10 +37,13 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _addonMiniTalkEnabledNode = null!;
   private CheckboxNode _addonMiniTalkTTSEnabledNode = null!;
 
+  private ConfigSectionNode _otherSettingsSectionNode = null!;
+  private ScrollingAreaNode<ResNode> _otherSettingsContainerNode = null!;
   private CheckboxNode _lipSyncNode = null!;
   private CheckboxNode _autoAdvanceEnabledNode = null!;
   private CheckboxNode _fastForwardNode = null!;
   private CheckboxNode _retainersEnabledNode = null!;
+  private CheckboxNode _voicePlayerChoicesNode = null!;
   private CheckboxNode _replaceVoicedARRCutscenesNode = null!;
   private CheckboxNode _preventAccidentalDialogueAdvanceNode = null!;
 
@@ -184,7 +188,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _localTTSPlayerSaysNode = new()
     {
-      String = "Add \"<Player> says\" to Chat Messanges",
+      String = "Add \"<Player> says\" to Chat Messages",
       Size = new Vector2(310.0f, 20.0f),
       OnClick = (value) =>
       {
@@ -380,7 +384,13 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     AttachNode(dialogueSettingsSectionNode);
 
-    ConfigSectionNode otherSettingsNode = new("Other Settings", dialogueSettingsSectionNode);
+    _otherSettingsSectionNode = new("Other Settings", dialogueSettingsSectionNode);
+
+    _otherSettingsContainerNode = new()
+    {
+      ContentHeight = 0.0f,
+    };
+    _otherSettingsSectionNode.AttachNode(_otherSettingsContainerNode);
 
     _lipSyncNode = new()
     {
@@ -396,7 +406,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_lipSyncNode);
+    AttachOtherSettingsNode(_lipSyncNode);
 
     _autoAdvanceEnabledNode = new()
     {
@@ -413,7 +423,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_autoAdvanceEnabledNode);
+    AttachOtherSettingsNode(_autoAdvanceEnabledNode);
 
     _fastForwardNode = new()
     {
@@ -426,7 +436,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_fastForwardNode);
+    AttachOtherSettingsNode(_fastForwardNode);
 
     _retainersEnabledNode = new()
     {
@@ -438,7 +448,24 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_retainersEnabledNode);
+    AttachOtherSettingsNode(_retainersEnabledNode);
+
+    _voicePlayerChoicesNode = new CheckboxNode()
+    {
+
+      String = "Voice Player Choices",
+      TextTooltip = """
+      Voices the choices you make while questing.
+      You can change your voice via overrides in the Local TTS Settings.
+      """,
+      Size = new Vector2(180.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.VoicePlayerChoices = value;
+        _configuration.Save();
+      }
+    };
+    AttachOtherSettingsNode(_voicePlayerChoicesNode);
 
     _replaceVoicedARRCutscenesNode = new()
     {
@@ -450,7 +477,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_replaceVoicedARRCutscenesNode);
+    AttachOtherSettingsNode(_replaceVoicedARRCutscenesNode);
 
     _preventAccidentalDialogueAdvanceNode = new()
     {
@@ -463,9 +490,23 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
       }
     };
-    otherSettingsNode.AttachNode(_preventAccidentalDialogueAdvanceNode);
+    AttachOtherSettingsNode(_preventAccidentalDialogueAdvanceNode);
 
-    AttachNode(otherSettingsNode);
+    AttachNode(_otherSettingsSectionNode);
+  }
+
+  private void AttachOtherSettingsNode(NodeBase node)
+  {
+    node.Y = _otherSettingsContainerNode.ContentHeight;
+    node.AttachNode(_otherSettingsContainerNode.ContentNode);
+    _otherSettingsContainerNode.ContentHeight = node.Y + node.Height;
+  }
+
+  protected override void OnSizeChanged()
+  {
+    base.OnSizeChanged();
+
+    _otherSettingsContainerNode.Size = new Vector2(Width - _otherSettingsContainerNode.X, Height - _otherSettingsSectionNode.Y - _otherSettingsSectionNode.Height + 2.0f);
   }
 
   public override void ConfigurationSaved()
@@ -498,7 +539,13 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _queueChatMessagesNode.IsEnabled = _configuration.ChatEnabled;
     _queueChatMessagesNode.IsChecked = _configuration.QueueChatMessages;
 
+    _localTTSPlayerSaysNode.IsEnabled = _configuration.ChatEnabled;
     _localTTSPlayerSaysNode.IsChecked = _configuration.LocalTTSPlayerSays;
+
+    _localTTSIgnoreChatDuringCutscenesNode.IsEnabled = _configuration.ChatEnabled;
+    _localTTSIgnoreChatDuringCutscenesNode.IsChecked = _configuration.LocalTTSIgnoreChatDuringCutscenes;
+
+    _localTTSDisableLocalPlayerChatNode.IsEnabled = _configuration.ChatEnabled;
     _localTTSDisableLocalPlayerChatNode.IsChecked = _configuration.LocalTTSDisableLocalPlayerChat;
 
     _queueDialogueNode.IsChecked = _configuration.QueueDialogue;
@@ -528,6 +575,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _autoAdvanceEnabledNode.IsChecked = _configuration.AutoAdvanceEnabled;
     _fastForwardNode.IsChecked = _configuration.FastForward;
     _retainersEnabledNode.IsChecked = _configuration.RetainersEnabled;
+    _voicePlayerChoicesNode.IsChecked = _configuration.VoicePlayerChoices;
     _replaceVoicedARRCutscenesNode.IsChecked = _configuration.ReplaceVoicedARRCutscenes;
     _preventAccidentalDialogueAdvanceNode.IsChecked = _configuration.PreventAccidentalDialogueAdvance;
   }

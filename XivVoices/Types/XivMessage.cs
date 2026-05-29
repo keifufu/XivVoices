@@ -57,6 +57,9 @@ public class XivMessage
   [JsonIgnore]
   public string? SpeakerWorld { get; set; } = null;
 
+  [JsonIgnore]
+  public string? LocalTTSVoice { get; set; } = null;
+
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 
@@ -119,4 +122,5 @@ public enum MessageSource
   AddonMiniTalk,
   AddonBattleTalk,
   ChatMessage,
+  CutSceneSelectString
 }

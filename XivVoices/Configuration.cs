@@ -55,6 +55,7 @@ public class Configuration : IPluginConfiguration
   public bool AutoAdvanceEnabled = true;
   public bool FastForward = false;
   public bool RetainersEnabled = true;
+  public bool VoicePlayerChoices = true;
   public bool ReplaceVoicedARRCutscenes = false;
   public bool PreventAccidentalDialogueAdvance = false;
 

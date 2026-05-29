@@ -22,6 +22,7 @@ public class PlaybackQueue
   public ConcurrentQueue<XivMessage> Queue { get; set; } = new();
   public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
   public DateTime PlaybackStartTime { get; set; }
+  public MessageSource MessageSource { get; set; }
 }
 
 public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
@@ -32,7 +33,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   public Task StartAsync(CancellationToken cancellationToken)
   {
     foreach (MessageSource source in Enum.GetValues<MessageSource>())
-      _queues[source] = new();
+      _queues[source] = new() { MessageSource = source };
 
     _soundFilter.OnCutsceneAudioDetected += SoundFilter_OnCutSceneAudioDetected;
 
@@ -97,37 +98,40 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnPlaybackStarted(object? sender, XivMessage message)
   {
-    _logger.Debug($"{message.Source} Playback Started.");
-    _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Playing;
+    _logger.Debug($"{GetQueueForMessage(message)} Playback Started.");
+    _queues[GetQueueForMessage(message)].PlaybackQueueState = PlaybackQueueState.Playing;
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
   {
-    int count = _playbackService.CountPlaying(message.Source);
+    int count = _playbackService.CountPlaying(GetQueueForMessage(message));
+    if (GetQueueForMessage(message) == MessageSource.AddonTalk)
+      count += _playbackService.CountPlaying(MessageSource.CutSceneSelectString);
+
     if (count == 0)
     {
-      _logger.Debug($"{message.Source} Playback Completed.");
-      _queues[message.Source].PlaybackQueueState = PlaybackQueueState.Stopped;
+      _logger.Debug($"{GetQueueForMessage(message)} Playback Completed.");
+      _queues[GetQueueForMessage(message)].PlaybackQueueState = PlaybackQueueState.Stopped;
     }
     else
     {
-      _logger.Debug($"{message.Source} Playback Completed, but {count} are still playing.");
+      _logger.Debug($"{GetQueueForMessage(message)} Playback Completed, but {count} are still playing.");
     }
   }
 
   private void OnQueuedLineSkipped(object? sender, XivMessage message)
   {
-    XivMessage? itemToRemove = _queues[message.Source].Queue.FirstOrDefault(item => item.Id == message.Id);
+    XivMessage? itemToRemove = _queues[GetQueueForMessage(message)].Queue.FirstOrDefault(item => item.Id == message.Id);
 
     if (itemToRemove != null)
     {
       ConcurrentQueue<XivMessage> newQueue = new();
 
-      foreach (XivMessage item in _queues[message.Source].Queue)
+      foreach (XivMessage item in _queues[GetQueueForMessage(message)].Queue)
         if (item.Id != message.Id)
           newQueue.Enqueue(item);
 
-      _queues[message.Source].Queue = newQueue;
+      _queues[GetQueueForMessage(message)].Queue = newQueue;
 
       _logger.Debug($"Removed queued line: {message.Id}");
     }
@@ -232,16 +236,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       voice = GetGenericVoice(npc);
 
       // Set the VoiceId so the report accurately represents the voice we expect the line to be.
-      if (source != MessageSource.ChatMessage && voice != null && npc != null)
+      if (source != MessageSource.ChatMessage && source != MessageSource.CutSceneSelectString && voice != null && npc != null)
         npc.VoiceId = voice.Id;
     }
 
     // Cache player npc to assign a gender to chatmessage tts when they're not near you.
-    if (source == MessageSource.ChatMessage && npc != null)
+    if ((source == MessageSource.ChatMessage || source == MessageSource.CutSceneSelectString) && npc != null)
       _dataService.CachePlayer(rawSpeaker, npc);
 
     // Try to retrieve said cached npc if they're not near you.
-    if (source == MessageSource.ChatMessage && npc == null)
+    if ((source == MessageSource.ChatMessage || source == MessageSource.CutSceneSelectString) && npc == null)
       npc = _dataService.TryGetCachedPlayer(rawSpeaker);
 
     // Try and find a voiceline.
@@ -301,7 +305,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
     if (message.RawSpeaker == $"{playerName.Split(" ")[0]}?") isIgnoredSpeaker = true;
 
-    if (!isFake && source != MessageSource.ChatMessage && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
+    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.CutSceneSelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
 
     // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
@@ -334,6 +338,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       case MessageSource.ChatMessage:
         queued = _configuration.QueueChatMessages;
         break;
+      case MessageSource.CutSceneSelectString:
+        queued = _configuration.QueueDialogue;
+        break;
     }
 
     if (isFake) allowed = true;
@@ -343,6 +350,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     if (isNarrator)
       _logger.Chat(message.RawSentence, name: "Narrator", type: XivChatType.NPCDialogue, addPrefix: false);
+
+    if (source == MessageSource.CutSceneSelectString)
+      _logger.Chat(message.RawSentence, name: playerName, type: XivChatType.NPCDialogue, addPrefix: false);
 
     if ((_configuration.MuteEnabled && !isFake) || !allowed || (isRetainer && !_configuration.RetainersEnabled))
     {
@@ -359,7 +369,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (queued || _playbackService.Paused)
     {
       _logger.Debug($"Queueing message: {message.Id}");
-      _queues[message.Source].Queue.Enqueue(message);
+      _queues[GetQueueForMessage(message)].Queue.Enqueue(message);
       _playbackService.AddQueuedLine(message);
     }
     else
@@ -367,6 +377,12 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _logger.Debug($"Playing message: {message.Id}");
       _ = _playbackService.Play(message);
     }
+  }
+
+  private MessageSource GetQueueForMessage(XivMessage message)
+  {
+    // Enqueue SelectString with AddonTalk
+    return message.Source == MessageSource.CutSceneSelectString ? MessageSource.AddonTalk : message.Source;
   }
 
   public void DispatchTestMessage()

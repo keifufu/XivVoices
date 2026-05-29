@@ -23,7 +23,7 @@ public partial class MessageDispatcher
 
   private NpcEntry? GetNpc(MessageSource source, string speaker)
   {
-    if (source == MessageSource.ChatMessage) return null;
+    if (source == MessageSource.ChatMessage || source == MessageSource.CutSceneSelectString) return null;
     if (_dataService.Manifest == null) return null;
     if (_dataService.Manifest.Npcs.TryGetValue(speaker, out NpcEntry? npc))
       return npc;

@@ -13,6 +13,7 @@ namespace XivVoices.Services;
 public interface IGameInteropService : IHostedService
 {
   string? PlayerName { get; }
+  string? PlayerWorld { get; }
   Task<T> RunOnFrameworkThread<T>(Func<T> func);
   Task RunOnFrameworkThread(System.Action action);
   IGameObject? GetTarget();
@@ -59,6 +60,7 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
   private void OnLogin() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue;
   private void OnLogout(int type, int code) => PlayerName = null;
   public string? PlayerName { get; private set; } = null;
+  public string? PlayerWorld { get => _playerState.HomeWorld.ValueNullable?.Name.ToString(); }
 
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);

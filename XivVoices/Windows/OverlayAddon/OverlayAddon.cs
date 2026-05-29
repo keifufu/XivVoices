@@ -156,6 +156,8 @@ public unsafe class XivvOverlayNode : OverlayNode
       },
     };
     _expandButton.AttachNode(this);
+    _expandButton.AddEvent(AtkEventType.MouseOver, ExpandButtonMouseOver);
+    _expandButton.AddEvent(AtkEventType.MouseOut, ExpandButtonMouseOut);
 
     _configButton = new CircleButtonNode
     {
@@ -284,6 +286,10 @@ public unsafe class XivvOverlayNode : OverlayNode
     ConfigurationSaved();
   }
 
+  bool _expandButtonTooltipVisible = false;
+  private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
+  private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
+
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
     base.Dispose(disposing, isNativeDestructor);
@@ -315,6 +321,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _expandButton.TextTooltip = _configuration.OverlayExpanded ? "Collapse" : "Expand";
     _expandButton.Icon = _configuration.OverlayExpanded ? ButtonIcon.UpArrow : ButtonIcon.ArrowDown;
+    if (_expandButtonTooltipVisible) _expandButton.ShowTooltip();
 
     _horizontalLine2.IsVisible = _configuration.OverlayExpanded;
     _textNode.IsVisible = _configuration.OverlayExpanded;

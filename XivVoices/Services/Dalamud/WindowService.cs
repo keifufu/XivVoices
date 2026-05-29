@@ -39,7 +39,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.LocalTTSLexicon);
+    OpenTab(ConfigTab.SelfTest);
 #endif
 
     return _logger.ServiceLifecycle();
