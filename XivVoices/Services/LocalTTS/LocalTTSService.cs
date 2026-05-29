@@ -26,14 +26,14 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private bool _initialized;
   private KokoroModel? _model;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
     _dataService.OnToolsDownloaded += OnToolsDownloaded;
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _dataService.OnToolsDownloaded -= OnToolsDownloaded;
     return _logger.ServiceLifecycle();

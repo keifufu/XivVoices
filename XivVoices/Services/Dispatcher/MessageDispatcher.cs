@@ -31,7 +31,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   private Dictionary<MessageSource, PlaybackQueue> _queues = [];
   private InterceptedSound? _interceptedSound;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     foreach (MessageSource source in Enum.GetValues<MessageSource>())
       _queues[source] = new() { MessageSource = source };
@@ -46,7 +46,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _soundFilter.OnCutsceneAudioDetected -= SoundFilter_OnCutSceneAudioDetected;
 

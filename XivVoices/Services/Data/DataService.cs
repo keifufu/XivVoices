@@ -187,7 +187,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _ = UpdateServerStatus(default);
   }
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
 
@@ -205,7 +205,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     CancelUpdate();
     SaveCachedPlayers();

@@ -8,14 +8,14 @@ public interface IChatMessageProvider : IHostedService;
 
 public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IObjectTable _objectTable) : IChatMessageProvider
 {
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _chatGui.ChatMessage += OnChatMessage;
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _chatGui.ChatMessage -= OnChatMessage;
 

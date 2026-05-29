@@ -25,7 +25,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 #endif
 ) : IWindowService
 {
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _windowSystem.AddWindow(_configWindow);
 
@@ -45,7 +45,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _pluginInterface.UiBuilder.OpenConfigUi -= Toggle;
     _pluginInterface.UiBuilder.OpenMainUi -= Toggle;

@@ -32,7 +32,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
   private delegate IntPtr LoadSoundFileDelegate(IntPtr resourceHandle, uint a2);
   private Hook<LoadSoundFileDelegate> _loadSoundFileHook = null!;
 
-  public unsafe Task StartAsync(CancellationToken cancellationToken)
+  public unsafe Task StartAsync(CancellationToken token)
   {
     (nint noSoundPtr, nint infoPtr) = SetUpNoSound();
     _noSoundPtr = noSoundPtr;
@@ -54,7 +54,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _getResourceSyncHook?.Dispose();
     _getResourceAsyncHook?.Dispose();

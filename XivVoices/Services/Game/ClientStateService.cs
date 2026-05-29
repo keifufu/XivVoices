@@ -6,7 +6,7 @@ public interface IClientStateService : IHostedService { }
 
 public class ClientStateService(ILogger _logger, IDataService _dataService, Configuration _configuration, IClientState _clientState) : IClientStateService
 {
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _clientState.Login += OnLogin;
     _dataService.OnLatestVersionChanged += WarnOutdated;
@@ -15,7 +15,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= OnLogin;
     _dataService.OnLatestVersionChanged -= WarnOutdated;

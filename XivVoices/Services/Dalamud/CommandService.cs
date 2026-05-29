@@ -9,7 +9,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _commandManager.AddHandler(XivVoicesCommand, new CommandInfo(OnCommand)
     {
@@ -23,7 +23,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _commandManager.RemoveHandler(XivVoicesCommand);
     _commandManager.RemoveHandler(XivVoicesCommandAlias);

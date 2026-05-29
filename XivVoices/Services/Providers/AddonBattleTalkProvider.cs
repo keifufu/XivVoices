@@ -12,14 +12,14 @@ public class AddonBattleTalkProvider(ILogger _logger, IGameInteropService _gameI
   private string _lastSpeaker = "";
   private string _lastSentence = "";
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _addonLifecycle.RegisterListener(AddonEvent.PostDraw, "_BattleTalk", OnBattleTalkAddonPostDraw);
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _addonLifecycle.UnregisterListener(OnBattleTalkAddonPostDraw);
 

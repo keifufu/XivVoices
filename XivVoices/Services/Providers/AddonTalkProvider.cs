@@ -25,7 +25,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   private string _lastSentence = "";
   private bool? _lastMuteState = null;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
@@ -35,7 +35,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;

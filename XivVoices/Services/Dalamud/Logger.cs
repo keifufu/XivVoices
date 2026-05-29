@@ -45,14 +45,14 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   private Configuration _configuration { get; set; } = new Configuration();
   public List<string> LogHistory { get; } = [];
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
     return ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
 

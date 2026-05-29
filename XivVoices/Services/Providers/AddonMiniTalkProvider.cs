@@ -12,7 +12,7 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
   private unsafe delegate void* OpenBubbleDelegate(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID);
   private Hook<OpenBubbleDelegate> _openBubbleHook = null!;
 
-  public unsafe Task StartAsync(CancellationToken cancellationToken)
+  public unsafe Task StartAsync(CancellationToken token)
   {
 #if !NO_HOOKS
     _openBubbleHook ??= _gameInteropProvider.HookFromSignature<OpenBubbleDelegate>("E8 ?? ?? ?? ?? F6 86 ?? ?? ?? ?? ?? C7 46 ?? ?? ?? ?? ??", OpenBubbleDetour);
@@ -22,7 +22,7 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _openBubbleHook?.Dispose();
 

@@ -17,7 +17,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   private OverlayController? _overlayController;
   private XivvOverlayNode? _xivvOverlayNode;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _overlayController = new();
 
@@ -27,7 +27,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= RebuildOverlay;
 

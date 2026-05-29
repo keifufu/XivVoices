@@ -43,7 +43,7 @@ public class CameraView
 
 public partial class GameInteropService(ILogger _logger, ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, IPlayerState _playerState, ITargetManager _targetManager) : IGameInteropService
 {
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     RunOnFrameworkThread(() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue);
     _clientState.Login += OnLogin;
@@ -51,7 +51,7 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= OnLogin;
     _clientState.Logout -= OnLogout;

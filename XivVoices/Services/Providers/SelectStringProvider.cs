@@ -9,7 +9,7 @@ public interface ISelectStringProvider : IHostedService;
 
 public class SelectStringProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : ISelectStringProvider
 {
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnSelectStringFinalize);
     _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CutSceneSelectString", OnCutSceneSelectStringFinalize);
@@ -17,7 +17,7 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _addonLifecycle.UnregisterListener(OnSelectStringFinalize);
     _addonLifecycle.UnregisterListener(OnCutSceneSelectStringFinalize);

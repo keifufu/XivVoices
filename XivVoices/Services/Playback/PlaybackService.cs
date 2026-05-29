@@ -66,7 +66,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   private bool _wasWindowUnfocused = false;
   private unsafe bool IsWindowUnfocused => FrameworkStruct.Instance() != null && FrameworkStruct.Instance()->WindowInactive;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _framework.Update += FrameworkOnUpdate;
 
@@ -186,7 +186,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (device != null) yield return device;
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _framework.Update -= FrameworkOnUpdate;
 

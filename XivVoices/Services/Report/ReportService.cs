@@ -14,7 +14,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private Dictionary<string, XivReport> _reports = [];
   private CancellationTokenSource? _cts;
 
-  public Task StartAsync(CancellationToken cancellationToken)
+  public Task StartAsync(CancellationToken token)
   {
     _cts = new();
     _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
@@ -25,7 +25,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken cancellationToken)
+  public Task StopAsync(CancellationToken token)
   {
     _cts?.Cancel();
     _cts?.Dispose();
