@@ -39,8 +39,8 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   {
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
-    _addonLifecycle.UnregisterListener(AddonEvent.PreDraw, "Talk", OnAddonTalkPreDraw);
-    _addonLifecycle.UnregisterListener(AddonEvent.PreReceiveEvent, "Talk", OnTalkAddonReceiveEvent);
+    _addonLifecycle.UnregisterListener(OnAddonTalkPreDraw);
+    _addonLifecycle.UnregisterListener(OnTalkAddonReceiveEvent);
 
     return _logger.ServiceLifecycle();
   }

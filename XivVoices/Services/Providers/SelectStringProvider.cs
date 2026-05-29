@@ -27,36 +27,49 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
 
   private unsafe void OnSelectStringFinalize(AddonEvent type, AddonArgs args)
   {
+    if (!_configuration.VoicePlayerChoices)
+    {
+      _logger.Debug("Not voicing player choice due to user configuration.");
+      return;
+    }
+
     if (args.Addon.Address == 0) return;
     AddonSelectString* addon = (AddonSelectString*)args.Addon.Address;
     string title = addon->AtkValuesSpan[2].String.ToString();
-    if (title == "What will you say?" || _gameInteropService.IsOccupiedInQuestEvent())
+
+    string? sentence = GetSelectedString(addon->PopupMenu.List);
+    if (sentence == null) return;
+
+    string? speaker = _gameInteropService.PlayerName;
+    if (speaker == null) return;
+
+    string? speakerWorld = _gameInteropService.PlayerWorld;
+    if (speakerWorld == null) return;
+
+    _selfTestService.Report_Provider_SelectString(speaker, speakerWorld, sentence);
+
+    if (title == "What will you say?" && _gameInteropService.IsOccupiedInQuestEvent())
     {
-      _logger.Debug($"Voicing SelectString: {title}:{_gameInteropService.IsOccupiedInQuestEvent()}");
-      HandleSelectedString(addon->PopupMenu.PopupMenu.List);
+      _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
+      _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
+    }
+    else
+    {
+      _logger.Debug($"Not voicing SelectString: {title}:{_gameInteropService.IsOccupiedInQuestEvent()}");
     }
   }
 
   private unsafe void OnCutSceneSelectStringFinalize(AddonEvent type, AddonArgs args)
   {
+    if (!_configuration.VoicePlayerChoices)
+    {
+      _logger.Debug("Not voicing player choice due to user configuration.");
+      return;
+    }
+
     if (args.Addon.Address == 0) return;
-    HandleSelectedString(((AddonCutSceneSelectString*)args.Addon.Address)->OptionList);
-  }
-
-  private unsafe void HandleSelectedString(AtkComponentList* list)
-  {
-    if (list is null) return;
-
-    int selectedItem = list->SelectedItemIndex;
-    if (selectedItem < 0 || selectedItem >= list->ListLength) return;
-
-    AtkComponentListItemRenderer* listItemRenderer = list->ItemRendererList[selectedItem].AtkComponentListItemRenderer;
-    if (listItemRenderer is null) return;
-
-    AtkTextNode* buttonTextNode = listItemRenderer->AtkComponentButton.ButtonTextNode;
-    if (buttonTextNode is null) return;
-
-    string sentence = buttonTextNode->NodeText.AsReadOnlySeStringSpan().ExtractText();
+    string? sentence = GetSelectedString(((AddonCutSceneSelectString*)args.Addon.Address)->OptionList);
+    if (sentence == null) return;
 
     string? speaker = _gameInteropService.PlayerName;
     if (speaker == null) return;
@@ -66,10 +79,23 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
 
     _selfTestService.Report_Provider_CutSceneSelectString(speaker, speakerWorld, sentence);
 
-    if (_configuration.VoicePlayerChoices)
-    {
-      _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
-      _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
-    }
+    _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
+    _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
+  }
+
+  private unsafe string? GetSelectedString(AtkComponentList* list)
+  {
+    if (list is null) return null;
+
+    int selectedItem = list->SelectedItemIndex;
+    if (selectedItem < 0 || selectedItem >= list->ListLength) return null;
+
+    AtkComponentListItemRenderer* listItemRenderer = list->ItemRendererList[selectedItem].AtkComponentListItemRenderer;
+    if (listItemRenderer is null) return null;
+
+    AtkTextNode* buttonTextNode = listItemRenderer->AtkComponentButton.ButtonTextNode;
+    if (buttonTextNode is null) return null;
+
+    return buttonTextNode->NodeText.AsReadOnlySeStringSpan().ExtractText();
   }
 }

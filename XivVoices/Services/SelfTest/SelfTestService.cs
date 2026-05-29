@@ -28,6 +28,7 @@ public interface ISelfTestService
   unsafe void Report_Provider_MiniTalk(GameObject* actor, string sentence);
   void Report_Provider_BattleTalk(string speaker, string sentence);
   void Report_Provider_CutSceneSelectString(string speaker, string speakerWorld, string sentence);
+  void Report_Provider_SelectString(string speaker, string speakerWorld, string sentence);
 
   void LipSyncTarget();
 }
@@ -65,7 +66,7 @@ public enum SelfTestStep : long
   Interop_IsInCutscene = 1L << 19,
 
   Provider_CutSceneSelectString = 1L << 20,
-  // Provider_SelectString = 1L << 20, // TODO: HOW??? WHERE???
+  Provider_SelectString = 1L << 21
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
@@ -196,6 +197,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Provider_CutSceneSelectString;
         break;
       case SelfTestStep.Provider_CutSceneSelectString:
+        CurrentInstruction = "Select \"No\" when asked to play Cuff-a-Cur.";
+        Step = SelfTestStep.Provider_SelectString;
+        break;
+      case SelfTestStep.Provider_SelectString:
         if (!loop)
         {
           Stop();
@@ -536,6 +541,18 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     string? s = _gameInteropService.PlayerName;
     string? w = _gameInteropService.PlayerWorld;
     string expectedSentence = "We came here for the Exarch.";
+
+    if (speaker == s && speakerWorld == w && sentence == expectedSentence)
+      Next(true, false);
+    else
+      AddLog($"Unexpected message: {speaker}@{speakerWorld}, {sentence}");
+  }
+
+  public void Report_Provider_SelectString(string speaker, string speakerWorld, string sentence)
+  {
+    string? s = _gameInteropService.PlayerName;
+    string? w = _gameInteropService.PlayerWorld;
+    string expectedSentence = "No.";
 
     if (speaker == s && speakerWorld == w && sentence == expectedSentence)
       Next(true, false);
