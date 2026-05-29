@@ -101,7 +101,7 @@ public class TrackableSound : ISampleProvider, IDisposable
       field = Math.Clamp(value, 0f, 3f);
       _volumeProvider.Volume = IsMuted ? 0f : Math.Clamp(field * (1f + (RelativeVolume / 100f)), 0f, 3f);
     }
-  }
+  } = 0; // Start with 0 volume until it gets set correctly.
 
   public float RelativeVolume
   {

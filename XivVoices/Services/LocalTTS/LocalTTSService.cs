@@ -90,7 +90,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     if (message.PitchOverride != null) return message.PitchOverride.Value;
 
-    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.CutSceneSelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
+    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.SelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
     if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options)) return options.pitch;
 
     if (_configuration.LocalTTSPitchRandomization)
@@ -113,7 +113,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       if (match != null) return match;
     }
 
-    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.CutSceneSelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
+    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.SelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
     if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options))
     {
       LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == options.voice);

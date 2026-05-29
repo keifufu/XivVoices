@@ -4,6 +4,7 @@ public interface IMessageDispatcher : IHostedService
 {
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null);
   void ClearQueue();
+  void TryUnstuckQueue();
   string ReplaceName(string sentence, string playerName);
   (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
   void DispatchTestMessage();
@@ -67,6 +68,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
   }
 
+  public void TryUnstuckQueue()
+  {
+    foreach (PlaybackQueue playbackQueue in _queues.Values)
+    {
+      playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
+    }
+  }
+
   private void OnFrameworkUpdate(IFramework framework)
   {
     int timeoutSec = _configuration.LiveMode ? 300 : (_configuration.ForceLocalGeneration || _configuration.EnableLocalGeneration) ? 45 : 3;
@@ -106,7 +115,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   {
     int count = _playbackService.CountPlaying(GetQueueForMessage(message));
     if (GetQueueForMessage(message) == MessageSource.AddonTalk)
-      count += _playbackService.CountPlaying(MessageSource.CutSceneSelectString);
+      count += _playbackService.CountPlaying(MessageSource.SelectString);
 
     if (count == 0)
     {
@@ -236,16 +245,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       voice = GetGenericVoice(npc);
 
       // Set the VoiceId so the report accurately represents the voice we expect the line to be.
-      if (source != MessageSource.ChatMessage && source != MessageSource.CutSceneSelectString && voice != null && npc != null)
+      if (source != MessageSource.ChatMessage && source != MessageSource.SelectString && voice != null && npc != null)
         npc.VoiceId = voice.Id;
     }
 
     // Cache player npc to assign a gender to chatmessage tts when they're not near you.
-    if ((source == MessageSource.ChatMessage || source == MessageSource.CutSceneSelectString) && npc != null)
+    if ((source == MessageSource.ChatMessage || source == MessageSource.SelectString) && npc != null)
       _dataService.CachePlayer(rawSpeaker, npc);
 
     // Try to retrieve said cached npc if they're not near you.
-    if ((source == MessageSource.ChatMessage || source == MessageSource.CutSceneSelectString) && npc == null)
+    if ((source == MessageSource.ChatMessage || source == MessageSource.SelectString) && npc == null)
       npc = _dataService.TryGetCachedPlayer(rawSpeaker);
 
     // Try and find a voiceline.
@@ -305,7 +314,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
     if (message.RawSpeaker == $"{playerName.Split(" ")[0]}?") isIgnoredSpeaker = true;
 
-    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.CutSceneSelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
+    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
       _reportService.Report(message);
 
     // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
@@ -338,7 +347,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       case MessageSource.ChatMessage:
         queued = _configuration.QueueChatMessages;
         break;
-      case MessageSource.CutSceneSelectString:
+      case MessageSource.SelectString:
         queued = _configuration.QueueDialogue;
         break;
     }
@@ -351,7 +360,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (isNarrator)
       _logger.Chat(message.RawSentence, name: "Narrator", type: XivChatType.NPCDialogue, addPrefix: false);
 
-    if (source == MessageSource.CutSceneSelectString)
+    if (source == MessageSource.SelectString)
       _logger.Chat(message.RawSentence, name: playerName, type: XivChatType.NPCDialogue, addPrefix: false);
 
     if ((_configuration.MuteEnabled && !isFake) || !allowed || (isRetainer && !_configuration.RetainersEnabled))
@@ -382,7 +391,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   private MessageSource GetQueueForMessage(XivMessage message)
   {
     // Enqueue SelectString with AddonTalk
-    return message.Source == MessageSource.CutSceneSelectString ? MessageSource.AddonTalk : message.Source;
+    return message.Source == MessageSource.SelectString ? MessageSource.AddonTalk : message.Source;
   }
 
   public void DispatchTestMessage()

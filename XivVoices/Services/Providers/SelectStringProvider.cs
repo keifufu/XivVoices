@@ -7,10 +7,11 @@ namespace XivVoices.Services;
 
 public interface ISelectStringProvider : IHostedService;
 
-public class CutSceneSelectStringProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : ISelectStringProvider
+public class SelectStringProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : ISelectStringProvider
 {
   public Task StartAsync(CancellationToken cancellationToken)
   {
+    _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnSelectStringFinalize);
     _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CutSceneSelectString", OnCutSceneSelectStringFinalize);
 
     return _logger.ServiceLifecycle();
@@ -18,9 +19,22 @@ public class CutSceneSelectStringProvider(ILogger _logger, Configuration _config
 
   public Task StopAsync(CancellationToken cancellationToken)
   {
+    _addonLifecycle.UnregisterListener(OnSelectStringFinalize);
     _addonLifecycle.UnregisterListener(OnCutSceneSelectStringFinalize);
 
     return _logger.ServiceLifecycle();
+  }
+
+  private unsafe void OnSelectStringFinalize(AddonEvent type, AddonArgs args)
+  {
+    if (args.Addon.Address == 0) return;
+    AddonSelectString* addon = (AddonSelectString*)args.Addon.Address;
+    string title = addon->AtkValuesSpan[2].String.ToString();
+    if (title == "What will you say?" || _gameInteropService.IsOccupiedInQuestEvent())
+    {
+      _logger.Debug($"Voicing SelectString: {title}:{_gameInteropService.IsOccupiedInQuestEvent()}");
+      HandleSelectedString(addon->PopupMenu.PopupMenu.List);
+    }
   }
 
   private unsafe void OnCutSceneSelectStringFinalize(AddonEvent type, AddonArgs args)
@@ -55,7 +69,7 @@ public class CutSceneSelectStringProvider(ILogger _logger, Configuration _config
     if (_configuration.VoicePlayerChoices)
     {
       _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
-      _messageDispatcher.TryDispatch(MessageSource.CutSceneSelectString, speaker, sentence, speakerWorld: speakerWorld);
+      _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
     }
   }
 }

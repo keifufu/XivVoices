@@ -65,6 +65,7 @@ public enum SelfTestStep : long
   Interop_IsInCutscene = 1L << 19,
 
   Provider_CutSceneSelectString = 1L << 20,
+  // Provider_SelectString = 1L << 20, // TODO: HOW??? WHERE???
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService

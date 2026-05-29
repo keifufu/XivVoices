@@ -229,8 +229,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     {
       if (track.IsStopping) return;
       track.IsMuted = _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused;
-      track.Volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
       track.Speed = track.Message.IsLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
+      float volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
 
       if (
         (track.Message.Source == MessageSource.AddonMiniTalk && _configuration.DirectionalAudioForAddonMiniTalk) ||
@@ -252,8 +252,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
         float dotProduct = Vector3.Dot(relativePosition, camera.Right);
         float balance = Math.Clamp(dotProduct / (distance > 0 ? distance : 1), _configuration.MaximumPan / 100 * -1, _configuration.MaximumPan / 100);
-
-        float volume = track.Volume;
 
         (float distanceStart, float distanceEnd, float volumeStart, float volumeEnd)[] volumeRanges =
         [
@@ -290,9 +288,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
         // _logger.Debug($"Updating track: volume::{volume} pan::{balance}");
 
-        track.Volume = volume;
         track.Pan = balance;
       }
+
+      track.Volume = volume;
     });
   }
 

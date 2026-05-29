@@ -89,7 +89,7 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddSingleton<IClientStateService, ClientStateService>();
         collection.AddSingleton<IGameInteropService, GameInteropService>();
         collection.AddSingleton<IChatMessageProvider, ChatMessageProvider>();
-        collection.AddSingleton<ISelectStringProvider, CutSceneSelectStringProvider>();
+        collection.AddSingleton<ISelectStringProvider, SelectStringProvider>();
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
         collection.AddSingleton<IAddonBattleTalkProvider, AddonBattleTalkProvider>();
 
