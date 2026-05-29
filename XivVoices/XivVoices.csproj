@@ -20,14 +20,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="assets/espeak-ng.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>espeak-ng.dll</TargetPath>
-      <Visible>false</Visible>
-    </Content>
     <Content Include="assets/logo.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>logo.png</TargetPath>
+      <Visible>false</Visible>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- ONNX already sets the correct dll locations up for us, just load espeak-ng from there. -->
+    <Content Include="assets/espeak-ng.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>runtimes/win-x64/native/espeak-ng.dll</TargetPath>
       <Visible>false</Visible>
     </Content>
   </ItemGroup>

@@ -13,9 +13,6 @@ public partial class LocalTTSService
 
   public void InitializePhonemizer(string toolsDirectory)
   {
-    SetDefaultDllDirectories(0x00001000);
-    AddDllDirectory(_pluginInterface.AssemblyLocation.Directory?.FullName!);
-
     espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
     espeak_SetVoiceByName("en-us");
     espeak_SetSynthCallback(_callback);
@@ -159,11 +156,4 @@ public partial class LocalTTSService
 
   [LibraryImport("espeak-ng")]
   private static partial void espeak_Synchronize();
-
-  [LibraryImport("kernel32", SetLastError = true)]
-  [return: MarshalAs(UnmanagedType.Bool)]
-  internal static partial bool SetDefaultDllDirectories(uint DirectoryFlags);
-
-  [LibraryImport("kernel32", StringMarshalling = StringMarshalling.Utf16)]
-  internal static partial int AddDllDirectory(string NewDirectory);
 }
