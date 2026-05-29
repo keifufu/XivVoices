@@ -13,6 +13,9 @@ public partial class LocalTTSService
     sentence = ApplyManifestLexicon(sentence);
     sentence = ApplyBuiltInLexicon(sentence);
 
+    if (message.Npc?.Race == "Mammet")
+      sentence = sentence.ToLower();
+
     return sentence;
   }
 
