@@ -17,12 +17,12 @@ public partial class LocalTTSService
     if (filter.Contains("_FILTER_") && message.ChatChannel != null)
     {
       if (filter == "_FILTER_") sentence = "";
-      string channel = $"_{message.ChatChannel.Value.ToString().ToUpper()}_";
+      string channel = $"_{message.ChatChannel.Value.ToString().ToUpperInvariant()}_";
       if (filter.Contains(channel)) sentence = "";
     }
 
     if (message.Npc?.Race == "Mammet")
-      sentence = sentence.ToLower();
+      sentence = sentence.ToLowerInvariant();
 
     return sentence;
   }

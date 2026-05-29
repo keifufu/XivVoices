@@ -200,7 +200,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawConfigCheckbox(string label, ref bool value, bool showLabel = true)
   {
-    if (ImGui.Checkbox($"##{label.Replace(" ", "").ToLower()}", ref value))
+    if (ImGui.Checkbox($"##{label.Replace(" ", "").ToLowerInvariant()}", ref value))
       _configuration.Save();
 
     if (showLabel)
@@ -212,7 +212,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawConfigSlider(string label, ref int value, int min, int max)
   {
-    if (ImGui.SliderInt($"##{label.Replace(" ", "").ToLower()}", ref value, min, max, value.ToString()))
+    if (ImGui.SliderInt($"##{label.Replace(" ", "").ToLowerInvariant()}", ref value, min, max, value.ToString()))
       _configuration.Save();
 
     ImGui.SameLine();

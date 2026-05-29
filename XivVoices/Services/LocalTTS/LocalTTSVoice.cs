@@ -9,7 +9,7 @@ public class LocalTTSVoice
     string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(filePath);
     return new LocalTTSVoice
     {
-      Name = fileNameWithoutExtension.Split("_")[1].FirstCharToUpper(),
+      Name = fileNameWithoutExtension.Split("_")[1].FirstCharToUpper(CultureInfo.InvariantCulture),
       _fileName = fileNameWithoutExtension,
       _features = np.Load<float[,,]>(filePath)
     };
