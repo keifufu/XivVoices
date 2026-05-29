@@ -237,8 +237,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         (track.Message.Source == MessageSource.ChatMessage && _configuration.DirectionalAudioForChat)
       )
       {
+        if (track.Message.Speaker == _gameInteropService.PlayerName && track.Message.SpeakerWorld == _gameInteropService.PlayerWorld) goto setVolume;
         if (_objectTable.LocalPlayer == null) goto setVolume;
-        if (track.Message.Speaker == _objectTable.LocalPlayer.Name.ToString()) goto setVolume;
         Vector3 playerPosition = _objectTable.LocalPlayer.Position;
 
         Character* speaker = (Character*)_gameInteropService.TryFindCharacter(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
@@ -283,11 +283,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
           }
         }
 
-        if (volume == track.Volume)
+        if (distance > volumeRanges[^1].distanceEnd)
           volume = volumeRanges[^1].volumeEnd;
 
         // _logger.Debug($"Updating track: volume::{volume} pan::{balance}");
-
         track.Pan = balance;
       }
 
