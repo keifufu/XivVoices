@@ -9,9 +9,17 @@ public partial class LocalTTSService
     if (message.Source == MessageSource.ChatMessage)
       sentence = ProcessPlayerChat(sentence, message.Speaker, message.SpeakerWorld);
 
-    sentence = ApplyUserLexicon(sentence);
+    (sentence, string filter) = ApplyUserLexicon(sentence);
     sentence = ApplyManifestLexicon(sentence);
     sentence = ApplyBuiltInLexicon(sentence);
+
+    // Filters only work on chat messages, on purpose.
+    if (filter.Contains("_FILTER_") && message.ChatChannel != null)
+    {
+      if (filter == "_FILTER_") sentence = "";
+      string channel = $"_{message.ChatChannel.Value.ToString().ToUpper()}_";
+      if (filter.Contains(channel)) sentence = "";
+    }
 
     if (message.Npc?.Race == "Mammet")
       sentence = sentence.ToLower();
@@ -19,14 +27,18 @@ public partial class LocalTTSService
     return sentence;
   }
 
-  private string ApplyUserLexicon(string sentence)
+  private (string sentence, string filter) ApplyUserLexicon(string sentence)
   {
+    string filter = sentence;
     foreach (KeyValuePair<string, string> entry in _configuration.LocalTTSLexicon)
     {
       string pattern = "\\b" + entry.Key + "\\b";
-      sentence = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+      if (entry.Value.Contains("_FILTER_"))
+        filter = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+      else
+        sentence = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
     }
-    return sentence;
+    return (sentence, filter);
   }
 
   private string ApplyManifestLexicon(string sentence)

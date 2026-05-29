@@ -58,6 +58,9 @@ public class XivMessage
   public string? SpeakerWorld { get; set; } = null;
 
   [JsonIgnore]
+  public XivChatType? ChatChannel { get; set; } = null;
+
+  [JsonIgnore]
   public string? LocalTTSVoice { get; set; } = null;
 
   public override string ToString() =>
@@ -77,7 +80,8 @@ public class XivMessage
     bool isFake,
     string? voiceOverride,
     int? pitchOverride,
-    string? speakerWorld)
+    string? speakerWorld,
+    XivChatType? chatChannel)
   {
     Id = id;
     Source = source;
@@ -93,6 +97,7 @@ public class XivMessage
     VoiceOverride = voiceOverride;
     PitchOverride = pitchOverride;
     SpeakerWorld = speakerWorld;
+    ChatChannel = chatChannel;
   }
 
   [JsonConstructor]

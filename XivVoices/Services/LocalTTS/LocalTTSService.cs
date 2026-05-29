@@ -13,7 +13,7 @@ public interface ILocalTTSService : IHostedService
   event System.Action? OnInitialized;
 }
 
-public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
+public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService) : ILocalTTSService
 {
   public event System.Action? OnInitialized;
   public List<LocalTTSVoice> Voices { get; private set; } = [];

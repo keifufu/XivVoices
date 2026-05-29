@@ -2,7 +2,7 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null);
+  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null);
   void ClearQueue();
   void TryUnstuckQueue();
   string ReplaceName(string sentence, string playerName);
@@ -154,7 +154,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null)
+  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -301,7 +301,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       isFake,
       voiceOverride,
       pitchOverride,
-      speakerWorld
+      speakerWorld,
+      chatChannel
     );
 
     _logger.Debug($"Constructed message: {message}");

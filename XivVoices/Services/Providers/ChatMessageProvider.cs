@@ -116,7 +116,7 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     if (allowed)
     {
       _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{message.Message}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(), speakerWorld: speakerWorld);
+      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(), speakerWorld: speakerWorld, chatChannel: message.LogKind);
     }
   }
 }
