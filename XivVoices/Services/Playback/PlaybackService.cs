@@ -237,12 +237,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         (track.Message.Source == MessageSource.ChatMessage && _configuration.DirectionalAudioForChat)
       )
       {
-        if (_objectTable.LocalPlayer == null) return;
-        if (track.Message.Speaker == _objectTable.LocalPlayer.Name.ToString()) return;
+        if (_objectTable.LocalPlayer == null) goto setVolume;
+        if (track.Message.Speaker == _objectTable.LocalPlayer.Name.ToString()) goto setVolume;
         Vector3 playerPosition = _objectTable.LocalPlayer.Position;
 
         Character* speaker = (Character*)_gameInteropService.TryFindCharacter(track.Message.Speaker, track.Message.Npc?.BaseId ?? 0);
-        if (speaker == null) return;
+        if (speaker == null) goto setVolume;
         Vector3 speakerPosition = new(speaker->Position.X, speaker->Position.Y, speaker->Position.Z);
 
         Vector3 relativePosition = speakerPosition - playerPosition;
@@ -291,6 +291,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         track.Pan = balance;
       }
 
+    setVolume:
       track.Volume = volume;
     });
   }
