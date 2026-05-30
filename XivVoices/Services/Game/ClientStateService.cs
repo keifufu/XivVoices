@@ -53,7 +53,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
 
   private void WarnRepository()
   {
-    if (_pluginInterface.SourceRepository.Trim().Contains("fantasticalmouthpiece", StringComparison.OrdinalIgnoreCase))
+    if (_pluginInterface.SourceRepository.Contains("fantasticalmouthpiece", StringComparison.OrdinalIgnoreCase))
     {
       _logger.DalamudToast(NotificationType.Warning, "Deprecated Repository", "You are using a deprecated plugin repository URL for this plugin. Please migrate to 'https://xivv.keifufu.dev/repo'. Join our Discord for help.", 60);
     }
