@@ -7,7 +7,7 @@ public partial class LocalTTSService
     string sentence = message.AddName(message.Sentence);
 
     if (message.Source == MessageSource.ChatMessage)
-      sentence = ProcessPlayerChat(sentence, message.Speaker, message.SpeakerWorld);
+      sentence = ProcessPlayerChat(sentence, message.Speaker, message.SpeakerWorld, message.ChatChannel);
 
     (sentence, string filter) = ApplyUserLexicon(sentence);
     sentence = ApplyManifestLexicon(sentence);
@@ -114,7 +114,7 @@ public partial class LocalTTSService
     return sentence;
   }
 
-  private string ProcessPlayerChat(string sentence, string speaker, string? speakerWorld)
+  private string ProcessPlayerChat(string sentence, string speaker, string? speakerWorld, XivChatType? chatChannel)
   {
     string playerName = speaker.Split(" ")[0];
     bool iAmSpeaking = speaker == _gameInteropService.PlayerName && speakerWorld == _gameInteropService.PlayerWorld;
@@ -129,7 +129,13 @@ public partial class LocalTTSService
 
     if (_configuration.LocalTTSPlayerSays && !sentence.StartsWith(playerName))
     {
-      string says = iAmSpeaking ? " say " : " says ";
+      string says = chatChannel switch
+      {
+        XivChatType.Shout => iAmSpeaking ? " shout " : " shouts ",
+        XivChatType.Yell => iAmSpeaking ? " yell " : " yells ",
+        _ => iAmSpeaking ? " say " : " says ",
+      };
+
       sentence = playerName + says + sentence;
     }
 
