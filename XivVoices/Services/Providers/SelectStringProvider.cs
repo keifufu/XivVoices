@@ -48,14 +48,14 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
 
     _selfTestService.Report_Provider_SelectString(speaker, speakerWorld, sentence);
 
-    if (title == "What will you say?" && _gameInteropService.IsOccupiedInQuestEvent())
+    if (title == "What will you say?")
     {
       _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
       _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
     }
     else
     {
-      _logger.Debug($"Not voicing SelectString: {title}:{_gameInteropService.IsOccupiedInQuestEvent()}");
+      _logger.Debug($"Not voicing SelectString: {title}");
     }
   }
 

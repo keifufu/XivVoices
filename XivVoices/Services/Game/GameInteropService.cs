@@ -28,7 +28,6 @@ public interface IGameInteropService : IHostedService
   bool IsInCombat();
   bool IsInDuty();
   bool IsOccupiedBySummoningBell();
-  bool IsOccupiedInQuestEvent();
   string ReadUtf8String(Utf8String str);
   unsafe string ReadTextNode(AtkTextNode* textNode);
   unsafe (string race, string gender) GetBeastmanRace(Character* character);
@@ -227,9 +226,6 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
 
   public bool IsOccupiedBySummoningBell() =>
     _condition.Any(ConditionFlag.OccupiedSummoningBell);
-
-  public bool IsOccupiedInQuestEvent() =>
-    _condition.Any(ConditionFlag.OccupiedInQuestEvent);
 
   public string ReadUtf8String(Utf8String str)
   {
