@@ -16,7 +16,7 @@ public partial class LocalTTSService
     // Filters only work on chat messages, on purpose.
     if (filter.Contains("_FILTER_") && message.ChatChannel != null)
     {
-      if (filter == "_FILTER_") sentence = "";
+      if (Regex.IsMatch(filter, @"\b_FILTER_\b")) sentence = "";
       string channel = $"_{message.ChatChannel.Value.ToString().ToUpperInvariant()}_";
       if (filter.Contains(channel)) sentence = "";
     }
@@ -32,12 +32,56 @@ public partial class LocalTTSService
     string filter = sentence;
     foreach (KeyValuePair<string, string> entry in _configuration.LocalTTSLexicon)
     {
-      string pattern = "\\b" + entry.Key + "\\b";
-      if (entry.Value.Contains("_FILTER_"))
-        filter = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+      string key = entry.Key;
+      string repl = entry.Value;
+      string pattern;
+      RegexOptions options = RegexOptions.None;
+
+      if (key.Length >= 2 && key[0] == '/')
+      {
+        int j = 1;
+        for (; j < key.Length; j++)
+        {
+          if (key[j] == '\\') { j++; continue; }
+          if (key[j] == '/') break;
+        }
+
+        if (j < key.Length && key[j] == '/')
+        {
+          pattern = key[1..j];
+          if (key[(j + 1)..].Contains('i')) options |= RegexOptions.IgnoreCase;
+        }
+        else
+        {
+          pattern = @"\b" + Regex.Escape(key) + @"\b";
+          options = RegexOptions.IgnoreCase;
+        }
+      }
       else
-        sentence = Regex.Replace(sentence, pattern, entry.Value, RegexOptions.IgnoreCase);
+      {
+        pattern = @"\b" + Regex.Escape(key) + @"\b";
+        options = RegexOptions.IgnoreCase;
+      }
+
+      try
+      {
+        if (repl.Contains("_FILTER_"))
+          filter = Regex.Replace(filter, pattern, repl, options);
+        else
+          sentence = Regex.Replace(sentence, pattern, repl, options);
+      }
+      catch (ArgumentException)
+      {
+        string lit = Regex.Escape(key);
+        if (repl.Contains("_FILTER_"))
+          filter = Regex.Replace(filter, @"\b" + lit + @"\b", repl, RegexOptions.IgnoreCase);
+        else
+          sentence = Regex.Replace(sentence, @"\b" + lit + @"\b", repl, RegexOptions.IgnoreCase);
+      }
+
+      sentence = sentence.Trim();
     }
+
     return (sentence, filter);
   }
 
