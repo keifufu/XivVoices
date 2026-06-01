@@ -116,6 +116,7 @@ public class Configuration : IPluginConfiguration
   public bool SuperFastForward = false;
   public bool LiveMode = false;
   public bool WarnIgnoredSpeaker = false;
+  public XivChatType DefaultChatChannel = XivChatType.Debug;
 
   [NonSerialized]
   private ILogger? Logger;

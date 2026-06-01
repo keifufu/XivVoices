@@ -356,13 +356,13 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     if (isFake) allowed = true;
 
     if (source == MessageSource.AddonMiniTalk)
-      _logger.Chat(message.RawSentence, name: npc?.Id ?? "Bubble", type: XivChatType.NPCDialogue, addPrefix: false);
+      _logger.Chat(message.RawSentence, name: npc?.Id ?? "Bubble", channel: XivChatType.NPCDialogue, addPrefix: false);
 
     if (isNarrator)
-      _logger.Chat(message.RawSentence, name: "Narrator", type: XivChatType.NPCDialogue, addPrefix: false);
+      _logger.Chat(message.RawSentence, name: "Narrator", channel: XivChatType.NPCDialogue, addPrefix: false);
 
     if (source == MessageSource.SelectString)
-      _logger.Chat(message.RawSentence, name: playerName, type: XivChatType.NPCDialogue, addPrefix: false);
+      _logger.Chat(message.RawSentence, name: playerName, channel: XivChatType.NPCDialogue, addPrefix: false);
 
     if ((_configuration.MuteEnabled && !isFake) || !allowed || (isRetainer && !_configuration.RetainersEnabled))
     {

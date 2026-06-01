@@ -21,6 +21,7 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   private CheckboxNode _superFastForwardNode = null!;
   private CheckboxNode _liveModeNode = null!;
   private CheckboxNode _warnIgnoredSpeakerNode = null!;
+  private TextDropDownNode _defaultChatChannelNoe = null!;
 
   private ConfigOverlayNode _overlayNode = null!;
   private TextInputNode _overlayInputNode = null!;
@@ -163,6 +164,30 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
     };
     debugSectionNode.AttachNode(_warnIgnoredSpeakerNode);
 
+
+    debugSectionNode.AttachNode(new LabelTextNode()
+    {
+      String = "Default Channel",
+      Height = 18.0f,
+      FontSize = 14,
+    }, padding: 2.0f);
+
+    _defaultChatChannelNoe = new()
+    {
+      Size = new Vector2(220.0f, 24.0f),
+      X = 140.0f,
+      Options = Enum.GetValues<XivChatType>().Select(e => e.ToString()).ToList(),
+      OnOptionSelected = (option) =>
+      {
+        if (Enum.TryParse(option, out XivChatType chatChannel))
+        {
+          _configuration.DefaultChatChannel = chatChannel;
+          _configuration.Save();
+        }
+      }
+    };
+    debugSectionNode.AttachNode(_defaultChatChannelNoe, inline: true);
+
     AttachNode(debugSectionNode);
 
     _overlayNode = new ConfigOverlayNode(_services);
@@ -219,5 +244,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
     _superFastForwardNode.IsChecked = _configuration.SuperFastForward;
     _liveModeNode.IsChecked = _configuration.LiveMode;
     _warnIgnoredSpeakerNode.IsChecked = _configuration.WarnIgnoredSpeaker;
+    _defaultChatChannelNoe.SelectedOption = _configuration.DefaultChatChannel.ToString();
   }
 }
