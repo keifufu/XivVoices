@@ -123,7 +123,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     string gender = message.Npc?.Gender ?? _configuration.LocalTTSDefaultVoice;
     if (_configuration.LocalTTSVoiceRandomization)
     {
-      List<LocalTTSVoice> pool = Voices.Where(v => v.Gender == gender).ToList();
+      List<LocalTTSVoice> pool = Voices.Where(v => v.Gender == gender && !_configuration.LocalTTSDisallowedVoices.Contains(v.Name)).ToList();
       byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(speaker));
       ulong v = BitConverter.ToUInt64(hash);
       return pool[(int)(v % (ulong)pool.Count)];
