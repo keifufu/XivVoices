@@ -29,11 +29,14 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   {
     _clientState.Login -= RebuildOverlay;
 
-    await _framework.RunOnFrameworkThread(() =>
+    if (!_framework.IsFrameworkUnloading)
     {
-      _overlayController?.Dispose();
-      _overlayController = null;
-    });
+      await _framework.Run(() =>
+      {
+        _overlayController?.Dispose();
+        _overlayController = null;
+      }, token);
+    }
 
     await _logger.ServiceLifecycle();
   }

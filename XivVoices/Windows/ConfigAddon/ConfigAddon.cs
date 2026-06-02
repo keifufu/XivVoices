@@ -11,6 +11,7 @@ public class ConfigAddon : NativeAddon
   private readonly IServiceProvider _services;
   private readonly Configuration _configuration;
   private readonly IDataService _dataService;
+  private readonly IFramework _framework;
 
   private int _visibleTabButtons = 0;
   private readonly List<TabButtonNode> _tabButtons = [];
@@ -19,11 +20,12 @@ public class ConfigAddon : NativeAddon
   private TabButtonNode _discordButtonNode = null!;
   private SimpleNineGridNode _verticalSeparator = null!;
 
-  public ConfigAddon(Configuration configuration, IDataService dataService, IServiceProvider services)
+  public ConfigAddon(Configuration configuration, IDataService dataService, IServiceProvider services, IFramework framework)
   {
     _services = services;
     _configuration = configuration;
     _dataService = dataService;
+    _framework = framework;
 
     InternalName = "XivVoicesConfiguration";
     Title = "XivVoices Configuration";
@@ -105,6 +107,12 @@ public class ConfigAddon : NativeAddon
 
     SetTab(CurrentTab);
     ConfigurationSaved();
+  }
+
+  public override ValueTask DisposeAsync()
+  {
+    if (_framework.IsFrameworkUnloading) return ValueTask.CompletedTask;
+    return base.DisposeAsync();
   }
 
   protected override unsafe void OnFinalize(AtkUnitBase* addon)
