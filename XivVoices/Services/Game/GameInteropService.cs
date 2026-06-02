@@ -44,7 +44,7 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
 {
   public Task StartAsync(CancellationToken token)
   {
-    RunOnFrameworkThread(() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue);
+    if (_clientState.IsLoggedIn) RunOnFrameworkThread(OnLogin);
     _clientState.Login += OnLogin;
     _clientState.Logout += OnLogout;
     return _logger.ServiceLifecycle();
@@ -57,10 +57,23 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
     return _logger.ServiceLifecycle();
   }
 
-  private void OnLogin() => PlayerName = _objectTable.LocalPlayer?.Name.TextValue;
-  private void OnLogout(int type, int code) => PlayerName = null;
   public string? PlayerName { get; private set; } = null;
-  public string? PlayerWorld { get => _playerState.HomeWorld.ValueNullable?.Name.ToString(); }
+  public string? PlayerWorld { get; private set; } = null;
+
+  private void OnLogin()
+  {
+    PlayerName = _objectTable.LocalPlayer?.Name.TextValue;
+    PlayerWorld = _playerState.HomeWorld.ValueNullable?.Name.ToString();
+    _logger.Debug($"Logged in: {PlayerName}@{PlayerWorld}");
+  }
+
+  private void OnLogout(int type, int code)
+  {
+    _logger.Debug($"Logged out: {PlayerName}@{PlayerWorld}");
+    PlayerName = null;
+    PlayerWorld = null;
+  }
+
 
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
