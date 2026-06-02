@@ -19,7 +19,7 @@ public enum ConfigTab
   SelfTest,
 }
 
-public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataService _dataService, WindowSystem _windowSystem, IDalamudPluginInterface _pluginInterface
+public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataService _dataService, IFramework _framework, WindowSystem _windowSystem, IDalamudPluginInterface _pluginInterface
 #if !NO_KTK
 , ConfigAddon _configAddon
 #endif
@@ -39,13 +39,13 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.SelfTest);
+    OpenTab(ConfigTab.LocalTTSLexicon);
 #endif
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public async Task StopAsync(CancellationToken token)
   {
     _pluginInterface.UiBuilder.OpenConfigUi -= Toggle;
     _pluginInterface.UiBuilder.OpenMainUi -= Toggle;
@@ -55,7 +55,11 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
     _windowSystem.RemoveAllWindows();
 
-    return _logger.ServiceLifecycle();
+#if !NO_KTK
+    await _configAddon.DisposeAsync();
+#endif
+
+    await _logger.ServiceLifecycle();
   }
 
   public void OpenTab(ConfigTab tab, bool forceOpen = false)
@@ -65,11 +69,14 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     _configWindow.SelectedTab = tab;
     _configWindow.IsOpen = forceOpen || isDifferentTab || !_configWindow.IsOpen;
 #else
-    bool isDifferentTab = _configAddon.CurrentTab != tab;
-    _configAddon.SetTab(tab);
-    bool shouldBeOpen = forceOpen || isDifferentTab || !_configAddon.IsOpen;
-    if (shouldBeOpen) _configAddon.Open();
-    else _configAddon.Close();
+    _framework.RunOnFrameworkThread(() =>
+    {
+      bool isDifferentTab = _configAddon.CurrentTab != tab;
+      _configAddon.SetTab(tab);
+      bool shouldBeOpen = forceOpen || isDifferentTab || !_configAddon.IsOpen;
+      if (shouldBeOpen) _configAddon.Open();
+      else _configAddon.Close();
+    });
 #endif
   }
 

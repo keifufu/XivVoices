@@ -19,26 +19,28 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
 
   public Task StartAsync(CancellationToken token)
   {
-    _overlayController = new();
-
     _clientState.Login += RebuildOverlay;
     if (_clientState.IsLoggedIn) RebuildOverlay();
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public async Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= RebuildOverlay;
 
-    _overlayController?.Dispose();
-    _overlayController = null;
+    await _framework.RunOnFrameworkThread(() =>
+    {
+      _overlayController?.Dispose();
+      _overlayController = null;
+    });
 
-    return _logger.ServiceLifecycle();
+    await _logger.ServiceLifecycle();
   }
 
   private void RebuildOverlay() => _framework.RunOnFrameworkThread(() =>
   {
+    _overlayController ??= new();
     _overlayController?.RemoveAllNodes();
 
     _xivvOverlayNode = new XivvOverlayNode(services)

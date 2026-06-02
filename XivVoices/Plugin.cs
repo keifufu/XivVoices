@@ -7,8 +7,10 @@ using KamiToolKit;
 
 namespace XivVoices;
 
-public sealed class Plugin : IDalamudPlugin
+public sealed class Plugin : IAsyncDalamudPlugin
 {
+  private readonly IDalamudPluginInterface _pluginInterface;
+  private readonly IFramework _framework;
   private readonly IHost _host;
 
   public Plugin(
@@ -35,9 +37,8 @@ public sealed class Plugin : IDalamudPlugin
     INotificationManager notificationManager
   )
   {
-#if !NO_KTK
-    KamiToolKitLibrary.Initialize(pluginInterface, pluginInterface.InternalName);
-#endif
+    _pluginInterface = pluginInterface;
+    _framework = framework;
 
     _host = new HostBuilder()
       .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
@@ -120,8 +121,6 @@ public sealed class Plugin : IDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<IOverlayAddon>());
 #endif
       }).Build();
-
-    _host.StartAsync();
   }
 
   private Configuration InitializeConfiguration(IServiceProvider s)
@@ -133,12 +132,22 @@ public sealed class Plugin : IDalamudPlugin
     return configuration;
   }
 
-  public void Dispose()
+  public async Task LoadAsync(CancellationToken token)
   {
-    _host.StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-    _host.Dispose();
 #if !NO_KTK
-    KamiToolKitLibrary.Dispose();
+    KamiToolKitLibrary.Initialize(_pluginInterface, _pluginInterface.InternalName);
+#endif
+
+    await _host.StartAsync(token);
+  }
+
+  public async ValueTask DisposeAsync()
+  {
+    await _host.StopAsync();
+    _host.Dispose();
+
+#if !NO_KTK
+    await _framework.RunOnFrameworkThread(KamiToolKitLibrary.Dispose);
 #endif
   }
 }

@@ -38,6 +38,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
 
     _localTTSLexiconSectionNode = new("Local TTS Lexicon", offset: 26.0f);
 
+    // TODO: document regex support
     _localTTSLexiconSectionNode.AttachNode(new ConfigTooltipNode()
     {
       TextTooltip = """

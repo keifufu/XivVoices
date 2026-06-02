@@ -119,7 +119,8 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
         .AddUiForeground(addPrefix ? "[XivVoices] " : "", 35)
-        .AddText(uncolored)
+        .AddText(channel != null ? uncolored : "")
+        .AddUiForeground(channel == null ? uncolored : "", 2)
         .AddUiForeground(pre, preColor)
         .AddItalicsOn()
         .AddUiForeground(italic, italicColor)
@@ -187,6 +188,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     Debug(sb.ToString(), callerPath, callerName, lineNumber);
   }
 
+  // TODO: breaks when async
   public Task ServiceLifecycle(string? status = null, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
     string lifecycleStage = status ??

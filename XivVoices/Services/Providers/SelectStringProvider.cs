@@ -46,7 +46,8 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
     string? speakerWorld = _gameInteropService.PlayerWorld;
     if (speakerWorld == null) return;
 
-    _selfTestService.Report_Provider_SelectString(speaker, speakerWorld, sentence);
+    if (_selfTestService.Step == SelfTestStep.Provider_SelectString)
+      _selfTestService.Report_Provider_SelectString(speaker, speakerWorld, sentence);
 
     if (title == "What will you say?")
     {
@@ -77,7 +78,8 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
     string? speakerWorld = _gameInteropService.PlayerWorld;
     if (speakerWorld == null) return;
 
-    _selfTestService.Report_Provider_CutSceneSelectString(speaker, speakerWorld, sentence);
+    if (_selfTestService.Step == SelfTestStep.Provider_CutSceneSelectString)
+      _selfTestService.Report_Provider_CutSceneSelectString(speaker, speakerWorld, sentence);
 
     _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{sentence}");
     _messageDispatcher.TryDispatch(MessageSource.SelectString, speaker, sentence, speakerWorld: speakerWorld);
