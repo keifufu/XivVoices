@@ -201,19 +201,26 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
 
   public unsafe void AutoAdvance(XivMessage? message)
   {
-    if (!CanAutoAdvance()) return;
+    if (!CanAutoAdvance())
+    {
+      _logger.Debug("Can't auto-advance");
+      return;
+    }
 
     _gameInteropService.RunOnFrameworkThread(() =>
     {
       AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
-      if (addon == null) return;
-      if (!addon->IsVisible) return;
+      if (addon == null || !addon->IsVisible)
+      {
+        _logger.Debug("Can't auto-advance: AddonTalk is null or not visible.");
+        return;
+      }
 
       (string speaker, string sentence) = GetSpeakerAndSentence(addon);
 
       if (message != null && (speaker != message.RawSpeaker || sentence != message.AddName(message.RawSentence)))
       {
-        _logger.Debug("addontalk speaker or sentence changed, not auto-advancing.");
+        _logger.Debug("Can't auto-advance: AddonTalk speaker or sentence changed.");
         return;
       }
 
@@ -237,6 +244,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       addon->ReceiveEvent(AtkEventType.MouseDown, 0, evt, data);
       addon->ReceiveEvent(AtkEventType.MouseClick, 0, evt, data);
       addon->ReceiveEvent(AtkEventType.MouseUp, 0, evt, data);
+      _logger.Debug("Auto-advance completed");
     });
   }
 }
