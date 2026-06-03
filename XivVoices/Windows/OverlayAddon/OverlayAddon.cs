@@ -56,7 +56,10 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
 
   public unsafe bool CheckCollision(AtkEventData* atkEventData)
   {
-    return _xivvOverlayNode?.Frame.CheckCollision(atkEventData) ?? false;
+    if (_xivvOverlayNode == null || !_xivvOverlayNode.IsVisible)
+      return false;
+
+    return _xivvOverlayNode.Frame.CheckCollision(atkEventData);
   }
 }
 

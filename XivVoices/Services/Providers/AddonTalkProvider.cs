@@ -49,6 +49,9 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   {
     if (args is not AddonReceiveEventArgs eventArgs || (AtkEventType)eventArgs.AtkEventType is not AtkEventType.MouseClick) return;
 
+    AtkEventData.AtkMouseData mouseData = ((AtkEventData*)eventArgs.AtkEventData)->MouseData;
+    if (mouseData.PosX == 0 && mouseData.PosY == 0) return;
+
 #if !NO_KTK
     if (_configAddon.CheckCollision((AtkEventData*)eventArgs.AtkEventData))
     {
@@ -66,10 +69,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     if (!_configuration.PreventAccidentalDialogueAdvance || _configuration.MuteEnabled) return;
 
     AddonTalk* addon = (AddonTalk*)args.Addon.Address;
-    AtkEventData.AtkMouseData mouseData = ((AtkEventData*)eventArgs.AtkEventData)->MouseData;
-    bool ignore = mouseData.PosX == 0 && mouseData.PosY == 0;
-
-    if (!addon->RootNode->CheckCollisionAtCoords(mouseData.PosX, mouseData.PosY, true) && !ignore)
+    if (!addon->RootNode->CheckCollisionAtCoords(mouseData.PosX, mouseData.PosY, true))
     {
       eventArgs.AtkEventType = 0;
     }
@@ -210,11 +210,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     _gameInteropService.RunOnFrameworkThread(() =>
     {
       AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
-      if (addon == null || !addon->IsVisible)
-      {
-        _logger.Debug("Can't auto-advance: AddonTalk is null or not visible.");
-        return;
-      }
+      if (addon == null || !addon->IsVisible) return;
 
       (string speaker, string sentence) = GetSpeakerAndSentence(addon);
 
@@ -244,7 +240,6 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       addon->ReceiveEvent(AtkEventType.MouseDown, 0, evt, data);
       addon->ReceiveEvent(AtkEventType.MouseClick, 0, evt, data);
       addon->ReceiveEvent(AtkEventType.MouseUp, 0, evt, data);
-      _logger.Debug("Auto-advance completed");
     });
   }
 }
