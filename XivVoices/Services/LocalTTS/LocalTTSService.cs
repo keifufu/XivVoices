@@ -123,10 +123,19 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     string gender = message.Npc?.Gender ?? _configuration.LocalTTSDefaultVoice;
     if (_configuration.LocalTTSVoiceRandomization)
     {
-      List<LocalTTSVoice> pool = Voices.Where(v => v.Gender == gender && !_configuration.LocalTTSDisallowedVoices.Contains(v.Name)).ToList();
+      List<LocalTTSVoice> canonical = Voices.OrderBy(v => v.Name).ToList();
       byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(speaker));
       ulong v = BitConverter.ToUInt64(hash);
-      return pool[(int)(v % (ulong)pool.Count)];
+      int start = (int)(v % (ulong)canonical.Count);
+
+      for (int i = 0; i < canonical.Count; i++)
+      {
+        LocalTTSVoice candidate = canonical[(start + i) % canonical.Count];
+        if (!_configuration.LocalTTSDisallowedVoices.Contains(candidate.Name) && candidate.Gender == gender)
+          return candidate;
+      }
+
+      _logger.Debug($"Failed to find randomized voice for '{speaker}', falling back to default voice.");
     }
 
     string defaultVoice = gender == "Male" ? _configuration.LocalTTSMaleVoice : _configuration.LocalTTSFemaleVoice;
