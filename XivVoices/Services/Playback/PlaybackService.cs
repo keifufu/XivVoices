@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
+using FFXIVClientStructs.FFXIV.Client.Sound;
 using Lumina.Extensions;
 using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
@@ -54,6 +55,11 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public event EventHandler<XivMessage>? PlaybackCompleted;
   public event EventHandler<XivMessage>? QueuedLineSkipped;
   public event EventHandler<bool>? OnOutputDeviceChanged;
+
+  private unsafe bool _isFFXIVMasterMuted
+  {
+    get => SoundManager.Instance()->IsSndMaster;
+  }
 
   public bool Paused
   {
@@ -228,7 +234,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (track.IsStopping) return;
-      track.IsMuted = _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused;
+      track.IsMuted = !track.Message.IsFake && ((_configuration.RespectFFXIVMasterVolumeToggle && _isFFXIVMasterMuted) || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused));
       track.Speed = track.Message.IsLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
       float volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
 

@@ -61,6 +61,7 @@ public class Configuration : IPluginConfiguration
 
   // Playback Settings
   public bool MuteEnabled = false;
+  public bool RespectFFXIVMasterVolumeToggle = true;
 
   public PlaybackDeviceType PlaybackDeviceType = PlaybackDeviceType.WaveOut;
   public string? WaveOutDevice = null;

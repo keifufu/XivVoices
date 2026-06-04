@@ -13,6 +13,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private IMessageDispatcher _messageDispatcher = null!;
 
   private CheckboxNode _muteEnabledNode = null!;
+  private CheckboxNode _respectFFXIVMasterVolumeToggleNode = null!;
 
   private LabelTextNode _outputDeviceNode = null!;
   private TextDropDownNode _playbackDeviceTypeNode = null!;
@@ -61,6 +62,19 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       }
     };
     masterToggleSectionNode.AttachNode(_muteEnabledNode);
+
+    _respectFFXIVMasterVolumeToggleNode = new CheckboxNode()
+    {
+      String = "Respect FFXIV Master Volume Toggle",
+      TextTooltip = "Internally mutes the plugin if your FFXIV Master Volume is muted.",
+      Size = new Vector2(290.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.RespectFFXIVMasterVolumeToggle = value;
+        _configuration.Save();
+      }
+    };
+    masterToggleSectionNode.AttachNode(_respectFFXIVMasterVolumeToggleNode);
 
     AttachNode(masterToggleSectionNode);
 
@@ -370,6 +384,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   public override void ConfigurationSaved()
   {
     _muteEnabledNode.IsChecked = _configuration.MuteEnabled;
+    _respectFFXIVMasterVolumeToggleNode.IsChecked = _configuration.RespectFFXIVMasterVolumeToggle;
 
     _playbackDeviceTypeNode.SelectedOption = _configuration.PlaybackDeviceType.ToString();
 
