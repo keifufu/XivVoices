@@ -59,6 +59,12 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       {
         _configuration.MuteEnabled = value;
         _configuration.Save();
+        if (_configuration.MuteEnabled)
+        {
+          _messageDispatcher.ClearQueue();
+          _playbackService.ClearQueue();
+          _playbackService.StopAll();
+        }
       }
     };
     masterToggleSectionNode.AttachNode(_muteEnabledNode);
