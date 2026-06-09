@@ -21,6 +21,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
     ICondition condition,
     IFramework framework,
     IPluginLog pluginLog,
+    IGameConfig gameConfig,
     IClientState clientState,
     IDataManager dataManager,
     IObjectTable objectTable,
@@ -56,6 +57,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         collection.AddSingleton(condition);
         collection.AddSingleton(framework);
         collection.AddSingleton(pluginLog);
+        collection.AddSingleton(gameConfig);
         collection.AddSingleton(clientState);
         collection.AddSingleton(dataManager);
         collection.AddSingleton(objectTable);

@@ -66,7 +66,10 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _respectFFXIVMasterVolumeToggleNode = new CheckboxNode()
     {
       String = "Respect FFXIV Master Volume Toggle",
-      TextTooltip = "Internally mutes the plugin if your FFXIV Master Volume is muted.",
+      TextTooltip = """
+      Mutes voicelines while your FFXIV Master Volume is muted.
+      Not applied if the game is muted because its window is inactive, see "Unfocused Window Behavior" below.
+      """,
       Size = new Vector2(290.0f, 20.0f),
       OnClick = (value) =>
       {

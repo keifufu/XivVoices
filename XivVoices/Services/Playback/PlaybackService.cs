@@ -40,7 +40,7 @@ public interface IPlaybackService : IHostedService
   int Debug_GetMixerSourceCount();
 }
 
-public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable) : IPlaybackService
+public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable, IGameConfig _gameConfig) : IPlaybackService
 {
   private WaveOutEvent? _waveOutputDevice;
   private DirectSoundOut? _directSoundOutputDevice;
@@ -55,11 +55,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public event EventHandler<XivMessage>? PlaybackCompleted;
   public event EventHandler<XivMessage>? QueuedLineSkipped;
   public event EventHandler<bool>? OnOutputDeviceChanged;
-
-  private unsafe bool _isFFXIVMasterMuted
-  {
-    get => SoundManager.Instance()->IsSndMaster;
-  }
 
   public bool Paused
   {
@@ -234,7 +229,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _gameInteropService.RunOnFrameworkThread(() =>
     {
       if (track.IsStopping) return;
-      track.IsMuted = !track.Message.IsFake && ((_configuration.RespectFFXIVMasterVolumeToggle && _isFFXIVMasterMuted) || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused));
+      track.IsMuted = !track.Message.IsFake && ((_configuration.RespectFFXIVMasterVolumeToggle && _gameConfig.System.GetBool("IsSndMaster")) || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused));
       track.Speed = track.Message.IsLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
       float volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
 
