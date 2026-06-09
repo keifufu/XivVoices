@@ -68,7 +68,6 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
           _logger.Chat($"  {command} selftest - Open the self-test tab");
           _logger.Chat($"  {command} dispatch <speaker>:<sentence> - Dispatch a message");
           _logger.Chat($"  {command} target-info - Prints debug info about the current target");
-          _logger.Chat($"  {command} unstuck - Try to unstuck message queues");
         }
         _logger.Chat($"  {command}");
         break;
@@ -94,10 +93,6 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
           (string race, string gender) = _gameInteropService.GetBeastmanRace(target);
           _logger.Chat($"{race} | {gender}");
         }
-        break;
-      case "unstuck":
-        if (!_configuration.DebugMode) break;
-        _messageDispatcher.TryUnstuckQueue();
         break;
       case "version":
         _logger.Chat(pre: $"v{_dataService.Version}", post: $" / v{_dataService.LatestVersion}", preColor: (ushort)(_dataService.IsOutdated ? 15 : 2));

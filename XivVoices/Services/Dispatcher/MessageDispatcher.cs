@@ -4,7 +4,6 @@ public interface IMessageDispatcher : IHostedService
 {
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null);
   void ClearQueue();
-  void TryUnstuckQueue();
   string ReplaceName(string sentence, string playerName);
   (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
   void DispatchTestMessage();
@@ -13,7 +12,6 @@ public interface IMessageDispatcher : IHostedService
 
 public enum PlaybackQueueState
 {
-  AwaitingConfirmation,
   Playing,
   Stopped
 }
@@ -22,7 +20,6 @@ public class PlaybackQueue
 {
   public ConcurrentQueue<XivMessage> Queue { get; set; } = new();
   public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
-  public DateTime PlaybackStartTime { get; set; }
   public MessageSource MessageSource { get; set; }
 }
 
@@ -39,7 +36,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _soundFilter.OnCutsceneAudioDetected += SoundFilter_OnCutSceneAudioDetected;
 
     _framework.Update += OnFrameworkUpdate;
-    _playbackService.PlaybackStarted += OnPlaybackStarted;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
     _playbackService.QueuedLineSkipped += OnQueuedLineSkipped;
 
@@ -51,7 +47,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _soundFilter.OnCutsceneAudioDetected -= SoundFilter_OnCutSceneAudioDetected;
 
     _framework.Update -= OnFrameworkUpdate;
-    _playbackService.PlaybackStarted -= OnPlaybackStarted;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
     _playbackService.QueuedLineSkipped -= OnQueuedLineSkipped;
 
@@ -68,47 +63,21 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
   }
 
-  public void TryUnstuckQueue()
-  {
-    foreach (PlaybackQueue playbackQueue in _queues.Values)
-    {
-      playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
-    }
-  }
-
   private void OnFrameworkUpdate(IFramework framework)
   {
-    int timeoutSec = _configuration.LiveMode ? 300 : (_configuration.ForceLocalGeneration || _configuration.EnableLocalGeneration) ? 45 : 3;
-
     foreach (PlaybackQueue playbackQueue in _queues.Values)
     {
-      if (playbackQueue.PlaybackQueueState == PlaybackQueueState.AwaitingConfirmation)
-      {
-        if ((DateTime.UtcNow - playbackQueue.PlaybackStartTime) >= TimeSpan.FromSeconds(timeoutSec))
-        {
-          _logger.Debug($"Queue timed out. Setting playback state to stopped.");
-          playbackQueue.PlaybackQueueState = PlaybackQueueState.Stopped;
-        }
-      }
-
       if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !playbackQueue.Queue.IsEmpty)
       {
         if (!_playbackService.Paused && playbackQueue.Queue.TryDequeue(out XivMessage? message))
         {
           _logger.Debug($"Playing queued message: {message.Id}");
           _playbackService.RemoveQueuedLine(message);
-          playbackQueue.PlaybackStartTime = DateTime.UtcNow;
-          playbackQueue.PlaybackQueueState = PlaybackQueueState.AwaitingConfirmation;
+          playbackQueue.PlaybackQueueState = PlaybackQueueState.Playing;
           _ = _playbackService.Play(message);
         }
       }
     }
-  }
-
-  private void OnPlaybackStarted(object? sender, XivMessage message)
-  {
-    _logger.Debug($"{GetQueueForMessage(message)} Playback Started.");
-    _queues[GetQueueForMessage(message)].PlaybackQueueState = PlaybackQueueState.Playing;
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
@@ -124,7 +93,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
     else
     {
-      _logger.Debug($"{GetQueueForMessage(message)} Playback Completed, but {count} are still playing.");
+      _logger.Debug($"{GetQueueForMessage(message)} Playback Completed, but {count} still playing.");
     }
   }
 

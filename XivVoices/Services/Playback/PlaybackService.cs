@@ -7,7 +7,6 @@ namespace XivVoices.Services;
 
 public interface IPlaybackService : IHostedService
 {
-  event EventHandler<XivMessage>? PlaybackStarted;
   event EventHandler<XivMessage>? PlaybackCompleted;
   event EventHandler<XivMessage>? QueuedLineSkipped;
   event EventHandler<bool>? OnOutputDeviceChanged;
@@ -298,9 +297,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   public async Task Play(XivMessage message, bool replay = false)
   {
+    try
+  {
     if (_mixer == null || (_waveOutputDevice == null && _directSoundOutputDevice == null))
     {
       _logger.Error("Mixer or OutputDevice were not initialited.");
+        PlaybackCompleted?.Invoke(this, message);
       return;
     }
 
@@ -418,6 +420,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         // if (_playbackHistory.Count > 100)
         //   _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
       }
+      }
+    }
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+      PlaybackCompleted?.Invoke(this, message);
     }
   }
 
