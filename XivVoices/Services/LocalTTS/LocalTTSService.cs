@@ -9,6 +9,7 @@ public interface ILocalTTSService : IHostedService
 {
   List<LocalTTSVoice> Voices { get; }
   Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message);
+  void Reinitialize();
   int ResolvePitch(XivMessage message);
   event System.Action? OnInitialized;
 }
@@ -29,13 +30,13 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   public Task StartAsync(CancellationToken token)
   {
     if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
-    _dataService.OnToolsDownloaded += OnToolsDownloaded;
+    _dataService.OnToolsDownloaded += Reinitialize;
     return _logger.ServiceLifecycle();
   }
 
   public Task StopAsync(CancellationToken token)
   {
-    _dataService.OnToolsDownloaded -= OnToolsDownloaded;
+    _dataService.OnToolsDownloaded -= Reinitialize;
     return _logger.ServiceLifecycle();
   }
 
@@ -55,7 +56,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     return true;
   }
 
-  private void OnToolsDownloaded()
+  public void Reinitialize()
   {
     if (_dataService.ToolsDirectory == null || !IsToolsReady()) return;
     Dispose();
@@ -66,7 +67,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     if (_initialized) return;
     _initialized = true;
-    _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"));
+    _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 });
     foreach (string filePath in Directory.GetFiles(Path.Join(toolsDirectory, "/voices")).Where(f => f.EndsWith(".npy")))
       Voices.Add(LocalTTSVoice.FromPath(filePath));
     InitializePhonemizer(toolsDirectory);

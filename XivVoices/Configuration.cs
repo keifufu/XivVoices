@@ -83,6 +83,7 @@ public class Configuration : IPluginConfiguration
   public string LocalTTSDefaultVoice = "Male";
   public string LocalTTSMaleVoice = "Echo";
   public string LocalTTSFemaleVoice = "Heart";
+  public int LocalTTSThreads = 2;
 
   public bool LocalTTSVoiceRandomization = true;
   public bool LocalTTSPitchRandomization = true;

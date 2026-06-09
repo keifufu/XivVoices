@@ -20,6 +20,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private TextDropDownNode _localTTSDefaultVoiceNode = null!;
   private TextDropDownNode _localTTSMaleVoiceNode = null!;
   private TextDropDownNode _localTTSFemaleVoiceNode = null!;
+  private TextDropDownNode _localTTSFemaleCPUUsageNode = null!;
 
   private CheckboxNode _localTTSVoiceRandomizationNode = null!;
   private CheckboxNode _localTTSPitchRandomizationNode = null!;
@@ -155,6 +156,33 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _messageDispatcher.DispatchLocalTTSMessage(_configuration.LocalTTSFemaleVoice, 100, $"This is a preview of {_configuration.LocalTTSFemaleVoice}.");
       }
     }, inline: true, padding: -5.0f);
+
+    defaultSettingsSectionNode.AttachNode(new LabelTextNode()
+    {
+      String = "CPU Usage",
+      Height = 18.0f,
+      FontSize = 14,
+    }, padding: 6.0f);
+
+    _localTTSFemaleCPUUsageNode = new TextDropDownNode()
+    {
+      Options = ["Low", "Medium", "High"],
+      X = 140.0f,
+      Size = new Vector2(220.0f, 24.0f),
+      OnOptionSelected = (option) =>
+      {
+        _configuration.LocalTTSThreads = option switch
+        {
+          "Low" => 2,
+          "Medium" => 4,
+          "High" => 8,
+          _ => _configuration.LocalTTSThreads
+        };
+        _configuration.Save();
+        Task.Run(_localTTSService.Reinitialize);
+      }
+    };
+    defaultSettingsSectionNode.AttachNode(_localTTSFemaleCPUUsageNode, inline: true, padding: -2.0f);
 
     AttachNode(defaultSettingsSectionNode);
 
