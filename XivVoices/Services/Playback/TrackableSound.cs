@@ -89,7 +89,11 @@ public class TrackableSound : ISampleProvider, IDisposable
     }
   }
 
-  public void Dispose() => _sourceStream.Dispose();
+  public void Dispose()
+  {
+    // XivMessage now keeps the stream alive.
+    // _sourceStream.Dispose();
+  }
 
   public bool IsPlaying => !IsStopping && !_playbackEnded && _sourceStream.Position < _sourceStream.Length;
 

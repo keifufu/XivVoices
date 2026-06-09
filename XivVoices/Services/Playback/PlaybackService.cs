@@ -48,8 +48,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   private readonly object _playbackHistoryLock = new();
   private readonly List<XivMessage> _playbackHistory = [];
   private readonly List<XivMessage> _queuedMessages = [];
+  private readonly SemaphoreSlim _generationSemaphore = new(1);
 
-  public event EventHandler<XivMessage>? PlaybackStarted;
   public event EventHandler<XivMessage>? PlaybackCompleted;
   public event EventHandler<XivMessage>? QueuedLineSkipped;
   public event EventHandler<bool>? OnOutputDeviceChanged;
@@ -206,6 +206,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _logger.ServiceLifecycle();
   }
 
+  private int _updateCount = 0;
   private void FrameworkOnUpdate(IFramework framework)
   {
     if (_wasWindowUnfocused != IsWindowUnfocused)
@@ -220,6 +221,25 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     foreach (TrackableSound track in _playing.Values)
       UpdateTrack(track);
+
+    _updateCount++;
+    if (_updateCount % 30 == 0)
+    {
+      lock (_playbackHistoryLock)
+      {
+        XivMessage? message = _queuedMessages.LastOrDefault(m => !m.IsGenerating && m.WaveStream == null && m.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration);
+        if (message != null && _generationSemaphore.Wait(0))
+        {
+          message.IsGenerating = true;
+          Task.Run(async () =>
+          {
+            (message.WaveStream, message.RelativeVolume) = await _localTTSService.Generate(message);
+            _generationSemaphore.Release();
+            message.IsGenerating = false;
+          });
+        }
+      }
+    }
   }
 
   private unsafe Task UpdateTrack(TrackableSound track)
@@ -297,128 +317,141 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public async Task Play(XivMessage message, bool replay = false)
   {
     try
-  {
-    if (_mixer == null || (_waveOutputDevice == null && _directSoundOutputDevice == null))
     {
-      _logger.Error("Mixer or OutputDevice were not initialited.");
+      if (_mixer == null || (_waveOutputDevice == null && _directSoundOutputDevice == null))
+      {
+        _logger.Error("Mixer or OutputDevice were not initialited.");
         PlaybackCompleted?.Invoke(this, message);
-      return;
-    }
+        return;
+      }
 
-    // It seems output devices stop after some inactivity. Couln't replicate this on linux buuuut whatever?
-    if (_waveOutputDevice?.PlaybackState == PlaybackState.Stopped || _directSoundOutputDevice?.PlaybackState == PlaybackState.Stopped)
-    {
-      _logger.Debug("Output device was stopped, initializing it again.");
-      InitializeOutputDevice();
-    }
+      // It seems output devices stop after some inactivity. Couln't replicate this on linux buuuut whatever?
+      if (_waveOutputDevice?.PlaybackState == PlaybackState.Stopped || _directSoundOutputDevice?.PlaybackState == PlaybackState.Stopped)
+      {
+        _logger.Debug("Output device was stopped, initializing it again.");
+        InitializeOutputDevice();
+      }
 
-    string? voicelinePath = message.VoicelinePath;
+      string? voicelinePath = message.VoicelinePath;
 
-    message.IsGenerating = true;
-    message.GenerationToken = new();
-    lock (_playbackHistoryLock)
-    {
-      if (_playbackHistory.FirstOrDefault((m) => m.Id == message.Id) == default)
-        _queuedMessages.Add(message);
-    }
+      while (message.IsGenerating) await Task.Delay(50);
 
-    bool isIgnoredSpeaker = _dataService.Manifest?.IgnoredSpeakers.Contains(message.Speaker) ?? false;
-    if (!message.IsFake && !isIgnoredSpeaker && voicelinePath == null && _configuration.LiveMode && message.Source == MessageSource.AddonTalk)
-    {
-      voicelinePath = await TryDownloadVoiceline(message);
-      message.VoicelinePath = voicelinePath;
-    }
+      message.IsGenerating = true;
+      message.GenerationToken = new();
+      lock (_playbackHistoryLock)
+      {
+        if (_playbackHistory.FirstOrDefault((m) => m.Id == message.Id) == default)
+          _queuedMessages.Add(message);
+      }
 
-    // New token incase livemode failed or was cancelled, so we fall back to localtts/localgen.
-    message.GenerationToken = new();
-    bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
-    bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
+      bool isIgnoredSpeaker = _dataService.Manifest?.IgnoredSpeakers.Contains(message.Speaker) ?? false;
+      if (!message.IsFake && !isIgnoredSpeaker && voicelinePath == null && _configuration.LiveMode && message.Source == MessageSource.AddonTalk)
+      {
+        voicelinePath = await TryDownloadVoiceline(message);
+        message.VoicelinePath = voicelinePath;
+      }
 
-    WaveStream? ttsSourceStream = null;
-    int relativeVolume = 0;
-    if (useLocalTTS) (ttsSourceStream, relativeVolume) = await _localTTSService.Generate(message);
-    else if (useLocalGen) voicelinePath = await localGen(message);
+      // New token incase livemode failed or was cancelled, so we fall back to localtts/localgen.
+      message.GenerationToken = new();
+      bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
+      bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
 
-    // Generation failed
-    if (ttsSourceStream == null && voicelinePath == null)
-    {
+      WaveStream? ttsSourceStream = message.WaveStream;
+      int relativeVolume = message.RelativeVolume;
+      if (ttsSourceStream == null)
+      {
+        if (useLocalTTS)
+        {
+          await _generationSemaphore.WaitAsync();
+          (ttsSourceStream, relativeVolume) = await _localTTSService.Generate(message);
+          _generationSemaphore.Release();
+          message.RelativeVolume = relativeVolume;
+          message.WaveStream = ttsSourceStream;
+        }
+        else if (useLocalGen)
+        {
+          voicelinePath = await localGen(message);
+          message.VoicelinePath = voicelinePath;
+        }
+      }
+
+      // Generation failed
+      if (ttsSourceStream == null && voicelinePath == null)
+      {
+        lock (_playbackHistoryLock)
+        {
+          _queuedMessages.Remove(message);
+        }
+        message.IsGenerating = false;
+        PlaybackCompleted?.Invoke(this, message);
+        return;
+      }
+
+      // Since TTS can take some time to generate, this solves some headaches for now.
+      if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
+        Stop(MessageSource.AddonTalk);
+
+      WaveStream? sourceStream = ttsSourceStream ?? DecodeOggOpusToPCM(voicelinePath!);
       lock (_playbackHistoryLock)
       {
         _queuedMessages.Remove(message);
       }
       message.IsGenerating = false;
-      PlaybackCompleted?.Invoke(this, message);
-      return;
-    }
 
-    // Since TTS can take some time to generate, this solves some headaches for now.
-    if (message.Source == MessageSource.AddonTalk && !_configuration.QueueDialogue)
-      Stop(MessageSource.AddonTalk);
-
-    WaveStream? sourceStream = ttsSourceStream ?? DecodeOggOpusToPCM(voicelinePath!);
-    lock (_playbackHistoryLock)
-    {
-      _queuedMessages.Remove(message);
-    }
-    message.IsGenerating = false;
-
-    if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
-    {
-      _mixer.RemoveMixerInput(oldTrack);
-      oldTrack.Dispose();
-    }
-
-    TrackableSound track = new(_logger, message, sourceStream);
-    if (message.IsLocalTTS)
-    {
-      track.Pitch = _localTTSService.ResolvePitch(message);
-      track.RelativeVolume = relativeVolume;
-      _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
-    }
-
-    await UpdateTrack(track);
-    track.OnPlaybackStopped += t =>
-    {
-      // Apparently no need to call .RemoveMixerInput, it seems to automagically remove itself
-      // when playback is completed. Calling .RemoveMixerInput here does not cause any exceptions
-      // but any future lines will be broken.
-      t.Dispose();
-
-      // Sleep a little before finishing the playback and thus auto advancing.
-      // I personally don't think this is needed but after trimming audio files of silence
-      // some people are of the opinion there needs to be a bit of a pause after the line.
-      // LocalTTS lines already have some padding afterwards.
-      if (!message.IsLocalTTS) Thread.Sleep(200);
-
-      _playing.TryRemove(message.Id, out _);
-      _logger.Debug($"Finished playing message: {message.Id}");
-
-      PlaybackCompleted?.Invoke(this, message);
-    };
-
-    _logger.Debug($"Starting playing message: {message.Id}");
-    _logger.Debug($"Output volume: {_waveOutputDevice?.Volume}, {_directSoundOutputDevice?.Volume}");
-    _logger.Debug($"Output state: {_waveOutputDevice?.PlaybackState}, {_directSoundOutputDevice?.PlaybackState}");
-
-    PlaybackStarted?.Invoke(this, message);
-    _mixer.AddMixerInput(track);
-    _playing[message.Id] = track;
-
-    if (_configuration.LipSyncEnabled)
-      _ = _lipSync.TryLipSync(message, track.TotalTime.TotalSeconds);
-
-    if (!replay)
-    {
-      lock (_playbackHistoryLock)
+      if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
       {
-        int existingIndex = _playbackHistory.FindIndex(m => m.Id == message.Id);
-        if (existingIndex != -1)
-          _playbackHistory.RemoveAt(existingIndex);
-
-        _playbackHistory.Insert(0, message);
-        // if (_playbackHistory.Count > 100)
-        //   _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
+        _mixer.RemoveMixerInput(oldTrack);
+        oldTrack.Dispose();
       }
+
+      sourceStream.Position = 0;
+      TrackableSound track = new(_logger, message, sourceStream);
+      if (message.IsLocalTTS)
+      {
+        track.Pitch = _localTTSService.ResolvePitch(message);
+        track.RelativeVolume = relativeVolume;
+        _logger.Debug($"Using LocalTTS Pitch: {track.Pitch}");
+      }
+
+      await UpdateTrack(track);
+      track.OnPlaybackStopped += t =>
+      {
+        // Apparently no need to call .RemoveMixerInput, it seems to automagically remove itself
+        // when playback is completed. Calling .RemoveMixerInput here does not cause any exceptions
+        // but any future lines will be broken.
+        t.Dispose();
+
+        // Sleep a little before finishing the playback and thus auto advancing.
+        // I personally don't think this is needed but after trimming audio files of silence
+        // some people are of the opinion there needs to be a bit of a pause after the line.
+        // LocalTTS lines already have some padding afterwards.
+        if (!message.IsLocalTTS) Thread.Sleep(200);
+
+        _playing.TryRemove(message.Id, out _);
+        _logger.Debug($"Finished playing message: {message.Id}");
+
+        PlaybackCompleted?.Invoke(this, message);
+      };
+
+      _logger.Debug($"Starting playing message: {message.Id}");
+      _mixer.AddMixerInput(track);
+      _playing[message.Id] = track;
+
+      if (_configuration.LipSyncEnabled)
+        _ = _lipSync.TryLipSync(message, track.TotalTime.TotalSeconds);
+
+      if (!replay)
+      {
+        lock (_playbackHistoryLock)
+        {
+          int existingIndex = _playbackHistory.FindIndex(m => m.Id == message.Id);
+          if (existingIndex != -1)
+            _playbackHistory.RemoveAt(existingIndex);
+
+          _playbackHistory.Insert(0, message);
+          // if (_playbackHistory.Count > 100)
+          //   _playbackHistory.RemoveAt(_playbackHistory.Count - 1);
+        }
       }
     }
     catch (Exception ex)

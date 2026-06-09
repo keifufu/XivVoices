@@ -23,10 +23,6 @@ public class XivMessage
     return str.Replace("_FIRSTNAME_", fullname[0]).Replace("_LASTNAME_", fullname[1]);
   }
 
-  // Used for AudioPostProcessing right now,
-  // we do some effects based on the voice name.
-  // Can get this from the Manifest via Npc?.VoiceId,
-  // but this is easier.
   [JsonIgnore]
   public VoiceEntry? Voice { get; }
 
@@ -62,6 +58,12 @@ public class XivMessage
 
   [JsonIgnore]
   public string? LocalTTSVoice { get; set; } = null;
+
+  [JsonIgnore]
+  public WaveStream? WaveStream { get; set; } = null;
+
+  [JsonIgnore]
+  public int RelativeVolume { get; set; } = 0;
 
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
