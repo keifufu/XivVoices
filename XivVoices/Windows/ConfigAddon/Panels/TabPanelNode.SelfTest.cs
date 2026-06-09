@@ -125,7 +125,6 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
       }
     }
 
-
     _updateCount++;
     if (_updateCount % 30 == 0)
     {

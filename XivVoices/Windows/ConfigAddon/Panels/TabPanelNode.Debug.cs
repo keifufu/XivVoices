@@ -164,7 +164,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
     };
     debugSectionNode.AttachNode(_warnIgnoredSpeakerNode);
 
-
     debugSectionNode.AttachNode(new LabelTextNode()
     {
       String = "Default Channel",

@@ -201,7 +201,6 @@ public partial class ConfigWindow
       }
     }
 
-
     ImGui.Unindent(ScaledFloat(8));
     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(175));
     using (ImRaii.ChildDisposable child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))

@@ -74,7 +74,6 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
     PlayerWorld = null;
   }
 
-
   public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
     _framework.RunOnFrameworkThread(func);
 

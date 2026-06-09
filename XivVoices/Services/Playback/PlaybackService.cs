@@ -1,5 +1,4 @@
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
-using FFXIVClientStructs.FFXIV.Client.Sound;
 using Lumina.Extensions;
 using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 

@@ -36,7 +36,6 @@ dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.s
 dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.style = require_underscore_prefix_and_camel_case
 dotnet_naming_rule.private_instance_fields_must_have_underscore_and_camel_case.severity = warning
 
-
 # Indentation
 csharp_indent_block_contents = true
 csharp_indent_braces = false
