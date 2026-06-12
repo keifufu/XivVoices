@@ -38,14 +38,27 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
 
     _localTTSLexiconSectionNode = new("Local TTS Lexicon", offset: 26.0f);
 
-    // TODO: document regex support
     _localTTSLexiconSectionNode.AttachNode(new ConfigTooltipNode()
     {
       TextTooltip = """
-      Specify text replacements for the Local TTS to use.
-      This is primarily used to fix pronounciation issues.
-      Replacements are case-insensitive and only affect entire words.
-      Example: "o/" -> "Hello!"
+      Specify text replacements for LocalTTS.  
+      Use these to fix pronunciation and other word-level substitutions.
+
+      Examples
+      - "o/" -> "Hello!"
+      - Regex: "/o[\/\\]/i" -> "Hello!"
+
+      Filters
+      - Use the lexicon to filter chat messages.
+      - Filters can be global or per-channel.
+        - Global:   "gil"    -> "_FILTER_"
+        - Shout:    "hunt" -> "_SHOUT_FILTER_"
+        - Multiple: "gg"   -> "_SAY_PARTY_FILTER_"
+
+      Notes
+      - Regex must be enclosed in slashes and may use only the i flag.
+      - Escape backslashes in string literals (use \\).
+      - Non-regex replacements apply only to whole words and are case-sensitive.
       """,
     }, inline: true);
 
