@@ -409,6 +409,11 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   public override void OnUpdate()
   {
+    if (!SetupComplete) return;
+    _serverStatusNode.Position = new Vector2((Width - _serverStatusNode.Size.X) / 2.0f, _welcomeNode.Bounds.Bottom);
+    _voicelinesNode.Position = new Vector2((Width - _voicelinesNode.Size.X) / 2.0f, _serverStatusNode.Bounds.Bottom);
+    _versionNode.Position = new Vector2((Width - _versionNode.Size.X) / 2.0f, _voicelinesNode.Bounds.Bottom);
+
     if (_dataService.DataStatus.UpdateInProgress)
     {
       OnVoicelinesChanged();
