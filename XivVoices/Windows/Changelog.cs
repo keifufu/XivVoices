@@ -4,6 +4,27 @@ public static class Changelog
 {
   // Newest ones go to the top.
   public readonly static Dictionary<string, string[]> Versions = new() {
+    { "1.5.2.0", new[]
+    {
+      "Added LocalTTS CPU usage option.",
+      "Added import/export for LocalTTS overrides and lexicon.",
+      "Added option to have LocalTTS voice your scenario choices.",
+      "Added option to respect FFXIV master-volume toggle.",
+      "Added chat message filters to LocalTTS lexicon.",
+      "Added regex support for LocalTTS lexicon.",
+      "Ignored Nicole TTS voice by default.",
+      "Made the updater more resilient to failures.",
+      "Made voice-randomization persistent when changing allowed voices.",
+      "Queued LocalTTS lines now preemptively generate.",
+      "Renamed 'audio logs' to 'audio history' (the 'logs' command remains available as an alias for now).",
+      "Fixed 'allowed voices' setting having no effect.",
+      "Fixed auto-advance failing when the overlay was in the top-left corner (even if disabled).",
+      "Fixed pitch randomization being applied to regular voicelines.",
+      "Fixed updates failing on slow connections.",
+      "Fixed volume issues with directional audio.",
+      "Smoothed volume differences between LocalTTS voices.",
+      "Use 'yells' and 'shouts' instead of 'says' for those channels."
+    }},
     { "1.5.0.0", new[]
     {
       "Added new Local TTS Engine with 27 voices.",
