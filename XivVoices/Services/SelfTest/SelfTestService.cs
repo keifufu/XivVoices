@@ -197,7 +197,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Provider_CutSceneSelectString;
         break;
       case SelfTestStep.Provider_CutSceneSelectString:
-        CurrentInstruction = "Select \"No\" when asked to play Cuff-a-Cur.";
+        CurrentInstruction = "Select \"Yes\" when asked to skip the cutscene.";
         Step = SelfTestStep.Provider_SelectString;
         break;
       case SelfTestStep.Provider_SelectString:
@@ -552,7 +552,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   {
     string? s = _gameInteropService.PlayerName;
     string? w = _gameInteropService.PlayerWorld;
-    string expectedSentence = "No.";
+    string expectedSentence = "Yes.";
 
     if (speaker == s && speakerWorld == w && sentence == expectedSentence)
       Next(true, false);
