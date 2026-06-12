@@ -1,3 +1,4 @@
+using System.Runtime.Serialization;
 using Dalamud.Configuration;
 
 namespace XivVoices;
@@ -87,7 +88,7 @@ public class Configuration : IPluginConfiguration
 
   public bool LocalTTSVoiceRandomization = true;
   public bool LocalTTSPitchRandomization = true;
-  public List<string> LocalTTSDisallowedVoices = ["Nicole"];
+  public List<string> LocalTTSDisallowedVoices = [];
 
   public Dictionary<string, (string voice, int pitch)> LocalTTSOverrides = [];
   public Dictionary<string, string> LocalTTSLexicon = [];
@@ -135,6 +136,10 @@ public class Configuration : IPluginConfiguration
     Logger.SetConfiguration(this);
     ConfigurationMigrator.Migrate(this, Logger!);
 
+    // Can remove this eventually, i guess.
+    LocalTTSDisallowedVoices = LocalTTSDisallowedVoices.Distinct().ToList();
+    Save();
+
     _previousConfig = GetAllFields();
     Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.Write));
   }
@@ -145,10 +150,21 @@ public class Configuration : IPluginConfiguration
     return false;
   }
 
+  [OnDeserialized]
+  internal void OnDeserializedMethod(StreamingContext context)
+  {
+    // Defaults for arrays, newtonsoft seems to add to them instead of overwriting them,
+    // and I don't know why or how to not make it do that. So here is a stupid workaround instead.
+    // We add a dummy entry in Save() to these, so the Count is only 0 if it wasn't defined.
+    if (LocalTTSDisallowedVoices.Count == 0) LocalTTSDisallowedVoices = ["Nicole"];
+  }
+
   public event System.Action? Saved;
 
   public void Save()
   {
+    if (!LocalTTSDisallowedVoices.Contains("__empty__")) LocalTTSDisallowedVoices.Add("__empty__");
+
     Dictionary<string, object?> currentConfig = GetAllFields();
     foreach (KeyValuePair<string, object?> field in GetAllFields())
     {
