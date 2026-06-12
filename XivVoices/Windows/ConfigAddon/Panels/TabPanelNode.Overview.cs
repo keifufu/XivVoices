@@ -234,7 +234,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
           categoryNode.AddNode(textNode);
         }
 
-        categoryNode.AddNode(new ResNode() { Height = 2.0f });
+        categoryNode.AddNode(new ResNode());
       }
 
       _changelogNode.AddCategoryNode(categoryNode);
