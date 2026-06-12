@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using KokoroSharp;
 using KokoroSharp.Core;
 using KokoroSharp.Processing;
+using Microsoft.ML.OnnxRuntime;
 
 namespace XivVoices.Services;
 
@@ -14,7 +15,7 @@ public interface ILocalTTSService : IHostedService
   event System.Action? OnInitialized;
 }
 
-public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService) : ILocalTTSService
+public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
 {
   public event System.Action? OnInitialized;
   public List<LocalTTSVoice> Voices { get; private set; } = [];
@@ -29,6 +30,10 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   public Task StartAsync(CancellationToken token)
   {
+    OrtEnv.DisableDllImportResolver = true;
+    NativeLibrary.SetDllImportResolver(Assembly.Load("Microsoft.ML.OnnxRuntime"), DllImportResolver);
+    NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), DllImportResolver);
+
     if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
     _dataService.OnToolsDownloaded += Reinitialize;
     return _logger.ServiceLifecycle();
@@ -38,6 +43,29 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     _dataService.OnToolsDownloaded -= Reinitialize;
     return _logger.ServiceLifecycle();
+  }
+
+  private IntPtr DllImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
+  {
+    try
+    {
+      string? assemblyLocation = _pluginInterface.AssemblyLocation.Directory?.FullName;
+      if (string.IsNullOrEmpty(assemblyLocation)) return IntPtr.Zero;
+
+      string? fileName = libraryName switch
+      {
+        "espeak-ng" => "espeak-ng.dll",
+        "onnxruntime" => "onnxruntime.dll",
+        _ => null,
+      };
+
+      return fileName is null ? IntPtr.Zero : NativeLibrary.Load(Path.Join(assemblyLocation, fileName));
+    }
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+      return IntPtr.Zero;
+    }
   }
 
   private bool IsToolsReady()
@@ -66,13 +94,20 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private void Initialize(string toolsDirectory)
   {
     if (_initialized) return;
-    _initialized = true;
-    _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 });
-    foreach (string filePath in Directory.GetFiles(Path.Join(toolsDirectory, "/voices")).Where(f => f.EndsWith(".npy")))
-      Voices.Add(LocalTTSVoice.FromPath(filePath));
-    InitializePhonemizer(toolsDirectory);
-    InitializeTokenizer();
-    OnInitialized?.Invoke();
+    try
+    {
+      _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 });
+      foreach (string filePath in Directory.GetFiles(Path.Join(toolsDirectory, "/voices")).Where(f => f.EndsWith(".npy")))
+        Voices.Add(LocalTTSVoice.FromPath(filePath));
+      InitializePhonemizer(toolsDirectory);
+      InitializeTokenizer();
+      _initialized = true;
+      OnInitialized?.Invoke();
+    }
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+    }
   }
 
   private void Dispose()
