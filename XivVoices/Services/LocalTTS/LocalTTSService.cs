@@ -34,7 +34,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     NativeLibrary.SetDllImportResolver(Assembly.Load("Microsoft.ML.OnnxRuntime"), DllImportResolver);
     NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), DllImportResolver);
 
-    if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
+    // if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
     _dataService.OnToolsDownloaded += Reinitialize;
     return _logger.ServiceLifecycle();
   }
@@ -86,7 +86,9 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   public void Reinitialize()
   {
+    if (!_initialized) return;
     if (_dataService.ToolsDirectory == null || !IsToolsReady()) return;
+    _logger.Debug("Reinitializing LocalTTS");
     Dispose();
     Initialize(_dataService.ToolsDirectory);
   }
@@ -94,6 +96,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private void Initialize(string toolsDirectory)
   {
     if (_initialized) return;
+    _logger.Debug("Initializing LocalTTS");
     try
     {
       _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 });
@@ -113,6 +116,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private void Dispose()
   {
     if (!_initialized) return;
+    _logger.Debug("Disposing LocalTTS");
     _initialized = false;
     _model?.Dispose();
     _model = null;
@@ -217,6 +221,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
   {
+    if (!_initialized && _dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
+
     if (!_initialized)
     {
       _logger.Debug("Not generating LocalTTS: not initialized.");
