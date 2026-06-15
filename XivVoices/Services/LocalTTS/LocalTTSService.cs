@@ -30,11 +30,10 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   public Task StartAsync(CancellationToken token)
   {
-    OrtEnv.DisableDllImportResolver = true;
     NativeLibrary.SetDllImportResolver(Assembly.Load("Microsoft.ML.OnnxRuntime"), DllImportResolver);
     NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), DllImportResolver);
 
-    // if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
+    if (_dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
     _dataService.OnToolsDownloaded += Reinitialize;
     return _logger.ServiceLifecycle();
   }
@@ -117,11 +116,11 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     if (!_initialized) return;
     _logger.Debug("Disposing LocalTTS");
-    _initialized = false;
     _model?.Dispose();
     _model = null;
     Voices.Clear();
     DisposePhonemizer();
+    _initialized = false;
   }
 
   public Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message) => Task.Run(() => Generate_Internal(message));
@@ -221,8 +220,6 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
   {
-    if (!_initialized && _dataService.ToolsDirectory != null && IsToolsReady()) Initialize(_dataService.ToolsDirectory);
-
     if (!_initialized)
     {
       _logger.Debug("Not generating LocalTTS: not initialized.");
@@ -241,31 +238,40 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     string finalMessage = ApplyLexicon(message);
     if (finalMessage.IsNullOrWhitespace()) return (null, 0);
 
-    int[] tokens = Tokenize(finalMessage);
-    List<int[]> segments = _pipelineConfig.SegmentationFunc(tokens);
-    KokoroJob job = KokoroJob.Create(segments, voice, _pipelineConfig.Speed, null);
-
-    List<byte> pcm = [];
-    List<char>? phonemesCache = segments.Count > 1 ? [] : null;
-    foreach (KokoroJob.KokoroJobStep? step in job.Steps)
+    try
     {
-      step.OnStepComplete = (samples) =>
+      int[] tokens = Tokenize(finalMessage);
+      List<int[]> segments = _pipelineConfig.SegmentationFunc(tokens);
+      KokoroJob job = KokoroJob.Create(segments, voice, _pipelineConfig.Speed, null);
+
+      List<byte> pcm = [];
+      List<char>? phonemesCache = segments.Count > 1 ? [] : null;
+      foreach (KokoroJob.KokoroJobStep? step in job.Steps)
       {
-        pcm.AddRange(KokoroPlayback.GetBytes(KokoroPlayback.PostProcessSamples(samples)));
-        if (!_punctuationTokens.Contains(step.Tokens[^1])) { return; }
-        float secondsToWait = _pipelineConfig.SecondsOfPauseBetweenProperSegments[_tokenToChar[step.Tokens[^1]]];
-        pcm.AddRange(KokoroPlayback.GetBytes(new float[(int)(secondsToWait * KokoroPlayback.waveFormat.SampleRate)]));
-      };
+        step.OnStepComplete = (samples) =>
+        {
+          pcm.AddRange(KokoroPlayback.GetBytes(KokoroPlayback.PostProcessSamples(samples)));
+          if (!_punctuationTokens.Contains(step.Tokens[^1])) { return; }
+          float secondsToWait = _pipelineConfig.SecondsOfPauseBetweenProperSegments[_tokenToChar[step.Tokens[^1]]];
+          pcm.AddRange(KokoroPlayback.GetBytes(new float[(int)(secondsToWait * KokoroPlayback.waveFormat.SampleRate)]));
+        };
+      }
+      while (!job.isDone) { job.Progress(_model); }
+
+      _logger.Debug($"LocalTTS took {sw.ElapsedMilliseconds}ms");
+      message.LocalTTSVoice = voice.Name;
+
+      MemoryStream ms = new();
+      using (RawSourceWaveStream reader = new(new MemoryStream(pcm.ToArray()), new WaveFormat(24000, 16, 1)))
+        WaveFileWriter.WriteWavFileToStream(ms, reader);
+      ms.Position = 0;
+      return (new WaveFileReader(ms), GetRelativeVolume(voice));
     }
-    while (!job.isDone) { job.Progress(_model); }
-
-    _logger.Debug($"LocalTTS took {sw.ElapsedMilliseconds}ms");
-    message.LocalTTSVoice = voice.Name;
-
-    MemoryStream ms = new();
-    using (RawSourceWaveStream reader = new(new MemoryStream(pcm.ToArray()), new WaveFormat(24000, 16, 1)))
-      WaveFileWriter.WriteWavFileToStream(ms, reader);
-    ms.Position = 0;
-    return (new WaveFileReader(ms), GetRelativeVolume(voice));
+    catch (Exception ex)
+    {
+      _logger.Error(ex);
+      _logger.Debug(finalMessage);
+      return (null, 0);
+    }
   }
 }

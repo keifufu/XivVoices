@@ -39,7 +39,7 @@
     <PackageReference Include="KokoroSharp" Version="0.6.7" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.1" />
     <PackageReference Include="Concentus.OggFile" Version="1.0.7" />
-    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.26.0" />
+    <PackageReference Include="Microsoft.ML.OnnxRuntime" Version="1.22.0" />
     <PackageReference Include="SoundTouch.Net" Version="2.3.2" />
     <PackageReference Include="SoundTouch.Net.NAudioSupport.Core" Version="2.3.2" />
     <PackageReference Include="NAudio" Version="2.3.0" />
