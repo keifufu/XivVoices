@@ -74,11 +74,11 @@
       },
       "Microsoft.ML.OnnxRuntime": {
         "type": "Direct",
-        "requested": "[1.22.0, )",
-        "resolved": "1.22.0",
-        "contentHash": "IC5jOaU6YZ7qcLl7JiR2yL6+NznthdCPwW8XgN2XkbvDERRFqMLIVtwfzu2H110fhms59VIyyMOxHXHl2iVzCg==",
+        "requested": "[1.26.0, )",
+        "resolved": "1.26.0",
+        "contentHash": "wiylawSnyspmJdZxilJUuUq3Tp/nT9BsngHHKvrCGWsADo15Z7y0G6kYAU0Pqb5af+f/EzwIi2aHaNUlzp/eww==",
         "dependencies": {
-          "Microsoft.ML.OnnxRuntime.Managed": "1.22.0"
+          "Microsoft.ML.OnnxRuntime.Managed": "1.26.0"
         }
       },
       "NAudio": {
@@ -368,8 +368,8 @@
       },
       "Microsoft.ML.OnnxRuntime.Managed": {
         "type": "Transitive",
-        "resolved": "1.22.0",
-        "contentHash": "zlG3eY5mJnx1BhYAxRwpuHCGHzl3B+cY5/se0RmlVBw6Yh6QTGjPAXdjhlBIcw6BPFhgMn9lxWPE/U3Fvis+BQ==",
+        "resolved": "1.26.0",
+        "contentHash": "hEmwYh5WL8n1xjNvmfdSUOqGGXAKCLtxfgUfGZRRAen9IWuSk7ieoBFH08+wlrYp1Vma80HtAirL3QLDbTeEzQ==",
         "dependencies": {
           "System.Numerics.Tensors": "9.0.0"
         }

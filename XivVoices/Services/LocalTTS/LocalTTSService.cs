@@ -26,10 +26,12 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     MaxSecondSegmentLength = 510,
   });
   private bool _initialized;
+  private SessionOptions? _sessionOptions;
   private KokoroModel? _model;
 
   public Task StartAsync(CancellationToken token)
   {
+    OrtEnv.DisableDllImportResolver = true;
     NativeLibrary.SetDllImportResolver(Assembly.Load("Microsoft.ML.OnnxRuntime"), DllImportResolver);
     NativeLibrary.SetDllImportResolver(Assembly.GetExecutingAssembly(), DllImportResolver);
 
@@ -98,7 +100,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     _logger.Debug("Initializing LocalTTS");
     try
     {
-      _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 });
+      _sessionOptions ??= new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 };
+      _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), _sessionOptions);
       foreach (string filePath in Directory.GetFiles(Path.Join(toolsDirectory, "/voices")).Where(f => f.EndsWith(".npy")))
         Voices.Add(LocalTTSVoice.FromPath(filePath));
       InitializePhonemizer(toolsDirectory);
@@ -118,6 +121,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     _logger.Debug("Disposing LocalTTS");
     _model?.Dispose();
     _model = null;
+    _sessionOptions?.Dispose();
+    _sessionOptions = null;
     Voices.Clear();
     DisposePhonemizer();
     _initialized = false;
