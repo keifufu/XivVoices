@@ -20,7 +20,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private TextDropDownNode _localTTSDefaultVoiceNode = null!;
   private TextDropDownNode _localTTSMaleVoiceNode = null!;
   private TextDropDownNode _localTTSFemaleVoiceNode = null!;
-  private TextDropDownNode _localTTSFemaleCPUUsageNode = null!;
+  private TextDropDownNode _localTTSCPUUsageNode = null!;
 
   private CheckboxNode _localTTSVoiceRandomizationNode = null!;
   private CheckboxNode _localTTSPitchRandomizationNode = null!;
@@ -164,7 +164,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       FontSize = 14,
     }, padding: 6.0f);
 
-    _localTTSFemaleCPUUsageNode = new TextDropDownNode()
+    _localTTSCPUUsageNode = new TextDropDownNode()
     {
       Options = ["Low", "Medium", "High"],
       X = 140.0f,
@@ -182,7 +182,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         Task.Run(_localTTSService.Reinitialize);
       }
     };
-    defaultSettingsSectionNode.AttachNode(_localTTSFemaleCPUUsageNode, inline: true, padding: -2.0f);
+    defaultSettingsSectionNode.AttachNode(_localTTSCPUUsageNode, inline: true, padding: -2.0f);
 
     AttachNode(defaultSettingsSectionNode);
 
