@@ -15,6 +15,8 @@ public interface ILocalTTSService : IHostedService
   event System.Action? OnInitialized;
 }
 
+// debug option to offload localtts to a more powerful server for admins(me) ?
+// not sure how good latency would be if request goes client->xivvserver->thddddserver->xivvserver->client
 public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
 {
   public event System.Action? OnInitialized;
@@ -87,7 +89,6 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   public void Reinitialize()
   {
-    if (!_initialized) return;
     if (_dataService.ToolsDirectory == null || !IsToolsReady()) return;
     _logger.Debug("Reinitializing LocalTTS");
     Dispose();
