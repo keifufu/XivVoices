@@ -3,7 +3,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using KamiToolKit.Overlay.UiOverlay;
+using KamiToolKit.UiOverlay;
 
 namespace XivVoices.Windows;
 
@@ -20,7 +20,8 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   public Task StartAsync(CancellationToken token)
   {
     _clientState.Login += RebuildOverlay;
-    if (_clientState.IsLoggedIn) RebuildOverlay();
+    _configuration.Saved += RebuildOverlay;
+    RebuildOverlay();
 
     return _logger.ServiceLifecycle();
   }
@@ -28,6 +29,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   public async Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= RebuildOverlay;
+    _configuration.Saved -= RebuildOverlay;
 
     if (!_framework.IsFrameworkUnloading)
     {
@@ -43,15 +45,23 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
 
   private void RebuildOverlay() => _framework.RunOnFrameworkThread(() =>
   {
-    _overlayController ??= new();
-    _overlayController?.RemoveAllNodes();
-
-    _xivvOverlayNode = new XivvOverlayNode(services)
+    if (!_clientState.IsLoggedIn || !_configuration.OverlayOpen)
     {
-      Size = new(370.0f, 100.0f),
-      Position = _configuration.OverlayPosition,
-    };
-    _overlayController?.AddNode(_xivvOverlayNode);
+      _overlayController?.Dispose();
+      _overlayController = null;
+      _xivvOverlayNode = null;
+    }
+    else
+    {
+      _overlayController ??= new();
+
+      _xivvOverlayNode = new XivvOverlayNode(services)
+      {
+        Size = new(370.0f, 100.0f),
+        Position = _configuration.OverlayPosition,
+      };
+      _overlayController?.AddNode(_xivvOverlayNode);
+    }
   });
 
   public unsafe bool CheckCollision(AtkEventData* atkEventData)
@@ -76,9 +86,9 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly Configuration _configuration;
   private readonly ILogger _logger;
 
-  public readonly WindowBackgroundNode Frame;
+  public readonly WindowBackgroundTextureNode Frame;
   private readonly ViewportEventListener _editEventListener;
-  private readonly WindowBackgroundNode _frameFront;
+  private readonly WindowBackgroundTextureNode _frameFront;
   private readonly TextNode _titleText;
   private readonly CircleButtonNode _pinButton;
   private readonly CircleButtonNode _expandButton;
@@ -110,7 +120,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _configuration.Saved += ConfigurationSaved;
 
-    Frame = new WindowBackgroundNode(false)
+    Frame = new WindowBackgroundTextureNode(false)
     {
       Position = Vector2.Zero,
       Offsets = new Vector4(64.0f, 32.0f, 32.0f, 32.0f),
@@ -123,7 +133,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _editEventListener.AddEvent(AtkEventType.MouseMove, Frame);
     _editEventListener.AddEvent(AtkEventType.MouseDown, Frame);
 
-    _frameFront = new WindowBackgroundNode(true)
+    _frameFront = new WindowBackgroundTextureNode(true)
     {
       Position = Vector2.Zero,
       Offsets = new Vector4(64.0f, 32.0f, 32.0f, 32.0f),
@@ -145,7 +155,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _pinButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.Edit,
+      Icon = CircleButtonIcon.Edit,
       OnClick = () =>
       {
         _configuration.OverlayPinned = !_configuration.OverlayPinned;
@@ -156,7 +166,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _expandButton = new CircleButtonNode
     {
-      Icon = _configuration.OverlayExpanded ? ButtonIcon.UpArrow : ButtonIcon.ArrowDown,
+      Icon = _configuration.OverlayExpanded ? CircleButtonIcon.UpArrow : CircleButtonIcon.ArrowDown,
       OnClick = () =>
       {
         _configuration.OverlayExpanded = !_configuration.OverlayExpanded;
@@ -169,7 +179,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _configButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.GearCog,
+      Icon = CircleButtonIcon.GearCog,
       TextTooltip = "Open Configuration",
       OnClick = () =>
       {
@@ -188,7 +198,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _closeButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.Cross,
+      Icon = CircleButtonIcon.Cross,
       TextTooltip = "Close",
       OnClick = () =>
       {
@@ -232,7 +242,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     {
       Width = 28.0f,
       Y = -2.0f,
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       OnClick = () =>
       {
         _configuration.FastForward = !_configuration.FastForward;
@@ -298,8 +308,10 @@ public unsafe class XivvOverlayNode : OverlayNode
   private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
   private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
 
+  private bool _disposing = false;
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
+    _disposing = true;
     base.Dispose(disposing, isNativeDestructor);
 
     _configuration.Saved -= ConfigurationSaved;
@@ -311,10 +323,10 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   private void ConfigurationSaved()
   {
-    if (!IsVisible) return;
+    if (!IsVisible || _disposing) return;
 
     Scale = new(_configuration.OverlayScale / 100.0f);
-    _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
+    _muteButton.Icon = _configuration.MuteEnabled ? CircleButtonIcon.Mute : CircleButtonIcon.Volume;
 
     _frameFront.IsVisible = _configuration.OverlayBorder;
 
@@ -328,7 +340,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _pinButton.AddColor = new(_configuration.OverlayPinned ? 0.0f : 0.2f);
 
     _expandButton.TextTooltip = _configuration.OverlayExpanded ? "Collapse" : "Expand";
-    _expandButton.Icon = _configuration.OverlayExpanded ? ButtonIcon.UpArrow : ButtonIcon.ArrowDown;
+    _expandButton.Icon = _configuration.OverlayExpanded ? CircleButtonIcon.UpArrow : CircleButtonIcon.ArrowDown;
     if (_expandButtonTooltipVisible) _expandButton.ShowTooltip();
 
     _horizontalLine2.IsVisible = _configuration.OverlayExpanded;
@@ -338,7 +350,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   protected override void OnUpdate()
   {
     bool previouslyVisible = IsVisible;
-    IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
+    IsVisible = !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
     if (IsVisible && !previouslyVisible) ConfigurationSaved();
     if (!IsVisible) return;
 

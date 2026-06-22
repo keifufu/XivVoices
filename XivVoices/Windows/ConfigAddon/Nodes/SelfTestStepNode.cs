@@ -1,4 +1,5 @@
 using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
@@ -29,7 +30,7 @@ public class SelfTestStepNode : ResNode
 
     CircleButtonNode skipNode = new()
     {
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       Size = new Vector2(24.0f, 24.0f),
       Position = new Vector2(330.0f, -4.0f),
       TextTooltip = $"Skip to {Step}",

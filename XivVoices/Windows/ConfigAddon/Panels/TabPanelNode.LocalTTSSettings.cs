@@ -1,12 +1,12 @@
 using KamiToolKit.Classes;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
 using LocalTTSOverride = (string speaker, (string voice, int pitch) options);
 
-public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSSettings;
   private IKeyState _keyState = null!;
@@ -26,7 +26,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _localTTSPitchRandomizationNode = null!;
 
   private ConfigSectionNode _localTTSOverridesSectionNode = null!;
-  private LocalTTSModifyListNode<LocalTTSOverride, LocalTTSOverrideItemNode> _localTTSOverridesListNode = null!;
+  private ModifyListNode<LocalTTSOverride, LocalTTSOverrideItemNode> _localTTSOverridesListNode = null!;
   private Dictionary<string, (string voice, int pitch)> _localTTSOverridesUndoState = [];
 
   private ConfigOverlayNode _overrideOverlayNode = null!;
@@ -38,7 +38,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private string? _overrideCurrentlyEditingSpeaker = null;
 
   private ConfigOverlayNode _allowedVoicesOverlayNode = null!;
-  private ScrollingAreaNode<ResNode> _allowedVoicesContainerNode = null!;
+  private ScrollingNode<ResNode> _allowedVoicesContainerNode = null!;
   private readonly List<CheckboxNode> _allowedVoicesMaleCheckboxNodes = [];
   private readonly List<CircleButtonNode> _allowedVoicesMalePreviewNodes = [];
   private readonly List<CheckboxNode> _allowedVoicesFemaleCheckboxNodes = [];
@@ -117,7 +117,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     defaultSettingsSectionNode.AttachNode(new CircleButtonNode
     {
       Size = new Vector2(30.0f, 30.0f),
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       TextTooltip = "Preview",
       X = 330.0f,
       OnClick = () =>
@@ -149,7 +149,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     defaultSettingsSectionNode.AttachNode(new CircleButtonNode
     {
       Size = new Vector2(30.0f, 30.0f),
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       TextTooltip = "Preview",
       X = 330.0f,
       OnClick = () =>
@@ -376,7 +376,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       Position = new Vector2(_overrideOverlayVoiceNode.Bounds.Right - 12.0f, _overrideOverlaySpeakerNode.Bounds.Bottom - 48.0f - 3.0f),
       Size = new Vector2(28.0f, 28.0f),
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       TextTooltip = "Preview",
       OnClick = () =>
       {
@@ -430,7 +430,6 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _allowedVoicesContainerNode = new()
     {
-      ContentHeight = 0.0f,
       AutoHideScrollBar = true,
       Size = new Vector2(300.0f, 345.0f),
     };
@@ -456,7 +455,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       CircleButtonNode previewNode = new()
       {
         Size = new Vector2(28.0f, 28.0f),
-        Icon = ButtonIcon.RightArrow,
+        Icon = CircleButtonIcon.RightArrow,
         TextTooltip = "Preview",
       };
       previewNode.AttachNode(_allowedVoicesContainerNode.ContentNode);
@@ -483,7 +482,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       CircleButtonNode previewNode = new()
       {
         Size = new Vector2(28.0f, 28.0f),
-        Icon = ButtonIcon.RightArrow,
+        Icon = CircleButtonIcon.RightArrow,
         TextTooltip = "Preview",
       };
       previewNode.AttachNode(_allowedVoicesContainerNode.ContentNode);
@@ -583,10 +582,10 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       _overrideOverlayVoiceNode.Options = maleVoices.Concat(femaleVoices).ToList();
 
       _allowedVoicesApplyNode.IsEnabled = false;
-      _allowedVoicesContainerNode.ContentHeight = 0.0f;
-      _allowedVoicesMaleLabelNode.Y = _allowedVoicesContainerNode.ContentHeight;
+      _allowedVoicesContainerNode.ContentNode.Height = 0.0f;
+      _allowedVoicesMaleLabelNode.Y = _allowedVoicesContainerNode.ContentNode.Height;
       _allowedVoicesMaleLabelNode.X = 8.0f;
-      _allowedVoicesContainerNode.ContentHeight = _allowedVoicesMaleLabelNode.Y + _allowedVoicesMaleLabelNode.Height + 5.0f;
+      _allowedVoicesContainerNode.ContentNode.Height = _allowedVoicesMaleLabelNode.Y + _allowedVoicesMaleLabelNode.Height + 5.0f;
       for (int i = 0; i < _allowedVoicesMaleCheckboxNodes.Count; i++)
       {
         CheckboxNode checkboxNode = _allowedVoicesMaleCheckboxNodes[i];
@@ -603,19 +602,19 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         checkboxNode.String = voice;
         checkboxNode.IsChecked = !_configuration.LocalTTSDisallowedVoices.Contains(voice);
         checkboxNode.OnClick = (_) => _allowedVoicesApplyNode.IsEnabled = true;
-        checkboxNode.Y = _allowedVoicesContainerNode.ContentHeight;
+        checkboxNode.Y = _allowedVoicesContainerNode.ContentNode.Height;
         checkboxNode.X = 8.0f;
-        previewNode.Y = _allowedVoicesContainerNode.ContentHeight - 2.0f;
+        previewNode.Y = _allowedVoicesContainerNode.ContentNode.Height - 2.0f;
         previewNode.X = 100.0f;
         previewNode.OnClick = () => _messageDispatcher.DispatchLocalTTSMessage(voice, 100, $"This is a preview of {voice}.");
-        _allowedVoicesContainerNode.ContentHeight = checkboxNode.Y + checkboxNode.Height + 5.0f;
+        _allowedVoicesContainerNode.ContentNode.Height = checkboxNode.Y + checkboxNode.Height + 5.0f;
       }
 
-      float prevContentHeight = _allowedVoicesContainerNode.ContentHeight;
-      _allowedVoicesContainerNode.ContentHeight = 0.0f;
-      _allowedVoicesFemaleLabelNode.Y = _allowedVoicesContainerNode.ContentHeight;
+      float prevContentHeight = _allowedVoicesContainerNode.ContentNode.Height;
+      _allowedVoicesContainerNode.ContentNode.Height = 0.0f;
+      _allowedVoicesFemaleLabelNode.Y = _allowedVoicesContainerNode.ContentNode.Height;
       _allowedVoicesFemaleLabelNode.X = 150.0f;
-      _allowedVoicesContainerNode.ContentHeight = _allowedVoicesFemaleLabelNode.Y + _allowedVoicesFemaleLabelNode.Height + 5.0f;
+      _allowedVoicesContainerNode.ContentNode.Height = _allowedVoicesFemaleLabelNode.Y + _allowedVoicesFemaleLabelNode.Height + 5.0f;
       for (int i = 0; i < _allowedVoicesFemaleCheckboxNodes.Count; i++)
       {
         CheckboxNode checkboxNode = _allowedVoicesFemaleCheckboxNodes[i];
@@ -632,16 +631,18 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         checkboxNode.String = voice;
         checkboxNode.IsChecked = !_configuration.LocalTTSDisallowedVoices.Contains(voice);
         checkboxNode.OnClick = (_) => _allowedVoicesApplyNode.IsEnabled = true;
-        checkboxNode.Y = _allowedVoicesContainerNode.ContentHeight;
+        checkboxNode.Y = _allowedVoicesContainerNode.ContentNode.Height;
         checkboxNode.X = 150.0f;
-        previewNode.Y = _allowedVoicesContainerNode.ContentHeight - 2.0f;
+        previewNode.Y = _allowedVoicesContainerNode.ContentNode.Height - 2.0f;
         previewNode.X = 250.0f;
         previewNode.OnClick = () => _messageDispatcher.DispatchLocalTTSMessage(voice, 100, $"This is a preview of {voice}.");
-        _allowedVoicesContainerNode.ContentHeight = checkboxNode.Y + checkboxNode.Height + 5.0f;
+        _allowedVoicesContainerNode.ContentNode.Height = checkboxNode.Y + checkboxNode.Height + 5.0f;
       }
 
-      if (prevContentHeight > _allowedVoicesContainerNode.ContentHeight)
-        _allowedVoicesContainerNode.ContentHeight = prevContentHeight;
+      if (prevContentHeight > _allowedVoicesContainerNode.ContentNode.Height)
+        _allowedVoicesContainerNode.ContentNode.Height = prevContentHeight;
+
+      _allowedVoicesContainerNode.RecalculateSizes();
     });
   }
 

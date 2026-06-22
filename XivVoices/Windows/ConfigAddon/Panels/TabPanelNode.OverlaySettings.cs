@@ -1,10 +1,9 @@
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class OverlaySettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class OverlaySettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.OverlaySettings;
   private Configuration _configuration = null!;

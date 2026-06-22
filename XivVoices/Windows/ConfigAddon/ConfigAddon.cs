@@ -1,6 +1,6 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit;
-using KamiToolKit.Premade.Node.Simple;
+using KamiToolKit.BaseTypes;
+using KamiToolKit.Nodes.Simplified;
 
 namespace XivVoices.Windows;
 
@@ -108,12 +108,6 @@ public class ConfigAddon : NativeAddon
 
     SetTab(CurrentTab);
     ConfigurationSaved();
-  }
-
-  public override ValueTask DisposeAsync()
-  {
-    if (_framework.IsFrameworkUnloading) return ValueTask.CompletedTask;
-    return base.DisposeAsync();
   }
 
   protected override unsafe void OnFinalize(AtkUnitBase* addon)

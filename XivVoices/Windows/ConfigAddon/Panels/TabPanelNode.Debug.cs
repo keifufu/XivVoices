@@ -1,9 +1,8 @@
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.Debug;
   private Configuration _configuration = null!;

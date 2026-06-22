@@ -1,5 +1,4 @@
-using KamiToolKit.Premade.Node;
-
+// ListItemNode, but we use AudioListSelectableNode
 namespace KamiToolKit.Nodes;
 
 public interface IAudioListItemNode
@@ -45,6 +44,5 @@ public abstract class AudioListItemNode<T> : AudioListSelectableNode
   {
     EnableSelection = false;
     EnableHighlight = false;
-    DisableCollisionNode = true;
   }
 }
