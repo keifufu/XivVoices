@@ -566,6 +566,14 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       _localTTSFemaleVoiceNode.Options = femaleVoices;
       _localTTSFemaleVoiceNode.SelectedOption = _configuration.LocalTTSFemaleVoice;
 
+      _localTTSCPUUsageNode.SelectedOption = _configuration.LocalTTSThreads switch
+      {
+        2 => "Low",
+        4 => "Medium",
+        8 => "High",
+        _ => "Unknown"
+      };
+
       _localTTSVoiceRandomizationNode.IsChecked = _configuration.LocalTTSVoiceRandomization;
       _localTTSPitchRandomizationNode.IsChecked = _configuration.LocalTTSPitchRandomization;
 
