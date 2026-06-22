@@ -80,9 +80,9 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   private bool CanAutoAdvance()
   {
     AtkUnitBasePtr addon = _gameGui.GetAddonByName("TalkAutoMessageSetting");
-    return (!_configuration.MuteEnabled || _configuration.SuperFastForward)
-      && !_playbackService.Paused
-      && _configuration.AutoAdvanceEnabled
+    return (!_configuration.MuteEnabled || _configuration.AlwaysFastForward)
+      && (!_playbackService.Paused || _configuration.AlwaysFastForward)
+      && (_configuration.AutoAdvanceEnabled || _configuration.FastForward)
       && !_keyState[VirtualKey.MENU]
       && _gamepadState.Raw(GamepadButtons.North) == 0
       && !addon.IsVisible;

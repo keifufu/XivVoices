@@ -256,6 +256,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       }
     }
 
+    bool forcedLocalTTS = false;
+    if (_configuration.LocalTTSForced && voicelinePath != null)
+    {
+      _logger.Debug("Voiceline was found but LocalTTS was forced");
+      forcedLocalTTS = true;
+      voicelinePath = null;
+    }
+
     XivMessage message = new(
       id,
       source,
@@ -284,7 +292,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
     if (message.RawSpeaker == $"{playerName.Split(" ")[0]}?") isIgnoredSpeaker = true;
 
-    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer)
+    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer && !forcedLocalTTS)
       _reportService.Report(message);
 
     // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
@@ -299,19 +307,19 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       case MessageSource.AddonTalk:
         allowed = _configuration.AddonTalkEnabled
           && (isNarrator
-            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonTalkTTSEnabled || _configuration.ForceLocalGeneration)
-            : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled || _configuration.ForceLocalGeneration);
+            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonTalkTTSEnabled)
+            : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled);
         queued = _configuration.QueueDialogue;
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
           && (isNarrator
-            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled || _configuration.ForceLocalGeneration)
-            : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled || _configuration.ForceLocalGeneration);
+            ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled)
+            : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled);
         queued = true;
         break;
       case MessageSource.AddonMiniTalk:
-        allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled || _configuration.ForceLocalGeneration);
+        allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled);
         queued = true;
         break;
       case MessageSource.ChatMessage:

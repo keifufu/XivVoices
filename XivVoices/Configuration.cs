@@ -55,6 +55,7 @@ public class Configuration : IPluginConfiguration
   public bool LipSyncEnabled = true;
   public bool AutoAdvanceEnabled = true;
   public bool FastForward = false;
+  public bool AlwaysFastForward = false;
   public bool RetainersEnabled = true;
   public bool VoicePlayerChoices = true;
   public bool ReplaceVoicedARRCutscenes = false;
@@ -90,6 +91,11 @@ public class Configuration : IPluginConfiguration
   public bool LocalTTSPitchRandomization = true;
   public List<string> LocalTTSDisallowedVoices = [];
 
+  public bool LocalTTSForced = false;
+  public bool LocalTTSRemoteEnabled = false;
+  public bool LocalTTSRemoteFPSLimit = false;
+  public string LocalTTSRemoteUri = "http://127.0.0.1:6969/tts?npc=%n&voice=%v&speaker=%s&sentence=%t";
+
   public Dictionary<string, (string voice, int pitch)> LocalTTSOverrides = [];
   public Dictionary<string, string> LocalTTSLexicon = [];
 
@@ -112,11 +118,6 @@ public class Configuration : IPluginConfiguration
   public bool DebugMode = false;
   public bool DebugLogging = true;
   public string? ServerUrl = null;
-  public bool EnableLocalGeneration = false;
-  public bool ForceLocalGeneration = false;
-  public bool LimitFpsDuringLocalGeneration = false;
-  public string LocalGenerationUri = "http://127.0.0.1:6969/generate?voice=%v&sentence=%s&id=%i";
-  public bool SuperFastForward = false;
   public bool LiveMode = false;
   public bool WarnIgnoredSpeaker = false;
   public XivChatType DefaultChatChannel = XivChatType.Debug;

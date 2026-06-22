@@ -31,10 +31,30 @@ public class ConfigTextEditNode : ResNode
 
   public System.Action? OnClick { get; set; }
 
+  // public string Value
+  // {
+  //   get => _labelNode.String.ToString().Replace($"{_name}: ", "");
+  //   set => _labelNode.String = $"{_name}: {value}";
+  // }
+
   public string Value
   {
-    get => _labelNode.String.ToString().Replace($"{_name}: ", "");
-    set => _labelNode.String = $"{_name}: {value}";
+    get => _labelNode.String.ToString();
+    set
+    {
+      _labelNode.String = value;
+      _labelNode.TextTooltip = _name;
+    }
+  }
+
+  public bool IsEnabled
+  {
+    get => _buttonNode.IsEnabled;
+    set
+    {
+      _buttonNode.IsEnabled = value;
+      _labelNode.Alpha = value ? 1.0f : 0.75f;
+    }
   }
 
   protected override void OnSizeChanged()

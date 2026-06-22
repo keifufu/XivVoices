@@ -3,6 +3,7 @@ using KokoroSharp;
 using KokoroSharp.Core;
 using KokoroSharp.Processing;
 using Microsoft.ML.OnnxRuntime;
+using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framework;
 
 namespace XivVoices.Services;
 
@@ -15,9 +16,7 @@ public interface ILocalTTSService : IHostedService
   event System.Action? OnInitialized;
 }
 
-// debug option to offload localtts to a more powerful server for admins(me) ?
-// not sure how good latency would be if request goes client->xivvserver->thddddserver->xivvserver->client
-public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
+public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IGameConfig _gameConfig, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
 {
   public event System.Action? OnInitialized;
   public List<LocalTTSVoice> Voices { get; private set; } = [];
@@ -224,8 +223,67 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     };
   }
 
+  private async Task<T> WithLimitedFPS<T>(Func<Task<T>> func, bool enabled)
+  {
+    if (!enabled)
+      return await func();
+
+    bool fpsInActiveBefore = _gameConfig.System.GetBool("FPSInActive");
+    if (!fpsInActiveBefore) _gameConfig.System.Set("FPSInActive", true);
+    unsafe { FrameworkStruct.Instance()->WindowInactive = true; }
+
+    try
+    {
+      return await func();
+    }
+    finally
+    {
+      if (!fpsInActiveBefore) _gameConfig.System.Set("FPSInActive", fpsInActiveBefore);
+      unsafe { FrameworkStruct.Instance()->WindowInactive = false; }
+    }
+  }
+
   private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
   {
+    if (_configuration.LocalTTSRemoteEnabled)
+    {
+      try
+      {
+        WaveStream? waveStream = await WithLimitedFPS(async () =>
+        {
+          string requestUri = _configuration.LocalTTSRemoteUri
+            .Replace("%n", Uri.EscapeDataString(message.Npc?.Id ?? "null"))
+            .Replace("%v", Uri.EscapeDataString(message.Voice?.Id ?? "null"))
+            .Replace("%s", Uri.EscapeDataString(message.Speaker))
+            .Replace("%t", Uri.EscapeDataString(message.AddName(message.Sentence)));
+
+          HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
+          if (!response.IsSuccessStatusCode)
+          {
+            _logger.Debug($"Remote LocalTTS failed with code: {response.StatusCode}");
+            return null;
+          }
+
+          byte[] bytes = await response.Content.ReadAsByteArrayAsync();
+          MemoryStream memoryStream = new(bytes);
+          return new WaveFileReader(memoryStream);
+        }, _configuration.LocalTTSRemoteFPSLimit);
+
+        if (waveStream != null) return (waveStream, 0);
+      }
+      catch (OperationCanceledException)
+      {
+        _logger.Debug("LocalTTS was cancelled");
+        return (null, 0);
+      }
+      catch (Exception ex)
+      {
+        _logger.Error(ex);
+      }
+
+      _logger.Debug("Falling back to actual LocalTTS");
+    }
+
     if (!_initialized)
     {
       _logger.Debug("Not generating LocalTTS: not initialized.");

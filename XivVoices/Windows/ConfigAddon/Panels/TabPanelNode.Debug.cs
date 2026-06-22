@@ -14,11 +14,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   private LabelTextNode _mixerSourcesNode = null!;
   private CheckboxNode _debugLoggingNode = null!;
   private ConfigTextEditNode _serverUrlNode = null!;
-  private CheckboxNode _enableLocalGenerationNode = null!;
-  private CheckboxNode _forceLocalGenerationNode = null!;
-  private CheckboxNode _limitFpsDuringLocalGenerationNode = null!;
-  private ConfigTextEditNode _localGenerationUriNode = null!;
-  private CheckboxNode _superFastForwardNode = null!;
   private CheckboxNode _liveModeNode = null!;
   private CheckboxNode _warnIgnoredSpeakerNode = null!;
   private TextDropDownNode _defaultChatChannelNoe = null!;
@@ -74,71 +69,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
       }
     };
     debugSectionNode.AttachNode(_serverUrlNode);
-
-    _enableLocalGenerationNode = new()
-    {
-      String = "EnableLocalGeneration",
-      Size = new Vector2(200.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.EnableLocalGeneration = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_enableLocalGenerationNode);
-
-    _forceLocalGenerationNode = new()
-    {
-      String = "ForceLocalGeneration",
-      Size = new Vector2(190.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.ForceLocalGeneration = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_forceLocalGenerationNode);
-
-    _limitFpsDuringLocalGenerationNode = new()
-    {
-      String = "LimitFpsDuringLocalGeneration",
-      Size = new Vector2(260.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.LimitFpsDuringLocalGeneration = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_limitFpsDuringLocalGenerationNode);
-
-    _localGenerationUriNode = new("LocalGenerationUri")
-    {
-      Size = new Vector2(110.0f, 24.0f),
-      OnClick = () =>
-      {
-        _overlayInputNode.String = _configuration.LocalGenerationUri;
-        _overlayNode.Title = "Edit LocalGenerationUri";
-        _overlayNode.IsVisible = true;
-        _onOverlaySubmit = () =>
-        {
-          _configuration.LocalGenerationUri = _overlayInputNode.String.ToString();
-          _configuration.Save();
-        };
-      }
-    };
-    debugSectionNode.AttachNode(_localGenerationUriNode);
-
-    _superFastForwardNode = new()
-    {
-      String = "SuperFastForward",
-      Size = new Vector2(160.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.SuperFastForward = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_superFastForwardNode);
 
     _liveModeNode = new()
     {
@@ -236,11 +166,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   {
     _debugLoggingNode.IsChecked = _configuration.DebugLogging;
     _serverUrlNode.Value = _configuration.ServerUrl ?? "";
-    _enableLocalGenerationNode.IsChecked = _configuration.EnableLocalGeneration;
-    _forceLocalGenerationNode.IsChecked = _configuration.ForceLocalGeneration;
-    _limitFpsDuringLocalGenerationNode.IsChecked = _configuration.LimitFpsDuringLocalGeneration;
-    _localGenerationUriNode.Value = _configuration.LocalGenerationUri;
-    _superFastForwardNode.IsChecked = _configuration.SuperFastForward;
     _liveModeNode.IsChecked = _configuration.LiveMode;
     _warnIgnoredSpeakerNode.IsChecked = _configuration.WarnIgnoredSpeaker;
     _defaultChatChannelNoe.SelectedOption = _configuration.DefaultChatChannel.ToString();

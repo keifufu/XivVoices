@@ -227,7 +227,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     {
       lock (_playbackHistoryLock)
       {
-        XivMessage? message = _queuedMessages.LastOrDefault(m => !m.IsGenerating && m.WaveStream == null && m.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration);
+        XivMessage? message = _queuedMessages.LastOrDefault(m => !m.IsGenerating && m.WaveStream == null && m.IsLocalTTS);
         if (message != null && _generationSemaphore.Wait(0))
         {
           message.IsGenerating = true;
@@ -351,28 +351,17 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         message.VoicelinePath = voicelinePath;
       }
 
-      // New token incase livemode failed or was cancelled, so we fall back to localtts/localgen.
+      // New token incase livemode failed or was cancelled, so we fall back to localtts.
       message.GenerationToken = new();
-      bool useLocalTTS = message.IsLocalTTS && !_configuration.EnableLocalGeneration && !_configuration.ForceLocalGeneration;
-      bool useLocalGen = (_configuration.EnableLocalGeneration && _configuration.ForceLocalGeneration) || message.IsLocalTTS && _configuration.EnableLocalGeneration;
-
       WaveStream? ttsSourceStream = message.WaveStream;
       int relativeVolume = message.RelativeVolume;
-      if (ttsSourceStream == null)
+      if (ttsSourceStream == null && message.IsLocalTTS)
       {
-        if (useLocalTTS)
-        {
-          await _generationSemaphore.WaitAsync();
-          (ttsSourceStream, relativeVolume) = await _localTTSService.Generate(message);
-          _generationSemaphore.Release();
-          message.RelativeVolume = relativeVolume;
-          message.WaveStream = ttsSourceStream;
-        }
-        else if (useLocalGen)
-        {
-          voicelinePath = await localGen(message);
-          message.VoicelinePath = voicelinePath;
-        }
+        await _generationSemaphore.WaitAsync();
+        (ttsSourceStream, relativeVolume) = await _localTTSService.Generate(message);
+        _generationSemaphore.Release();
+        message.RelativeVolume = relativeVolume;
+        message.WaveStream = ttsSourceStream;
       }
 
       // Generation failed
@@ -492,36 +481,6 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     }
     stream.Position = 0;
     return new RawSourceWaveStream(stream, waveFormat);
-  }
-
-  private async Task<string?> localGen(XivMessage message)
-  {
-    if (message.GenerationToken.IsCancellationRequested) return null;
-
-    if (message.Voice != null)
-    {
-      if (_dataService.Manifest == null) return null;
-
-      string requestUri = _configuration.LocalGenerationUri
-        .Replace("%v", Uri.EscapeDataString(message.Voice.Id))
-        .Replace("%s", Uri.EscapeDataString(message.AddName(message.Sentence)))
-        .Replace("%i", Uri.EscapeDataString(message.Id));
-
-      if (_configuration.LimitFpsDuringLocalGeneration) unsafe { FrameworkStruct.Instance()->WindowInactive = true; }
-      HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
-      if (_configuration.LimitFpsDuringLocalGeneration) unsafe { FrameworkStruct.Instance()->WindowInactive = false; }
-
-      if (response.IsSuccessStatusCode)
-      {
-        return await response.Content.ReadAsStringAsync();
-      }
-      else
-      {
-        _logger.Error($"localGen failed with {response.StatusCode}");
-      }
-    }
-
-    return null;
   }
 
   private async Task<string?> TryDownloadVoiceline(XivMessage message)

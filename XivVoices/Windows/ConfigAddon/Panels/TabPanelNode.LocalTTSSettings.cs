@@ -61,6 +61,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _tabBarNode = new();
     _tabBarNode.AddTab("Settings", () => SetTab?.Invoke(ConfigTab.LocalTTSSettings), isSelected: true);
     _tabBarNode.AddTab("Lexicon", () => SetTab?.Invoke(ConfigTab.LocalTTSLexicon));
+    _tabBarNode.AddTab("Advanced", () => SetTab?.Invoke(ConfigTab.LocalTTSAdvanced));
     AttachNode(_tabBarNode);
 
     ConfigSectionNode defaultSettingsSectionNode = new("Default Settings", offset: 26.0f);

@@ -42,6 +42,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _lipSyncNode = null!;
   private CheckboxNode _autoAdvanceEnabledNode = null!;
   private CheckboxNode _fastForwardNode = null!;
+  private CheckboxNode _alwaysFastForwardNode = null!;
   private CheckboxNode _retainersEnabledNode = null!;
   private CheckboxNode _voicePlayerChoicesNode = null!;
   private CheckboxNode _replaceVoicedARRCutscenesNode = null!;
@@ -438,6 +439,19 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     };
     AttachOtherSettingsNode(_fastForwardNode);
 
+    _alwaysFastForwardNode = new()
+    {
+      String = "Always Fast-Forward",
+      TextTooltip = "Fast-Forward will work even while muted.",
+      Size = new Vector2(180.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.AlwaysFastForward = value;
+        _configuration.Save();
+      }
+    };
+    AttachOtherSettingsNode(_alwaysFastForwardNode);
+
     _retainersEnabledNode = new()
     {
       String = "Retainers Enabled",
@@ -574,6 +588,8 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _lipSyncNode.IsChecked = _configuration.LipSyncEnabled;
     _autoAdvanceEnabledNode.IsChecked = _configuration.AutoAdvanceEnabled;
     _fastForwardNode.IsChecked = _configuration.FastForward;
+    _alwaysFastForwardNode.IsChecked = _configuration.AlwaysFastForward;
+    _alwaysFastForwardNode.IsEnabled = _configuration.FastForward;
     _retainersEnabledNode.IsChecked = _configuration.RetainersEnabled;
     _voicePlayerChoicesNode.IsChecked = _configuration.VoicePlayerChoices;
     _replaceVoicedARRCutscenesNode.IsChecked = _configuration.ReplaceVoicedARRCutscenes;

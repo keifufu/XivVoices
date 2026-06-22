@@ -100,6 +100,7 @@ public class ConfigAddon : NativeAddon
     AddTabPanel<PlaybackSettingsTabPanelNode>();
     AddTabPanel<LocalTTSSettingsTabPanelNode>();
     AddTabPanel<LocalTTSLexiconTabPanelNode>();
+    AddTabPanel<LocalTTSAdvancedTabPanelNode>();
     AddTabPanel<OverlaySettingsTabPanelNode>();
     AddTabPanel<AudioHistoryTabPanelNode>();
     AddTabPanel<DebugTabPanelNode>();
@@ -210,7 +211,7 @@ public class ConfigAddon : NativeAddon
   {
     CurrentTab = tab;
     foreach (TabButtonNode node in _tabButtons)
-      node.IsActive = node.Tab == tab || (tab == ConfigTab.LocalTTSLexicon && node.Tab == ConfigTab.LocalTTSSettings);
+      node.IsActive = node.Tab == tab || ((tab == ConfigTab.LocalTTSLexicon || tab == ConfigTab.LocalTTSAdvanced) && node.Tab == ConfigTab.LocalTTSSettings);
 
     foreach (TabPanelNode node in _tabPanels)
       node.IsActive = node.Tab == tab;

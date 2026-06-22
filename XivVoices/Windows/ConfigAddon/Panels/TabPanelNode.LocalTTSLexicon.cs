@@ -34,6 +34,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
     _tabBarNode = new StatelessTabBarNode();
     _tabBarNode.AddTab("Settings", () => SetTab?.Invoke(ConfigTab.LocalTTSSettings));
     _tabBarNode.AddTab("Lexicon", () => SetTab?.Invoke(ConfigTab.LocalTTSLexicon), isSelected: true);
+    _tabBarNode.AddTab("Advanced", () => SetTab?.Invoke(ConfigTab.LocalTTSAdvanced));
     AttachNode(_tabBarNode);
 
     _localTTSLexiconSectionNode = new("Local TTS Lexicon", offset: 26.0f);
