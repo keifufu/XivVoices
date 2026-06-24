@@ -46,7 +46,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public async Task StopAsync(CancellationToken token)
   {
     _pluginInterface.UiBuilder.OpenConfigUi -= Toggle;
     _pluginInterface.UiBuilder.OpenMainUi -= Toggle;
@@ -56,7 +56,11 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
     _windowSystem.RemoveAllWindows();
 
-    return _logger.ServiceLifecycle();
+#if !NO_KTK
+    await _configAddon.DisposeAsync();
+#endif
+
+    await _logger.ServiceLifecycle();
   }
 
   public void OpenTab(ConfigTab tab, bool forceOpen = false)

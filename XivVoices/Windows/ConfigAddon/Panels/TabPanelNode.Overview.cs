@@ -241,7 +241,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     }
   }
 
-  private static IEnumerable<string> Wrap(string? s, int max = 44)
+  private static IEnumerable<string> Wrap(string? s, int max = 46)
   {
     if (string.IsNullOrWhiteSpace(s) || max <= 0) yield break;
     StringBuilder cur = new();

@@ -20,7 +20,8 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   public Task StartAsync(CancellationToken token)
   {
     _clientState.Login += RebuildOverlay;
-    if (_clientState.IsLoggedIn) RebuildOverlay();
+    _configuration.Saved += RebuildOverlay;
+    RebuildOverlay();
 
     return _logger.ServiceLifecycle();
   }
@@ -28,6 +29,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
   public async Task StopAsync(CancellationToken token)
   {
     _clientState.Login -= RebuildOverlay;
+    _configuration.Saved -= RebuildOverlay;
 
     if (!_framework.IsFrameworkUnloading)
     {
@@ -43,15 +45,22 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
 
   private void RebuildOverlay() => _framework.RunOnFrameworkThread(() =>
   {
-    _overlayController ??= new();
-    _overlayController?.RemoveAllNodes();
-
-    _xivvOverlayNode = new XivvOverlayNode(services)
+    if (!_clientState.IsLoggedIn || !_configuration.OverlayOpen)
     {
-      Size = new(370.0f, 100.0f),
-      Position = _configuration.OverlayPosition,
-    };
-    _overlayController?.AddNode(_xivvOverlayNode);
+      _overlayController?.Dispose();
+      _overlayController = null;
+      _xivvOverlayNode = null;
+    }
+    else
+    {
+      _overlayController ??= new();
+      _xivvOverlayNode = new XivvOverlayNode(services)
+      {
+        Size = new(370.0f, 100.0f),
+        Position = _configuration.OverlayPosition,
+      };
+      _overlayController?.AddNode(_xivvOverlayNode);
+    }
   });
 
   public unsafe bool CheckCollision(AtkEventData* atkEventData)
@@ -304,8 +313,10 @@ public unsafe class XivvOverlayNode : OverlayNode
   private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
   private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
 
+  private bool _disposing = false;
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
+    _disposing = true;
     base.Dispose(disposing, isNativeDestructor);
 
     _configuration.Saved -= ConfigurationSaved;
@@ -317,7 +328,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
   private void ConfigurationSaved()
   {
-    if (!IsVisible) return;
+    if (!IsVisible || _disposing) return;
 
     Scale = new(_configuration.OverlayScale / 100.0f);
     _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
@@ -344,7 +355,7 @@ public unsafe class XivvOverlayNode : OverlayNode
   protected override void OnUpdate()
   {
     bool previouslyVisible = IsVisible;
-    IsVisible = _configuration.OverlayOpen && !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
+    IsVisible = !(_configuration.OverlayHideInCombat && _gameInteropService.IsInCombat()) && !(_configuration.OverlayHideInDuty && _gameInteropService.IsInDuty()) && !(_configuration.OverlayHideWhenMuted && _configuration.MuteEnabled);
     if (IsVisible && !previouslyVisible) ConfigurationSaved();
     if (!IsVisible) return;
 

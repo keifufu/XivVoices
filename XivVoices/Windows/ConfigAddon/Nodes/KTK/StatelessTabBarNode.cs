@@ -8,7 +8,7 @@ namespace XivVoices.Windows;
 
 public class StatelessTabBarNode : SimpleComponentNode
 {
-  private readonly List<StatlessTabBarRadioButtonNode> _radioButtons = [];
+  private readonly List<StatelessTabBarRadioButtonNode> _radioButtons = [];
 
   public StatelessTabBarNode()
   {
@@ -23,7 +23,7 @@ public class StatelessTabBarNode : SimpleComponentNode
 
   public void AddTab(ReadOnlySeString label, System.Action callback, bool isEnabled = true, bool isSelected = false)
   {
-    StatlessTabBarRadioButtonNode newButton = new()
+    StatelessTabBarRadioButtonNode newButton = new()
     {
       Height = Height,
       String = label,
@@ -46,7 +46,7 @@ public class StatelessTabBarNode : SimpleComponentNode
 
     foreach (int index in Enumerable.Range(0, _radioButtons.Count))
     {
-      StatlessTabBarRadioButtonNode button = _radioButtons[index];
+      StatelessTabBarRadioButtonNode button = _radioButtons[index];
 
       button.Width = step + 5.0f;
       button.X = (step * index) - 5.0f;

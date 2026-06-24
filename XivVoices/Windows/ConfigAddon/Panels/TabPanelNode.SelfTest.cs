@@ -66,8 +66,17 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     _logNode = new()
     {
       Position = new Vector2(0.0f, (20.0f * _stepNodes.Count) + 50.0f),
-      Flags = TextInputFlags.MultiLine | TextInputFlags.WordWrap
+      Flags = TextInputFlags.MultiLine | TextInputFlags.WordWrap,
     };
+    _logNode.TextLimitsNode.DetachNode();
+    _logNode.CurrentTextNode.TextFlags |= TextFlags.MultiLine;
+    _logNode.CurrentTextNode.LineSpacing = 14;
+    unsafe
+    {
+      _logNode.Component->ComponentTextData.Flags2 = TextInputFlags2.MultiLine;
+      _logNode.Component->ComponentTextData.MaxLine = byte.MaxValue;
+      _logNode.Component->ComponentTextData.MaxByte = ushort.MaxValue;
+    }
     AttachNode(_logNode);
   }
 

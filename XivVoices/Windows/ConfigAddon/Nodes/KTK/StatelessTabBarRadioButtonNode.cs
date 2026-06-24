@@ -6,14 +6,14 @@ using Lumina.Text.ReadOnly;
 
 namespace KamiToolKit.Nodes;
 
-public unsafe class StatlessTabBarRadioButtonNode : ComponentNode<AtkComponentRadioButton, AtkUldComponentDataRadioButton>
+public unsafe class StatelessTabBarRadioButtonNode : ComponentNode<AtkComponentRadioButton, AtkUldComponentDataRadioButton>
 {
 
   public readonly TextNode LabelNode;
   public readonly NineGridNode SelectedNineGridNode;
   public readonly NineGridNode UnselectedNineGridNode;
 
-  public StatlessTabBarRadioButtonNode()
+  public StatelessTabBarRadioButtonNode()
   {
     SetInternalComponentType(ComponentType.RadioButton);
 

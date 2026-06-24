@@ -97,6 +97,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
   {
     Step = SelfTestStep.None;
     CurrentInstruction = "Press \"Start Self-Test\"";
+    lock (CurrentLogsLock)
+    {
+      CurrentLogs = [];
+    }
 
     _framework.Update -= OnFrameworkUpdate;
   }
