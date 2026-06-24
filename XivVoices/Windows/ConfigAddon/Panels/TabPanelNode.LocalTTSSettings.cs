@@ -559,10 +559,10 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     {
       _localTTSDefaultVoiceNode.SelectedOption = _configuration.LocalTTSDefaultVoice;
 
-      _localTTSMaleVoiceNode.Options = maleVoices;
+      if (_localTTSMaleVoiceNode.Options.Count == 0) _localTTSMaleVoiceNode.Options = maleVoices;
       _localTTSMaleVoiceNode.SelectedOption = _configuration.LocalTTSMaleVoice;
 
-      _localTTSFemaleVoiceNode.Options = femaleVoices;
+      if (_localTTSFemaleVoiceNode.Options.Count == 0) _localTTSFemaleVoiceNode.Options = femaleVoices;
       _localTTSFemaleVoiceNode.SelectedOption = _configuration.LocalTTSFemaleVoice;
 
       _localTTSCPUUsageNode.SelectedOption = _configuration.LocalTTSThreads switch

@@ -114,7 +114,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     {
       lock (playbackQueue.QueueLock)
       {
-        if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !(playbackQueue.Queue.Count == 0))
+        if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && _prevPlaying == null)
         {
           if (!_playbackService.Paused && TryDequeue(playbackQueue, out XivMessage? message))
           {
@@ -129,12 +129,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
-  {
-    if (_prevPlaying != null)
     {
       if (message.Id == _prevPlaying?.Id) _prevPlaying = null;
-      else return;
-    }
 
     int count = _playbackService.CountPlaying(GetQueueForMessage(message));
     if (GetQueueForMessage(message) == MessageSource.AddonTalk)

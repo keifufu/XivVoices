@@ -397,12 +397,12 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _playbackDeviceTypeNode.SelectedOption = _configuration.PlaybackDeviceType.ToString();
 
     _waveOutDeviceNode.IsVisible = _configuration.PlaybackDeviceType == PlaybackDeviceType.WaveOut;
-    _waveOutDeviceNode.Options = ["Default Output Device", .. _playbackService.GetWaveOutDevices().Select((d) => ShortenDeviceName(d.ProductName))];
+    if (_waveOutDeviceNode.Options.Count == 0) _waveOutDeviceNode.Options = ["Default Output Device", .. _playbackService.GetWaveOutDevices().Select((d) => ShortenDeviceName(d.ProductName))];
     _waveOutDeviceNode.SelectedOption = ShortenDeviceName(_configuration.WaveOutDevice ?? "Default Output Device");
 
     IEnumerable<DirectSoundDeviceInfo> directSoundDevices = _playbackService.GetDirectSoundDevices();
     _directSoundDeviceNode.IsVisible = _configuration.PlaybackDeviceType == PlaybackDeviceType.DirectSound;
-    _directSoundDeviceNode.Options = ["Default Output Device", .. directSoundDevices.Select((d) => ShortenDeviceName(d.Description))];
+    if (_directSoundDeviceNode.Options.Count == 0) _directSoundDeviceNode.Options = ["Default Output Device", .. directSoundDevices.Select((d) => ShortenDeviceName(d.Description))];
     _directSoundDeviceNode.SelectedOption = ShortenDeviceName(directSoundDevices.FirstOrDefault((d) => d.Guid == _configuration.DirectSoundDevice)?.Description ?? "Default Output Device");
 
     _volumeSliderNode.Value = _configuration.Volume;
