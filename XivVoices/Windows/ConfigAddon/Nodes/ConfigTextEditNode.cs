@@ -1,5 +1,5 @@
-using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
@@ -15,7 +15,7 @@ public class ConfigTextEditNode : ResNode
 
     _buttonNode = new()
     {
-      Icon = CircleButtonIcon.EditSmall,
+      Icon = ButtonIcon.EditSmall,
       OnClick = () => OnClick?.Invoke(),
     };
     _buttonNode.AttachNode(this);

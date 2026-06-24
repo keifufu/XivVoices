@@ -1,10 +1,10 @@
 
 using Dalamud.Game.Addon.Events;
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.BaseTypes;
+using KamiToolKit;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
@@ -12,8 +12,8 @@ public class ConfigOverlayNode : ResNode
 {
   private readonly IAddonEventManager _addonEventManager;
 
-  public readonly WindowBackgroundTextureNode ContentNode;
-  private readonly SimpleImageNode _configOverlayBackgroundNode;
+  public readonly WindowBackgroundNode ContentNode;
+  private readonly BackgroundImageNode _configOverlayBackgroundNode;
   private readonly TextNode _titleNode;
   private readonly HorizontalLineNode _horizontalLine;
   private bool _isCursorSet = false;
@@ -27,7 +27,6 @@ public class ConfigOverlayNode : ResNode
 
     _configOverlayBackgroundNode = new()
     {
-      FitTexture = true,
       Color = ColorHelper.GetColor(7),
       Alpha = 0.50f,
     };

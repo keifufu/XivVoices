@@ -20,7 +20,10 @@ public class AudioHistoryNode : AudioListItemNode<(XivMessage message, bool isPl
     };
     _textNode.AttachNode(this);
 
-    _progressBarNode = new();
+    _progressBarNode = new()
+    {
+      DisableCollisionNode = true,
+    };
     _progressBarNode.AttachNode(this);
   }
 

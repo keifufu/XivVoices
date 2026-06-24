@@ -1,14 +1,12 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Enums;
-using KamiToolKit.Interfaces;
 using KamiToolKit.Nodes;
-using KamiToolKit.Nodes.Simplified;
 using KamiToolKit.Premade.Node;
+using KamiToolKit.Premade.Node.Simple;
 
-// ModifyListNode, which was removed in #111, but with changes import/export buttons.
 namespace XivVoices.Windows;
 
-public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where TU : ListItemNode<T>, IListItemNode, new()
+public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struct where TU : ListItemNode<T>, IListItemNode, new()
 {
   private readonly IKeyState _keyState;
   private readonly SearchWidget _searchWidget;
@@ -19,7 +17,7 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
   private readonly TextButtonNode _editButton;
   private readonly TextButtonNode _removeButton;
 
-  public ModifyListNode(IKeyState keyState)
+  public LocalTTSModifyListNode(IKeyState keyState)
   {
     _keyState = keyState;
     _searchWidget = new SearchWidget
@@ -35,10 +33,10 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
       Size = new Vector2(30.0f, 30.0f),
       OnClick = () =>
       {
-        if (_exportButton?.Icon == CircleButtonIcon.CheckedBox || _exportButton?.Icon == CircleButtonIcon.Cross) return;
+        if (_exportButton?.Icon == ButtonIcon.CheckedBox || _exportButton?.Icon == ButtonIcon.Cross) return;
 
         (string result, bool success) result;
-        if (_exportButton?.Icon == CircleButtonIcon.Undo)
+        if (_exportButton?.Icon == ButtonIcon.Undo)
         {
           result = OnUndo?.Invoke() ?? default;
           _lastWasImport = false;
@@ -108,10 +106,10 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
   public void OnUpdate()
   {
     bool showImportExportResult = (DateTime.Now - _lastImportExport).TotalSeconds <= 3;
-    CircleButtonIcon importExportResultIcon = _lastImportExportSuccess ? CircleButtonIcon.CheckedBox : CircleButtonIcon.Cross;
-    if (showImportExportResult && _lastImportExportSuccess && _lastWasImport && _exportButton.Icon != CircleButtonIcon.Undo)
+    ButtonIcon importExportResultIcon = _lastImportExportSuccess ? ButtonIcon.CheckedBox : ButtonIcon.Cross;
+    if (showImportExportResult && _lastImportExportSuccess && _lastWasImport && _exportButton.Icon != ButtonIcon.Undo)
     {
-      _exportButton.Icon = CircleButtonIcon.Undo;
+      _exportButton.Icon = ButtonIcon.Undo;
       _exportButton.TextTooltip = _lastImportExportResult + " Click to undo.";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
@@ -123,19 +121,19 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && _keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Override duplicates)"))
     {
-      _exportButton.Icon = CircleButtonIcon.Add;
+      _exportButton.Icon = ButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Override duplicates)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Hold Control"))
     {
-      _exportButton.Icon = CircleButtonIcon.Add;
+      _exportButton.Icon = ButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Hold Control to override duplicates)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
-    else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != CircleButtonIcon.Document)
+    else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != ButtonIcon.Document)
     {
-      _exportButton.Icon = CircleButtonIcon.Document;
+      _exportButton.Icon = ButtonIcon.Document;
       _exportButton.TextTooltip = "Export (Hold Shift to Import)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
@@ -336,13 +334,4 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
     RebuildList();
     _listNode.FullRebuild();
   }
-}
-
-[Flags]
-public enum ListConfigDisplayMode
-{
-  None = 0,
-  Add = 1 << 1,
-  Edit = 1 << 2,
-  Remove = 1 << 3,
 }

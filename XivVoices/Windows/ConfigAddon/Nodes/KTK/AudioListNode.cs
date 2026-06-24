@@ -1,7 +1,6 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit.Premade.Node.Simple;
 
-// ListNode, but we use AudioListItemNode to use AudiListSelectableNode so OnItemSelected can have isRightClick
 namespace KamiToolKit.Nodes;
 
 internal static class GenericUtil

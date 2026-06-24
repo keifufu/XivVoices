@@ -1,4 +1,4 @@
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit.Premade.Node.Simple;
 
 namespace XivVoices.Windows;
 

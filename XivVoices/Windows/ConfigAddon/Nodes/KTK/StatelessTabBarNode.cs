@@ -1,14 +1,14 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node.Simple;
 using KamiToolKit.Timelines;
 using Lumina.Text.ReadOnly;
 
-// TabBarNode, but stateless and using StatelessTabBarRadioButtonNode
-namespace KamiToolKit.Nodes;
+namespace XivVoices.Windows;
 
 public class StatelessTabBarNode : SimpleComponentNode
 {
-  private readonly List<StatelessTabBarRadioButtonNode> _radioButtons = [];
+  private readonly List<StatlessTabBarRadioButtonNode> _radioButtons = [];
 
   public StatelessTabBarNode()
   {
@@ -23,7 +23,7 @@ public class StatelessTabBarNode : SimpleComponentNode
 
   public void AddTab(ReadOnlySeString label, System.Action callback, bool isEnabled = true, bool isSelected = false)
   {
-    StatelessTabBarRadioButtonNode newButton = new()
+    StatlessTabBarRadioButtonNode newButton = new()
     {
       Height = Height,
       String = label,
@@ -46,7 +46,7 @@ public class StatelessTabBarNode : SimpleComponentNode
 
     foreach (int index in Enumerable.Range(0, _radioButtons.Count))
     {
-      StatelessTabBarRadioButtonNode button = _radioButtons[index];
+      StatlessTabBarRadioButtonNode button = _radioButtons[index];
 
       button.Width = step + 5.0f;
       button.X = (step * index) - 5.0f;

@@ -1,14 +1,27 @@
-using KamiToolKit.BaseTypes;
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit;
+using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node.Simple;
 
 namespace XivVoices.Windows;
 
 public abstract class TabPanelNode : SimpleComponentNode
 {
+  public readonly ScrollingAreaNode<ResNode>? _containerNode = null;
   public bool SetupComplete = false;
 
-  protected TabPanelNode()
+  protected TabPanelNode(bool container)
   {
+    if (container)
+    {
+      _containerNode = new()
+      {
+        ContentHeight = 0.0f,
+        AutoHideScrollBar = true,
+      };
+
+      _containerNode.AttachNode(this);
+    }
+
     OnSetup();
     SetupComplete = true;
     ConfigurationSaved();
@@ -20,9 +33,24 @@ public abstract class TabPanelNode : SimpleComponentNode
     SetupComplete = false;
   }
 
+  protected override void OnSizeChanged()
+  {
+    base.OnSizeChanged();
+
+    _containerNode?.Size = Size;
+  }
+
   internal void AttachNode(NodeBase node)
   {
-    node.AttachNode(this);
+    if (_containerNode == null)
+    {
+      node.AttachNode(this);
+    }
+    else
+    {
+      node.AttachNode(_containerNode.ContentNode);
+      _containerNode.ContentHeight = node.Y + node.Height + 5.0f;
+    }
   }
 
   public bool IsActive

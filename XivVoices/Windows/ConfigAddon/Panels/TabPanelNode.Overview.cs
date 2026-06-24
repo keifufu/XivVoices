@@ -4,8 +4,7 @@ using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
-#pragma warning disable KamiToolKit_Experimental // TreeListCategoryNode
-public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
+public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
   public override ConfigTab Tab => ConfigTab.Overview;
   private IDalamudPluginInterface _pluginInterface = null!;
@@ -25,7 +24,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
   private TextButtonNode _selectDirectoryNode = null!;
   private TextNode _selectedPathNode = null!;
   private TextNode _changelogHeaderNode = null!;
-  private ScrollingNode<VerticalListNode> _changelogNode = null!;
+  private ScrollingTreeNode _changelogNode = null!;
 
   private string? _selectedPath = null;
   private bool _isImport = false;
@@ -206,9 +205,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
 
     _changelogNode = new()
     {
-      ContentNode = {
-        FitContents = true
-      }
+      CategoryVerticalSpacing = 0.0f,
     };
     AttachNode(_changelogNode);
 
@@ -217,11 +214,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
       TreeListCategoryNode categoryNode = new()
       {
         String = version.Key,
-        OnToggle = _ =>
-        {
-          _changelogNode.ContentNode.RecalculateLayout();
-          _changelogNode.RecalculateSizes();
-        },
+        OnToggle = _ => _changelogNode.RecalculateLayout(),
       };
 
       categoryNode.AddNode(new ResNode() { Height = 2.0f });
@@ -234,7 +227,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
           TextNode textNode = new()
           {
             String = i == 0 ? " " + section : section,
-            Width = _changelogNode.ContentNode.Width - 8.0f,
+            Width = _changelogNode.TreeListNode.Width,
             Height = 12.0f,
             X = i == 0 ? 18.0f : 33.0f,
           };
@@ -244,11 +237,11 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
         categoryNode.AddNode(new ResNode());
       }
 
-      _changelogNode.ContentNode.AddNode(categoryNode);
+      _changelogNode.AddCategoryNode(categoryNode);
     }
   }
 
-  private static IEnumerable<string> Wrap(string? s, int max = 46)
+  private static IEnumerable<string> Wrap(string? s, int max = 44)
   {
     if (string.IsNullOrWhiteSpace(s) || max <= 0) yield break;
     StringBuilder cur = new();
@@ -306,15 +299,15 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
     _changelogHeaderNode.Position = new Vector2((Width - _changelogHeaderNode.Size.X) / 2.0f, _actionButtonNode.Bounds.Bottom + 18.0f);
     _changelogNode.Position = new Vector2(0, _changelogHeaderNode.Bounds.Bottom);
     _changelogNode.Size = new Vector2(Width, Height - _changelogNode.Y);
-    _changelogNode.ContentNode.RecalculateLayout();
-    for (int i = 0; i < _changelogNode.ContentNode.Nodes.Count; i++)
+    _changelogNode.RecalculateLayout();
+    for (int i = 0; i < _changelogNode.CategoryNodes.Count; i++)
     {
-      TreeListCategoryNode node = (TreeListCategoryNode)_changelogNode.ContentNode.Nodes[i];
-      node.Width = _changelogNode.ContentNode.Width - 8.0f;
+      TreeListCategoryNode node = _changelogNode.CategoryNodes[i];
+      node.Width = _changelogNode.TreeListNode.Width;
       node.IsCollapsed = i != 0;
       node.RecalculateLayout();
     }
-    _changelogNode.ContentNode.RecalculateLayout();
+    _changelogNode.RecalculateLayout();
   }
 
   private void OnDataDirectoryChanged()

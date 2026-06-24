@@ -1,10 +1,11 @@
-using KamiToolKit.BaseTypes;
+using KamiToolKit;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
+public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
   public override ConfigTab Tab => ConfigTab.DialogueSettings;
   private Configuration _configuration = null!;
@@ -37,7 +38,7 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _addonMiniTalkTTSEnabledNode = null!;
 
   private ConfigSectionNode _otherSettingsSectionNode = null!;
-  private ScrollingNode<ResNode> _otherSettingsContainerNode = null!;
+  private ScrollingAreaNode<ResNode> _otherSettingsContainerNode = null!;
   private CheckboxNode _lipSyncNode = null!;
   private CheckboxNode _autoAdvanceEnabledNode = null!;
   private CheckboxNode _fastForwardNode = null!;
@@ -386,7 +387,10 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _otherSettingsSectionNode = new("Other Settings", dialogueSettingsSectionNode);
 
-    _otherSettingsContainerNode = new();
+    _otherSettingsContainerNode = new()
+    {
+      ContentHeight = 0.0f,
+    };
     _otherSettingsSectionNode.AttachNode(_otherSettingsContainerNode);
 
     _lipSyncNode = new()
@@ -507,9 +511,9 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   private void AttachOtherSettingsNode(NodeBase node)
   {
-    node.Y = _otherSettingsContainerNode.ContentNode.Height;
+    node.Y = _otherSettingsContainerNode.ContentHeight;
     node.AttachNode(_otherSettingsContainerNode.ContentNode);
-    _otherSettingsContainerNode.ContentNode.Height = node.Y + node.Height;
+    _otherSettingsContainerNode.ContentHeight = node.Y + node.Height;
   }
 
   protected override void OnSizeChanged()

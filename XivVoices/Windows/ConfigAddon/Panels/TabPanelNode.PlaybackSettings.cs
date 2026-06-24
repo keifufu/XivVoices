@@ -1,10 +1,11 @@
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
+using KamiToolKit.Premade.Node;
 using Lumina.Extensions;
 
 namespace XivVoices.Windows;
 
-public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
+public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
 {
   public override ConfigTab Tab => ConfigTab.PlaybackSettings;
   private Configuration _configuration = null!;

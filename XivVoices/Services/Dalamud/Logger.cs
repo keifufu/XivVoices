@@ -188,6 +188,7 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     Debug(sb.ToString(), callerPath, callerName, lineNumber);
   }
 
+  // TODO: breaks when async
   public Task ServiceLifecycle(string? status = null, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
   {
     string lifecycleStage = status ??
@@ -195,7 +196,12 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
       ? "started" : callerName.Contains("Stop")
       ? "stopped" : "changed");
 
-    string className = Path.GetFileNameWithoutExtension(callerPath);
+    string className = new StackTrace()
+      .GetFrame(1)
+      ?.GetMethod()
+      ?.DeclaringType
+      ?.Name ?? "UnknownClass";
+
     Debug($"{className} {lifecycleStage}", callerPath, callerName, lineNumber);
 
     return Task.CompletedTask;

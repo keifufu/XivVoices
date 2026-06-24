@@ -1,9 +1,8 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using KamiToolKit.Nodes.Simplified;
+using KamiToolKit.Premade.Node.Simple;
 
-// SelectableNode but OnClick passes isRightClick, and selection is disabled.
 namespace XivVoices.Windows;
 
 public class AudioListSelectableNode : SimpleComponentNode

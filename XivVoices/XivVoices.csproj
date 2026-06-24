@@ -46,8 +46,7 @@
   </ItemGroup>
 
   <ItemGroup Condition="!$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">
-    <PackageReference Include="KamiToolKit" Version="2.0.23" />
-    <PackageReference Include="KamiToolKit.Components" Version="1.0.5" />
+    <PackageReference Include="KamiToolKit" Version="1.1.24" />
   </ItemGroup>
 
   <ItemGroup Condition="$([System.String]::Copy('$(DefineConstants)').Contains('NO_KTK'))">

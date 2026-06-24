@@ -25,18 +25,9 @@
       },
       "KamiToolKit": {
         "type": "Direct",
-        "requested": "[2.0.23, )",
-        "resolved": "2.0.23",
-        "contentHash": "hvf+XnPqOQfbZv4FGKX1+Iq7i9CMi1/tvNazQ9yNl9CMdoSGWYZ2FCCbuOQPeFAiiDciA7UNm8dV9ksNjc1VKw=="
-      },
-      "KamiToolKit.Components": {
-        "type": "Direct",
-        "requested": "[1.0.5, )",
-        "resolved": "1.0.5",
-        "contentHash": "W3+V7OOuBWSFcXZ89WoYwYGghPPWmCUJd2JN+QyW62xPXr3bawGQU6iEI47C00zAHslvBIO2GFKk5hsCfPgvtw==",
-        "dependencies": {
-          "KamiToolKit": "2.0.13"
-        }
+        "requested": "[1.1.24, )",
+        "resolved": "1.1.24",
+        "contentHash": "6ohUnDVvQpjzOhdZt9aMP8EvVP6EBUUYzIyVPj8qqODop5gUjslaso+nN3ULjLjjkrN6XXcVrnEUzPF+FBw8cA=="
       },
       "KokoroSharp": {
         "type": "Direct",
