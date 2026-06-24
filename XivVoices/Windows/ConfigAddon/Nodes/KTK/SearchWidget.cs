@@ -7,9 +7,6 @@ using Lumina.Text.ReadOnly;
 // Just SearchWidget, which was removed with #111
 namespace KamiToolKit.Premade.Node;
 
-/// <summary>
-/// Represents a search element that has a searchbar, and a dropdown for reordering elements.
-/// </summary>
 public class SearchWidget : SimpleComponentNode
 {
   public readonly TextInputNode InputNode;
@@ -123,27 +120,12 @@ public class SearchWidget : SimpleComponentNode
   public Enum? SelectedOption => SortOrderDropDown.SelectedOption;
 }
 
-/// <summary>
-/// Enumeration of default sorting options to be used with searchable lists. todo: evaluate if I wanna keep this.
-/// </summary>
 public enum DefaultSortOptions
 {
-
-  /// <summary>
-  /// Default value indicating that no sorting mode has been selected.
-  /// </summary>
   [Description("ERROR: Unset")]
   Unset,
-
-  /// <summary>
-  /// Sort alphabetically.
-  /// </summary>
   [Description("Alphabetical")]
   Alphabetical,
-
-  /// <summary>
-  /// Sort based on a provided id value.
-  /// </summary>
   [Description("Id")]
   Id,
 }

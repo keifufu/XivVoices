@@ -330,10 +330,6 @@ public class ModifyListNode<T, TU> : SimpleComponentNode where T : struct where 
     _addButton.IsEnabled = AddNewEntry is not null;
   }
 
-  /// <summary>
-  /// Refreshes the displayed list data.
-  /// This resets scroll position, so don't spam it.
-  /// </summary>
   public void RefreshList()
   {
     SelectedOption = null;

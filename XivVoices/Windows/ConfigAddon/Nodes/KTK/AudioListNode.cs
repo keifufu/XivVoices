@@ -97,9 +97,6 @@ public unsafe class AudioListNode<T, TU> : SimpleComponentNode where TU : AudioL
   private int scrollPosition;
   private int nodeCount;
 
-  /// <summary>
-  /// Resets and rebuilds list
-  /// </summary>
   public void FullRebuild()
   {
     foreach (var node in _nodeList)
