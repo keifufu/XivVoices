@@ -254,8 +254,8 @@ public unsafe class XivvOverlayNode : OverlayNode
     {
       Range = ..100,
       IsEnabled = !_configuration.MuteEnabled,
-      Size = new Vector2(200.0f, 16.0f),
-      Position = new Vector2(180.0f, 56.0f),
+      Size = new Vector2(150.0f, 16.0f),
+      Position = new Vector2(225.0f, 56.0f),
       OnValueChanged = (value) =>
       {
         if (_configuration.Volume != value)
@@ -272,6 +272,12 @@ public unsafe class XivvOverlayNode : OverlayNode
       Height = 28.0f,
       FitHeight = true,
       InitialNodes = [
+        new TextButtonNode {
+          Height = 28.0f,
+          Width = 50.0f,
+          String = "Prev",
+          OnClick = () => _messageDispatcher.Prev(),
+        },
         _pauseButton,
         new TextButtonNode {
           Height = 28.0f,

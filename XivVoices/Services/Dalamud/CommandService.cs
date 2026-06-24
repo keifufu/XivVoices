@@ -52,6 +52,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
         _logger.Chat($"  {command} upload-logs - Uploads plugin logs to help with bug-reports");
         _logger.Chat($"  {command} mute - Toggle the muted state");
         _logger.Chat($"  {command} pause - Pauses voicelines until executed again");
+        _logger.Chat($"  {command} prev - Replay the previous voiceline");
         _logger.Chat($"  {command} skip - Skip the latest playing voiceline");
         _logger.Chat($"  {command} overlay - Open the overlay window");
         _logger.Chat($"  {command} settings - Open the settings window");
@@ -112,21 +113,23 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
         }
         break;
       case "mute":
-        bool mute = !_configuration.MuteEnabled;
-        _configuration.MuteEnabled = mute;
+        _configuration.MuteEnabled = !_configuration.MuteEnabled;
         _configuration.Save();
-        if (mute)
+        if (_configuration.MuteEnabled)
         {
           _messageDispatcher.ClearQueue();
           _playbackService.ClearQueue();
           _playbackService.StopAll();
         }
-        _logger.Chat(mute ? "Muted" : "Unmuted");
+        _logger.Chat(_configuration.MuteEnabled ? "Muted" : "Unmuted");
         break;
       case "pause":
         bool paused = !_playbackService.Paused;
         _playbackService.Paused = paused;
         _logger.Chat(paused ? "Paused" : "Unpaused");
+        break;
+      case "prev":
+        _messageDispatcher.Prev();
         break;
       case "skip":
         _playbackService.Skip();

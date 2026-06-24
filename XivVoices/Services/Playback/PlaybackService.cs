@@ -19,9 +19,10 @@ public interface IPlaybackService : IHostedService
 
   Task Play(XivMessage message, bool replay = false);
 
-  void StopAll();
+  List<XivMessage> StopAll();
   void Stop(MessageSource source);
   void Stop(string id);
+  XivMessage? GetPrev(XivMessage? from);
   void Skip();
 
   int CountPlaying(MessageSource source);
@@ -528,11 +529,16 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return null;
   }
 
-  public void StopAll()
+  public List<XivMessage> StopAll()
   {
     _logger.Debug($"Stopping all playing audio");
+    List<XivMessage> stopped = [];
     foreach (TrackableSound track in _playing.Values)
+    {
       _ = FadeOutAndStopAsync(track);
+      stopped.Add(track.Message);
+    }
+    return stopped;
   }
 
   public void Stop(MessageSource source)
@@ -549,6 +555,19 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       _ = FadeOutAndStopAsync(track);
     else
       _logger.Debug($"Failed to find playing audio with id {id}");
+  }
+
+  public XivMessage? GetPrev(XivMessage? from)
+  {
+    lock (_playbackHistoryLock)
+    {
+      if (_playbackHistory.Count == 0) return null;
+      if (from == null) return _playbackHistory.Skip(_playing.Count).First();
+      int idx = _playbackHistory.FindIndex(m => m.Id == from.Id);
+      if (idx < 0) return null;
+      int nextIdx = idx + 1;
+      return nextIdx < _playbackHistory.Count ? _playbackHistory[nextIdx] : null;
+    }
   }
 
   public void Skip()
@@ -641,7 +660,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _mixer?.MixerInputs.Count() ?? -1;
   }
 
-  private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 250)
+  private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 0)
   {
     if (track.IsStopping) return;
     track.IsStopping = true;

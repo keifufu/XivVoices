@@ -65,6 +65,9 @@ public class XivMessage
   [JsonIgnore]
   public int RelativeVolume { get; set; } = 0;
 
+  [JsonIgnore]
+  public bool Queued { get; set; } = false;
+
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 

@@ -40,7 +40,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.LocalTTSAdvanced);
+    OpenTab(ConfigTab.AudioHistory);
 #endif
 
     return _logger.ServiceLifecycle();
@@ -56,7 +56,10 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
 
     _windowSystem.RemoveAllWindows();
 
+#if !NO_KTK
     await _configAddon.DisposeAsync();
+#endif
+
     await _logger.ServiceLifecycle();
   }
 

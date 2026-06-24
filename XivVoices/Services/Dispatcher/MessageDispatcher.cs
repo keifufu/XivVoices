@@ -4,6 +4,7 @@ public interface IMessageDispatcher : IHostedService
 {
   Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null);
   void ClearQueue();
+  void Prev();
   string ReplaceName(string sentence, string playerName);
   (string speaker, string sentence) CleanMessage(string _speaker, string _sentence, string playerName, bool legacyNameReplacement);
   void DispatchTestMessage();
@@ -18,7 +19,8 @@ public enum PlaybackQueueState
 
 public class PlaybackQueue
 {
-  public ConcurrentQueue<XivMessage> Queue { get; set; } = new();
+  public object QueueLock = new();
+  public List<XivMessage> Queue { get; set; } = [];
   public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
   public MessageSource MessageSource { get; set; }
 }
@@ -63,18 +65,64 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
   }
 
+  private XivMessage? _prevPlaying;
+  public void Prev()
+  {
+    _logger.Debug("Replaying previous voiceline");
+
+    XivMessage? prev = _playbackService.GetPrev(_prevPlaying);
+    if (prev == null)
+    {
+      _logger.Debug("No previous voiceline found to replay");
+      return;
+    }
+
+    _prevPlaying = prev;
+    List<XivMessage> stopped = _playbackService.StopAll();
+    foreach (XivMessage message in stopped)
+    {
+      if (message.Queued)
+      {
+        lock (_queues[GetQueueForMessage(message)].QueueLock)
+        {
+          _queues[GetQueueForMessage(message)].Queue.Insert(0, message);
+        }
+      }
+    }
+    _playbackService.Play(prev, true);
+  }
+
+  private bool TryDequeue(PlaybackQueue queue, out XivMessage message)
+  {
+    lock (queue.QueueLock)
+    {
+      if (queue.Queue.Count == 0)
+      {
+        message = null!;
+        return false;
+      }
+
+      message = queue.Queue[0];
+      queue.Queue.RemoveAt(0);
+      return true;
+    }
+  }
+
   private void OnFrameworkUpdate(IFramework framework)
   {
     foreach (PlaybackQueue playbackQueue in _queues.Values)
     {
-      if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !playbackQueue.Queue.IsEmpty)
+      lock (playbackQueue.QueueLock)
       {
-        if (!_playbackService.Paused && playbackQueue.Queue.TryDequeue(out XivMessage? message))
+        if (playbackQueue.PlaybackQueueState == PlaybackQueueState.Stopped && !(playbackQueue.Queue.Count == 0))
         {
-          _logger.Debug($"Playing queued message: {message.Id}");
-          _playbackService.RemoveQueuedLine(message);
-          playbackQueue.PlaybackQueueState = PlaybackQueueState.Playing;
-          _ = _playbackService.Play(message);
+          if (!_playbackService.Paused && TryDequeue(playbackQueue, out XivMessage? message))
+          {
+            _logger.Debug($"Playing queued message: {message.Id}");
+            _playbackService.RemoveQueuedLine(message);
+            playbackQueue.PlaybackQueueState = PlaybackQueueState.Playing;
+            _ = _playbackService.Play(message);
+          }
         }
       }
     }
@@ -82,6 +130,12 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
   {
+    if (_prevPlaying != null)
+    {
+      if (message.Id == _prevPlaying?.Id) _prevPlaying = null;
+      else return;
+    }
+
     int count = _playbackService.CountPlaying(GetQueueForMessage(message));
     if (GetQueueForMessage(message) == MessageSource.AddonTalk)
       count += _playbackService.CountPlaying(MessageSource.SelectString);
@@ -99,18 +153,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnQueuedLineSkipped(object? sender, XivMessage message)
   {
-    XivMessage? itemToRemove = _queues[GetQueueForMessage(message)].Queue.FirstOrDefault(item => item.Id == message.Id);
-
-    if (itemToRemove != null)
+    lock (_queues[GetQueueForMessage(message)].QueueLock)
     {
-      ConcurrentQueue<XivMessage> newQueue = new();
-
-      foreach (XivMessage item in _queues[GetQueueForMessage(message)].Queue)
-        if (item.Id != message.Id)
-          newQueue.Enqueue(item);
-
-      _queues[GetQueueForMessage(message)].Queue = newQueue;
-
+      _queues[GetQueueForMessage(message)].Queue.Remove(message);
       _logger.Debug($"Removed queued line: {message.Id}");
     }
   }
@@ -300,7 +345,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       _logger.Chat(pre: $"Ignored Speaker: {message.Speaker}", preColor: 25);
 
     bool allowed = true;
-    bool queued = false;
     bool isNarrator = message.Speaker == "Narrator";
     switch (source)
     {
@@ -309,24 +353,24 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonTalkTTSEnabled)
             : !message.IsLocalTTS || _configuration.AddonTalkTTSEnabled);
-        queued = _configuration.QueueDialogue;
+        message.Queued = _configuration.QueueDialogue;
         break;
       case MessageSource.AddonBattleTalk:
         allowed = _configuration.AddonBattleTalkEnabled
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled)
             : !message.IsLocalTTS || _configuration.AddonBattleTalkTTSEnabled);
-        queued = true;
+        message.Queued = true;
         break;
       case MessageSource.AddonMiniTalk:
         allowed = _configuration.AddonMiniTalkEnabled && (!message.IsLocalTTS || _configuration.AddonMiniTalkTTSEnabled);
-        queued = true;
+        message.Queued = true;
         break;
       case MessageSource.ChatMessage:
-        queued = _configuration.QueueChatMessages;
+        message.Queued = _configuration.QueueChatMessages;
         break;
       case MessageSource.SelectString:
-        queued = _configuration.QueueDialogue;
+        message.Queued = _configuration.QueueDialogue;
         break;
     }
 
@@ -353,11 +397,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       return;
     }
 
-    if (queued || _playbackService.Paused)
+    if (message.Queued || _playbackService.Paused)
     {
       _logger.Debug($"Queueing message: {message.Id}");
-      _queues[GetQueueForMessage(message)].Queue.Enqueue(message);
-      _playbackService.AddQueuedLine(message);
+      lock (_queues[GetQueueForMessage(message)].QueueLock)
+      {
+        _queues[GetQueueForMessage(message)].Queue.Add(message);
+        _playbackService.AddQueuedLine(message);
+      }
     }
     else
     {
