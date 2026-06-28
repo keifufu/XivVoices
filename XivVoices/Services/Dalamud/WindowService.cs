@@ -40,7 +40,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.AudioHistory);
+    OpenTab(ConfigTab.LocalTTSSettings);
 #endif
 
     return _logger.ServiceLifecycle();

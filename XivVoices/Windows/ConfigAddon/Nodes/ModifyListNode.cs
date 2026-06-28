@@ -299,6 +299,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
   public void RefreshList()
   {
     SelectedOption = null;
+    _listNode.ClearSelection();
     RebuildList();
   }
 }

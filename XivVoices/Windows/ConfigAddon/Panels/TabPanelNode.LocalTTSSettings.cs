@@ -38,6 +38,12 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private System.Action? _overrideOverlayOnApply = null;
   private string? _overrideCurrentlyEditingSpeaker = null;
 
+  private ConfigOverlayNode _chatChannelVoicesOverlayNode = null!;
+  private CheckboxNode _chatChannelVoicesEnabledNode = null!;
+  private Dictionary<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> _chatChannelVoicesNodes = [];
+  private TextButtonNode _chatChannelVoicesApplyNode = null!;
+  private System.Action? _chatChannelVoicesOnApply = null;
+
   private ConfigOverlayNode _allowedVoicesOverlayNode = null!;
   private ScrollingNode<ResNode> _allowedVoicesContainerNode = null!;
   private readonly List<CheckboxNode> _allowedVoicesMaleCheckboxNodes = [];
@@ -108,6 +114,13 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       MaxListOptions = 8,
       OnOptionSelected = (option) =>
       {
+        if (option.Contains("==="))
+        {
+          // Invalid selection, revert back.
+          Task.Run(ConfigurationSaved);
+          return;
+        }
+
         _configuration.LocalTTSMaleVoice = option;
         _configuration.Save();
       }
@@ -141,6 +154,13 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       MaxListOptions = 8,
       OnOptionSelected = (option) =>
       {
+        if (option.Contains("==="))
+        {
+          // Invalid selection, revert back.
+          Task.Run(ConfigurationSaved);
+          return;
+        }
+
         _configuration.LocalTTSFemaleVoice = option;
         _configuration.Save();
       }
@@ -188,7 +208,43 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     AttachNode(defaultSettingsSectionNode);
 
-    ConfigSectionNode randomizationSettingsSectionNode = new("Randomization Settings", defaultSettingsSectionNode);
+    ConfigSectionNode chatChannelsSectionNode = new("Chat Channels", defaultSettingsSectionNode);
+
+    chatChannelsSectionNode.AttachNode(new TextButtonNode
+    {
+      String = "Chat Channels",
+      X = 140.0f,
+      Size = new Vector2(220.0f, 28.0f),
+      OnClick = () =>
+      {
+        _chatChannelVoicesOverlayNode.IsVisible = true;
+        _chatChannelVoicesOnApply = () =>
+        {
+          _configuration.LocalTTSChatChannelVoicesEnabled = _chatChannelVoicesEnabledNode.IsChecked;
+          _configuration.LocalTTSChatChannelVoices.Clear();
+
+          foreach (KeyValuePair<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> kvp in _chatChannelVoicesNodes)
+          {
+            string? maleVoice = kvp.Value.maleNode.SelectedOption;
+            if (maleVoice == "Default Male") maleVoice = null;
+            if (maleVoice?.Contains("===") ?? false) maleVoice = null;
+
+            string? femaleVoice = kvp.Value.femaleNode.SelectedOption;
+            if (femaleVoice == "Default Female") femaleVoice = null;
+            if (femaleVoice?.Contains("===") ?? false) maleVoice = null;
+
+            if (maleVoice == null && femaleVoice == null) continue;
+            _configuration.LocalTTSChatChannelVoices.Add(kvp.Key, (maleVoice, femaleVoice));
+          }
+
+          _configuration.Save();
+        };
+      }
+    }, inline: true);
+
+    AttachNode(chatChannelsSectionNode);
+
+    ConfigSectionNode randomizationSettingsSectionNode = new("Randomization Settings", chatChannelsSectionNode, offset: -4.0f);
 
     randomizationSettingsSectionNode.AttachNode(new ConfigTooltipNode()
     {
@@ -425,6 +481,142 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       }
     });
 
+    _chatChannelVoicesOverlayNode = new ConfigOverlayNode(_services);
+    _chatChannelVoicesOverlayNode.AttachNode(this);
+    _chatChannelVoicesOverlayNode.Title = "Chat Channels";
+
+    List<XivChatType> chatTypes = [
+      XivChatType.Say,
+      XivChatType.TellIncoming,
+      XivChatType.TellOutgoing,
+      XivChatType.Party,
+      XivChatType.CrossParty,
+      XivChatType.Shout,
+      XivChatType.Yell,
+      XivChatType.Alliance,
+      XivChatType.FreeCompany,
+      XivChatType.CustomEmote,
+      XivChatType.StandardEmote,
+      XivChatType.CrossLinkShell1,
+      XivChatType.CrossLinkShell2,
+      XivChatType.CrossLinkShell3,
+      XivChatType.CrossLinkShell4,
+      XivChatType.CrossLinkShell5,
+      XivChatType.CrossLinkShell6,
+      XivChatType.CrossLinkShell7,
+      XivChatType.CrossLinkShell8,
+      XivChatType.Ls1,
+      XivChatType.Ls2,
+      XivChatType.Ls3,
+      XivChatType.Ls4,
+      XivChatType.Ls5,
+      XivChatType.Ls6,
+      XivChatType.Ls7,
+      XivChatType.Ls8,
+    ];
+
+    ScrollingNode<VerticalListNode> chatChannelVoicesContainerNode = new()
+    {
+      ContentNode = {
+        FitContents = true,
+      },
+      Size = new Vector2(320.0f, 345.0f),
+    };
+    _chatChannelVoicesOverlayNode.AttachContent(chatChannelVoicesContainerNode);
+
+    _chatChannelVoicesEnabledNode = new CheckboxNode()
+    {
+      String = "Enable Chat Channel Voices",
+      Size = new Vector2(230.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _chatChannelVoicesApplyNode.IsEnabled = true;
+        foreach (KeyValuePair<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> kvp in _chatChannelVoicesNodes)
+        {
+          kvp.Value.maleNode.IsEnabled = value;
+          kvp.Value.maleNode.Alpha = value ? 1.0f : 0.5f;
+          kvp.Value.femaleNode.IsEnabled = value;
+          kvp.Value.femaleNode.Alpha = value ? 1.0f : 0.5f;
+        }
+      }
+    };
+    chatChannelVoicesContainerNode.ContentNode.AddNode(_chatChannelVoicesEnabledNode);
+    chatChannelVoicesContainerNode.ContentNode.AddDummy(4.0f);
+
+    foreach (XivChatType chatType in chatTypes)
+    {
+      chatChannelVoicesContainerNode.ContentNode.AddNode(new HorizontalLineNode
+      {
+        Size = new Vector2(310.0f, 4.0f),
+      });
+
+      chatChannelVoicesContainerNode.ContentNode.AddDummy(4.0f);
+      chatChannelVoicesContainerNode.ContentNode.AddNode(new LabelTextNode
+      {
+        String = " " + chatType.ToString(),
+        Height = 18.0f,
+        FontSize = 14,
+      });
+      chatChannelVoicesContainerNode.ContentNode.AddDummy(2.0f);
+
+      StringDropDownNode maleNode = new()
+      {
+        Size = new Vector2(155.0f, 24.0f),
+      };
+
+      StringDropDownNode femaleNode = new()
+      {
+        Size = new Vector2(155.0f, 24.0f),
+      };
+
+      chatChannelVoicesContainerNode.ContentNode.AddNode(new HorizontalListNode
+      {
+        Height = 24.0f,
+        InitialNodes = [
+          maleNode,
+          femaleNode
+        ]
+      });
+
+      chatChannelVoicesContainerNode.ContentNode.AddDummy(4.0f);
+
+      _chatChannelVoicesNodes.Add(chatType, (maleNode, femaleNode));
+    }
+
+    chatChannelVoicesContainerNode.ContentNode.RecalculateLayout();
+    chatChannelVoicesContainerNode.RecalculateSizes();
+
+    _chatChannelVoicesOverlayNode.AttachContent(new HorizontalLineNode
+    {
+      Y = chatChannelVoicesContainerNode.Height,
+      Size = new Vector2(320.0f, 4.0f),
+    });
+
+    _chatChannelVoicesApplyNode = new TextButtonNode
+    {
+      String = "Apply",
+      Size = new Vector2(120.0f, 28.0f),
+      Position = new Vector2(75.0f, chatChannelVoicesContainerNode.Height + 8.0f),
+      OnClick = () =>
+      {
+        _chatChannelVoicesOverlayNode.IsVisible = false;
+        _chatChannelVoicesOnApply?.Invoke();
+      }
+    };
+    _chatChannelVoicesOverlayNode.AttachContent(_chatChannelVoicesApplyNode);
+
+    _chatChannelVoicesOverlayNode.AttachContent(new TextButtonNode
+    {
+      String = "Close",
+      Size = new Vector2(120.0f, 28.0f),
+      Position = new Vector2(195.0f, chatChannelVoicesContainerNode.Height + 8.0f),
+      OnClick = () =>
+      {
+        _chatChannelVoicesOverlayNode.IsVisible = false;
+        ConfigurationSaved(); // Update the dropdowns
+      }
+    });
+
     _allowedVoicesOverlayNode = new ConfigOverlayNode(_services);
     _allowedVoicesOverlayNode.AttachNode(this);
     _allowedVoicesOverlayNode.Title = "Allowed Voices";
@@ -536,6 +728,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _tabBarNode.Size = new Vector2(Width, 24.0f);
     _overrideOverlayNode.SetSize(Size);
+    _chatChannelVoicesOverlayNode.SetSize(Size);
     _allowedVoicesOverlayNode.SetSize(Size);
     NativeUtils.FixSliderNode(_overrideOverlayPitchNode);
     _localTTSOverridesListNode.Size = new Vector2(Width, Height - _localTTSOverridesSectionNode.Y - _localTTSOverridesListNode.Y);
@@ -555,14 +748,17 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       .OrderBy(s => s, StringComparer.OrdinalIgnoreCase)
       .ToList();
 
+    List<string> maleAndFemaleVoices = maleVoices.Concat(["=== FEMALE ==="]).Concat(femaleVoices).ToList();
+    List<string> femaleAndMaleVoices = femaleVoices.Concat(["=== MALE ==="]).Concat(maleVoices).ToList();
+
     _gameInteropService.RunOnFrameworkThread(() =>
     {
       _localTTSDefaultVoiceNode.SelectedOption = _configuration.LocalTTSDefaultVoice;
 
-      _localTTSMaleVoiceNode.Options = maleVoices;
+      _localTTSMaleVoiceNode.Options = maleAndFemaleVoices;
       _localTTSMaleVoiceNode.SelectedOption = _configuration.LocalTTSMaleVoice;
 
-      _localTTSFemaleVoiceNode.Options = femaleVoices;
+      _localTTSFemaleVoiceNode.Options = femaleAndMaleVoices;
       _localTTSFemaleVoiceNode.SelectedOption = _configuration.LocalTTSFemaleVoice;
 
       _localTTSCPUUsageNode.SelectedOption = _configuration.LocalTTSThreads switch
@@ -574,11 +770,32 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       };
 
       _localTTSVoiceRandomizationNode.IsChecked = _configuration.LocalTTSVoiceRandomization;
+      _localTTSVoiceRandomizationNode.Label.TextColor = (_configuration.LocalTTSChatChannelVoicesEnabled && _localTTSVoiceRandomizationNode.IsChecked) ? ColorHelper.GetColor(25) : ColorHelper.GetColor(8);
+      _localTTSVoiceRandomizationNode.Label.TextFlags = (_configuration.LocalTTSChatChannelVoicesEnabled && _localTTSVoiceRandomizationNode.IsChecked) ? _localTTSVoiceRandomizationNode.Label.TextFlags | TextFlags.Italic : _localTTSVoiceRandomizationNode.Label.TextFlags & ~TextFlags.Italic;
+      _localTTSVoiceRandomizationNode.TextTooltip = (_configuration.LocalTTSChatChannelVoicesEnabled && _localTTSVoiceRandomizationNode.IsChecked) ? "You have Chat Channel Voices enabled, this will disable voice randomization for chat messages." : string.Empty;
+
       _localTTSPitchRandomizationNode.IsChecked = _configuration.LocalTTSPitchRandomization;
 
       _localTTSOverridesListNode.Options = _configuration.LocalTTSOverrides.Select(kv => (kv.Key, kv.Value)).ToList();
 
       _overrideOverlayVoiceNode.Options = maleVoices.Concat(femaleVoices).ToList();
+
+      _chatChannelVoicesApplyNode.IsEnabled = false;
+      _chatChannelVoicesEnabledNode.IsChecked = _configuration.LocalTTSChatChannelVoicesEnabled;
+      foreach (KeyValuePair<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> kvp in _chatChannelVoicesNodes)
+      {
+        bool success = _configuration.LocalTTSChatChannelVoices.TryGetValue(kvp.Key, out (string? male, string? female) chatChannelVoices);
+        kvp.Value.maleNode.Options = (new[] { "Default Male" }).Concat(maleAndFemaleVoices).ToList();
+        kvp.Value.maleNode.SelectedOption = success ? chatChannelVoices.male ?? "Default Male" : "Default Male";
+        kvp.Value.maleNode.OnOptionSelected = (_) => _chatChannelVoicesApplyNode.IsEnabled = true;
+        kvp.Value.maleNode.IsEnabled = _configuration.LocalTTSChatChannelVoicesEnabled;
+        kvp.Value.maleNode.Alpha = _configuration.LocalTTSChatChannelVoicesEnabled ? 1.0f : 0.5f;
+        kvp.Value.femaleNode.Options = (new[] { "Default Female" }).Concat(femaleAndMaleVoices).ToList();
+        kvp.Value.femaleNode.SelectedOption = success ? chatChannelVoices.female ?? "Default Female" : "Default Female";
+        kvp.Value.femaleNode.OnOptionSelected = (_) => _chatChannelVoicesApplyNode.IsEnabled = true;
+        kvp.Value.femaleNode.IsEnabled = _configuration.LocalTTSChatChannelVoicesEnabled;
+        kvp.Value.femaleNode.Alpha = _configuration.LocalTTSChatChannelVoicesEnabled ? 1.0f : 0.5f;
+      }
 
       _allowedVoicesApplyNode.IsEnabled = false;
       _allowedVoicesContainerNode.ContentNode.Height = 0.0f;

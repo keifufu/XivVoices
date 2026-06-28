@@ -58,27 +58,31 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
       case XivChatType.Say:
         allowed = _configuration.ChatSayEnabled;
         break;
+      case XivChatType.TellIncoming:
+        allowed = _configuration.ChatTellEnabled;
+        break;
       case XivChatType.TellOutgoing:
         speaker = _gameInteropService.PlayerName ?? "Unknown";
         speakerWorld = _gameInteropService.PlayerWorld;
         allowed = _configuration.ChatTellEnabled;
         break;
-      case XivChatType.TellIncoming:
-        allowed = _configuration.ChatTellEnabled;
+      case XivChatType.Party:
+      case XivChatType.CrossParty:
+        allowed = _configuration.ChatPartyEnabled;
         break;
       case XivChatType.Shout:
       case XivChatType.Yell:
         allowed = _configuration.ChatShoutYellEnabled;
-        break;
-      case XivChatType.Party:
-      case XivChatType.CrossParty:
-        allowed = _configuration.ChatPartyEnabled;
         break;
       case XivChatType.Alliance:
         allowed = _configuration.ChatAllianceEnabled;
         break;
       case XivChatType.FreeCompany:
         allowed = _configuration.ChatFreeCompanyEnabled;
+        break;
+      case XivChatType.CustomEmote:
+      case XivChatType.StandardEmote:
+        allowed = _configuration.ChatEmotesEnabled;
         break;
       case XivChatType.CrossLinkShell1:
       case XivChatType.CrossLinkShell2:
@@ -97,10 +101,6 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
       case XivChatType.Ls7:
       case XivChatType.Ls8:
         allowed = _configuration.ChatLinkshellEnabled;
-        break;
-      case XivChatType.CustomEmote:
-      case XivChatType.StandardEmote:
-        allowed = _configuration.ChatEmotesEnabled;
         break;
     }
 

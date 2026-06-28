@@ -165,7 +165,19 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     }
 
     string gender = message.Npc?.Gender ?? _configuration.LocalTTSDefaultVoice;
-    if (_configuration.LocalTTSVoiceRandomization)
+    string defaultVoice = gender == "Male" ? _configuration.LocalTTSMaleVoice : _configuration.LocalTTSFemaleVoice;
+
+    if (message.Source == MessageSource.ChatMessage && _configuration.LocalTTSChatChannelVoicesEnabled)
+    {
+      if (_configuration.LocalTTSChatChannelVoices.TryGetValue(message.ChatChannel ?? XivChatType.Say, out (string? male, string? female) chatChannelVoices))
+      {
+        string? voice = (gender == "Male" ? chatChannelVoices.male : chatChannelVoices.female) ?? defaultVoice;
+        LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == voice);
+        if (match != null) return match;
+      }
+      // If we didn't find a match, we fall back to the non-randomized default voices on purpose.
+    }
+    else if (_configuration.LocalTTSVoiceRandomization)
     {
       List<LocalTTSVoice> canonical = Voices.OrderBy(v => v.Name).ToList();
       byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(speaker));
@@ -182,7 +194,6 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       _logger.Debug($"Failed to find randomized voice for '{speaker}', falling back to default voice.");
     }
 
-    string defaultVoice = gender == "Male" ? _configuration.LocalTTSMaleVoice : _configuration.LocalTTSFemaleVoice;
     return Voices.FirstOrDefault(v => v.Name == defaultVoice);
   }
 

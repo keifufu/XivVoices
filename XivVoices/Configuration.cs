@@ -87,6 +87,9 @@ public class Configuration : IPluginConfiguration
   public string LocalTTSFemaleVoice = "Heart";
   public int LocalTTSThreads = 2;
 
+  public bool LocalTTSChatChannelVoicesEnabled = false;
+  public Dictionary<XivChatType, (string? male, string? female)> LocalTTSChatChannelVoices = [];
+
   public bool LocalTTSVoiceRandomization = true;
   public bool LocalTTSPitchRandomization = true;
   public List<string> LocalTTSDisallowedVoices = [];
