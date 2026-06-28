@@ -4,7 +4,7 @@ using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
-public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.Overview;
   private IDalamudPluginInterface _pluginInterface = null!;
@@ -19,12 +19,12 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   private TextNode _versionNode = null!;
   private TextButtonNode _actionButtonNode = null!;
   private TextNode _loginNoteNode = null!;
-  private TextDropDownNode _selectDriveNode = null!;
+  private StringDropDownNode _selectDriveNode = null!;
   private TextNode _orNode = null!;
   private TextButtonNode _selectDirectoryNode = null!;
   private TextNode _selectedPathNode = null!;
   private TextNode _changelogHeaderNode = null!;
-  private ScrollingTreeNode _changelogNode = null!;
+  private ScrollingNode<VerticalListNode> _changelogNode = null!;
 
   private string? _selectedPath = null;
   private bool _isImport = false;
@@ -35,11 +35,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     _dataService = _services.GetRequiredService<IDataService>();
     _keyState = _services.GetRequiredService<IKeyState>();
     _logger = _services.GetRequiredService<ILogger>();
-
-    _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
-    _dataService.OnLatestVersionChanged += OnLatestVersionChanged;
-    _dataService.OnServerStatusChanged += OnServerStatusChanged;
-    _dataService.OnUpdateFinished += OnUpdateFinished;
 
     _logoNode = new ImGuiImageNode()
     {
@@ -205,16 +200,23 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
     _changelogNode = new()
     {
-      CategoryVerticalSpacing = 0.0f,
+      ContentNode = {
+        FitContents = true
+      }
     };
     AttachNode(_changelogNode);
 
     foreach (KeyValuePair<string, string[]> version in Changelog.Versions)
     {
-      TreeListCategoryNode categoryNode = new()
+      CollapsingHeaderNode categoryNode = new()
       {
         String = version.Key,
-        OnToggle = _ => _changelogNode.RecalculateLayout(),
+        ItemSpacing = 2.0f,
+        OnToggle = _ =>
+        {
+          _changelogNode.ContentNode.RecalculateLayout();
+          _changelogNode.RecalculateSizes();
+        },
       };
 
       categoryNode.AddNode(new ResNode() { Height = 2.0f });
@@ -227,9 +229,9 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
           TextNode textNode = new()
           {
             String = i == 0 ? " " + section : section,
-            Width = _changelogNode.TreeListNode.Width,
+            Width = _changelogNode.ContentNode.Width - 8.0f,
             Height = 12.0f,
-            X = i == 0 ? 18.0f : 33.0f,
+            X = i == 0 ? 14.0f : 29.0f,
           };
           categoryNode.AddNode(textNode);
         }
@@ -237,8 +239,22 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
         categoryNode.AddNode(new ResNode());
       }
 
-      _changelogNode.AddCategoryNode(categoryNode);
+      _changelogNode.ContentNode.AddNode(categoryNode);
     }
+
+    _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
+    _dataService.OnLatestVersionChanged += OnLatestVersionChanged;
+    _dataService.OnServerStatusChanged += OnServerStatusChanged;
+    _dataService.OnUpdateFinished += OnUpdateFinished;
+  }
+
+  protected override void Dispose(bool disposing, bool isNativeDestructor)
+  {
+    _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
+    _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
+    _dataService.OnServerStatusChanged -= OnServerStatusChanged;
+    _dataService.OnUpdateFinished -= OnUpdateFinished;
+    base.Dispose(disposing, isNativeDestructor);
   }
 
   private static IEnumerable<string> Wrap(string? s, int max = 46)
@@ -268,16 +284,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     return File.Exists(Path.Join(path, "manifest.json")) && File.Exists(Path.Join(path, "tools.md5"));
   }
 
-  protected override void Dispose(bool disposing, bool isNativeDestructor)
-  {
-    base.Dispose(disposing, isNativeDestructor);
-
-    _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
-    _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
-    _dataService.OnServerStatusChanged -= OnServerStatusChanged;
-    _dataService.OnUpdateFinished -= OnUpdateFinished;
-  }
-
   protected override void OnSizeChanged()
   {
     base.OnSizeChanged();
@@ -299,15 +305,15 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
     _changelogHeaderNode.Position = new Vector2((Width - _changelogHeaderNode.Size.X) / 2.0f, _actionButtonNode.Bounds.Bottom + 18.0f);
     _changelogNode.Position = new Vector2(0, _changelogHeaderNode.Bounds.Bottom);
     _changelogNode.Size = new Vector2(Width, Height - _changelogNode.Y);
-    _changelogNode.RecalculateLayout();
-    for (int i = 0; i < _changelogNode.CategoryNodes.Count; i++)
+    _changelogNode.ContentNode.RecalculateLayout();
+    for (int i = 0; i < _changelogNode.ContentNode.Nodes.Count; i++)
     {
-      TreeListCategoryNode node = _changelogNode.CategoryNodes[i];
-      node.Width = _changelogNode.TreeListNode.Width;
+      CollapsingHeaderNode node = (CollapsingHeaderNode)_changelogNode.ContentNode.Nodes[i];
+      node.Width = _changelogNode.ContentNode.Width - 8.0f;
       node.IsCollapsed = i != 0;
       node.RecalculateLayout();
     }
-    _changelogNode.RecalculateLayout();
+    _changelogNode.ContentNode.RecalculateLayout();
   }
 
   private void OnDataDirectoryChanged()
@@ -317,8 +323,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnServerStatusChanged()
   {
-    if (!SetupComplete) return;
-
     using RentedSeStringBuilder builder = new();
     _serverStatusNode.String = builder.Builder.Append("Server Status: ").PushColorType(_dataService.ServerStatus == ServerStatus.ONLINE ? 45u : 15u).Append(_dataService.ServerStatus).GetViewAsSpan();
     _serverStatusNode.Position = new Vector2((Width - _serverStatusNode.Size.X) / 2.0f, _welcomeNode.Bounds.Bottom);
@@ -328,8 +332,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnVoicelinesChanged()
   {
-    if (!SetupComplete) return;
-
     using RentedSeStringBuilder builder = new();
     bool allVoicelinesDownloaded = _dataService.Manifest != null && _dataService.DataStatus.VoicelinesDownloaded == _dataService.Manifest.Voicelines.Count;
     bool mostVoicelinesDownloaded = _dataService.Manifest != null && (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
@@ -339,8 +341,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void OnLatestVersionChanged()
   {
-    if (!SetupComplete) return;
-
     using RentedSeStringBuilder builder = new();
     _versionNode.String = builder.Builder.Append("Version: ").PushColorType(_dataService.IsOutdated ? 15u : 45u).Append(_dataService.Version).GetViewAsSpan();
     _versionNode.Position = new Vector2((Width - _versionNode.Size.X) / 2.0f, _voicelinesNode.Bounds.Bottom);
@@ -349,8 +349,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   private void UpdateLoginInstallUpdateState()
   {
-    if (!SetupComplete) return;
-
     _actionButtonNode.IsEnabled = true;
     _loginNoteNode.IsVisible = false;
     _selectDriveNode.IsVisible = false;
@@ -409,7 +407,6 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode(con
 
   public override void OnUpdate()
   {
-    if (!SetupComplete) return;
     _serverStatusNode.Position = new Vector2((Width - _serverStatusNode.Size.X) / 2.0f, _welcomeNode.Bounds.Bottom);
     _voicelinesNode.Position = new Vector2((Width - _voicelinesNode.Size.X) / 2.0f, _serverStatusNode.Bounds.Bottom);
     _versionNode.Position = new Vector2((Width - _versionNode.Size.X) / 2.0f, _voicelinesNode.Bounds.Bottom);

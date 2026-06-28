@@ -1,15 +1,17 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Enums;
+using KamiToolKit.Interfaces;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
-using KamiToolKit.Premade.Node.Simple;
+using Lumina.Text.ReadOnly;
 
 namespace XivVoices.Windows;
 
-public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struct where TU : ListItemNode<T>, IListItemNode, new()
+public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListItemNode<T>, IListItemNode, new()
 {
+  private string _searchText = string.Empty;
   private readonly IKeyState _keyState;
-  private readonly SearchWidget _searchWidget;
+
+  public readonly TextInputNode _searchInputNode;
   private readonly CircleButtonNode _exportButton;
   private readonly ListNode<T, TU> _listNode;
 
@@ -17,26 +19,26 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
   private readonly TextButtonNode _editButton;
   private readonly TextButtonNode _removeButton;
 
-  public LocalTTSModifyListNode(IKeyState keyState)
+  public ModifyListNode(IKeyState keyState)
   {
     _keyState = keyState;
-    _searchWidget = new SearchWidget
+    _searchInputNode = new TextInputNode
     {
-      OnSortOrderChanged = OnSortOrderChanged,
-      OnSearchUpdated = OnSearchUpdated,
+      PlaceholderString = "Search ...",
+      String = _searchText,
+      OnInputReceived = SearchTextChanged,
     };
-    _searchWidget.InputNode.PlaceholderString = "Search ...";
-    _searchWidget.AttachNode(this);
+    _searchInputNode.AttachNode(this);
 
     _exportButton = new CircleButtonNode()
     {
       Size = new Vector2(30.0f, 30.0f),
       OnClick = () =>
       {
-        if (_exportButton?.Icon == ButtonIcon.CheckedBox || _exportButton?.Icon == ButtonIcon.Cross) return;
+        if (_exportButton?.Icon == CircleButtonIcon.CheckedBox || _exportButton?.Icon == CircleButtonIcon.Cross) return;
 
         (string result, bool success) result;
-        if (_exportButton?.Icon == ButtonIcon.Undo)
+        if (_exportButton?.Icon == CircleButtonIcon.Undo)
         {
           result = OnUndo?.Invoke() ?? default;
           _lastWasImport = false;
@@ -106,10 +108,10 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
   public void OnUpdate()
   {
     bool showImportExportResult = (DateTime.Now - _lastImportExport).TotalSeconds <= 3;
-    ButtonIcon importExportResultIcon = _lastImportExportSuccess ? ButtonIcon.CheckedBox : ButtonIcon.Cross;
-    if (showImportExportResult && _lastImportExportSuccess && _lastWasImport && _exportButton.Icon != ButtonIcon.Undo)
+    CircleButtonIcon importExportResultIcon = _lastImportExportSuccess ? CircleButtonIcon.CheckedBox : CircleButtonIcon.Cross;
+    if (showImportExportResult && _lastImportExportSuccess && _lastWasImport && _exportButton.Icon != CircleButtonIcon.Undo)
     {
-      _exportButton.Icon = ButtonIcon.Undo;
+      _exportButton.Icon = CircleButtonIcon.Undo;
       _exportButton.TextTooltip = _lastImportExportResult + " Click to undo.";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
@@ -121,35 +123,41 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && _keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Override duplicates)"))
     {
-      _exportButton.Icon = ButtonIcon.Add;
+      _exportButton.Icon = CircleButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Override duplicates)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Hold Control"))
     {
-      _exportButton.Icon = ButtonIcon.Add;
+      _exportButton.Icon = CircleButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Hold Control to override duplicates)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
-    else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != ButtonIcon.Document)
+    else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != CircleButtonIcon.Document)
     {
-      _exportButton.Icon = ButtonIcon.Document;
+      _exportButton.Icon = CircleButtonIcon.Document;
       _exportButton.TextTooltip = "Export (Hold Shift to Import)";
       if (tooltipVisible) _exportButton.ShowTooltip();
     }
+  }
+
+  private void SearchTextChanged(ReadOnlySeString newSearchString)
+  {
+    _searchText = newSearchString.ToString();
+    RebuildList(_searchText);
   }
 
   protected override void OnSizeChanged()
   {
     base.OnSizeChanged();
 
-    _searchWidget.Size = new Vector2(Width - _exportButton.Width - 4.0f, 30.0f);
-    _searchWidget.Position = Vector2.Zero;
+    _searchInputNode.Size = new Vector2(Width - _exportButton.Width - 14.0f, 28.0f);
+    _searchInputNode.Position = new Vector2(5.0f, 5.0f);
 
-    _exportButton.Position = new Vector2(_searchWidget.Bounds.Right, 5.0f);
+    _exportButton.Position = new Vector2(_searchInputNode.Bounds.Right, 5.0f);
 
-    _listNode.Size = new Vector2(Width, Height - _searchWidget.Height - 40.0f);
-    _listNode.Position = new Vector2(0.0f, _searchWidget.Y + _searchWidget.Height + 8.0f);
+    _listNode.Size = new Vector2(Width, Height - _searchInputNode.Height - 40.0f);
+    _listNode.Position = new Vector2(0.0f, _searchInputNode.Y + _searchInputNode.Height + 8.0f);
 
     const float buttonPadding = 5.0f;
     float buttonWidth = (Width - (buttonPadding * 2.0f)) / 3.0f;
@@ -164,42 +172,15 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     _removeButton.Position = new Vector2(buttonWidth * 2.0f + buttonPadding * 2.0f, Height - 28.0f);
   }
 
-  public ListConfigDisplayMode DisplayMode
-  {
-    get;
-    set
-    {
-      field = value;
-      _addButton.IsVisible = value.HasFlag(ListConfigDisplayMode.Add);
-      _editButton.IsVisible = value.HasFlag(ListConfigDisplayMode.Edit);
-      _removeButton.IsVisible = value.HasFlag(ListConfigDisplayMode.Remove);
-    }
-  } = ListConfigDisplayMode.Add | ListConfigDisplayMode.Edit | ListConfigDisplayMode.Remove;
-
   public List<T> Options
   {
     get;
     set
     {
       field = value;
-      _listNode.OptionsList = value;
+      RefreshList();
     }
   } = [];
-
-  public List<Enum>? SortOptions
-  {
-    get => _searchWidget.SortingOptions;
-    set
-    {
-      _searchWidget.SortingOptions = value ?? [];
-      OnSizeChanged();
-
-      if (value is not null && value.Count > 0)
-      {
-        OnSortOrderChanged(value.First(), false);
-      }
-    }
-  }
 
   public Action<T?>? SelectionChanged { get; init; }
 
@@ -233,7 +214,7 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     }
   }
 
-  public delegate int ItemCompareDelegate(T left, T right, Enum sortingMode);
+  public delegate int ItemCompareDelegate(T left, T right);
 
   public ItemCompareDelegate? ItemComparer { get; set; }
 
@@ -253,24 +234,21 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     }
   }
 
-  private void RebuildList(Enum? sortingOption = null, bool? reversed = null, string? searchString = null)
+  private void RebuildList(string? searchString = null)
   {
     List<T> baseList = Options ?? [];
     IEnumerable<T> result = baseList;
 
-    string search = searchString ?? _searchWidget.SearchText;
+    string search = searchString ?? _searchText;
     if (!string.IsNullOrEmpty(search) && IsSearchMatch is not null)
     {
       result = result.Where(item => IsSearchMatch(item, search));
     }
 
-    Enum sortMode = sortingOption ?? _searchWidget.SortMode;
-    bool isReversed = reversed ?? _searchWidget.IsReversed;
-
     if (ItemComparer is not null)
     {
       List<T> listCopy = result.ToList();
-      listCopy.Sort((left, right) => ItemComparer.Invoke(left, right, sortMode) * (isReversed ? -1 : 1));
+      listCopy.Sort(ItemComparer.Invoke);
       _listNode.OptionsList = listCopy;
     }
     else
@@ -279,16 +257,6 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
     }
 
     UpdateButtonStates();
-  }
-
-  private void OnSortOrderChanged(Enum sortingOption, bool reversed)
-  {
-    RebuildList(sortingOption, reversed, null);
-  }
-
-  private void OnSearchUpdated(string searchString)
-  {
-    RebuildList(null, null, searchString);
   }
 
   private void OnListItemSelected(T obj)
@@ -332,6 +300,5 @@ public class LocalTTSModifyListNode<T, TU> : SimpleComponentNode where T : struc
   {
     SelectedOption = null;
     RebuildList();
-    _listNode.FullRebuild();
   }
 }

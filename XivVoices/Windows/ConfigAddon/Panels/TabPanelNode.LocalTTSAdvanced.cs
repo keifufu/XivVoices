@@ -2,7 +2,7 @@ using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
-public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSAdvanced;
   private Configuration _configuration = null!;

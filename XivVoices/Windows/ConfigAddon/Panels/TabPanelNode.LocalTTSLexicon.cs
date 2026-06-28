@@ -1,11 +1,12 @@
 using System.Collections.Immutable;
+using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
 using LocalTTSLexicon = (string from, string to);
 
-public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSLexicon;
   private IKeyState _keyState = null!;
@@ -15,7 +16,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
   private ConfigSectionNode _localTTSLexiconSectionNode = null!;
   private StatelessTabBarNode _tabBarNode = null!;
 
-  private LocalTTSModifyListNode<LocalTTSLexicon, LocalTTSLexiconItemNode> _localTTSLexiconListNode = null!;
+  private ModifyListNode<LocalTTSLexicon, LocalTTSLexiconItemNode> _localTTSLexiconListNode = null!;
   private Dictionary<string, string> _localTTSLexiconUndoState = [];
 
   private ConfigOverlayNode _lexiconOverlayNode = null!;
@@ -143,10 +144,9 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
         _configuration.Save();
         return ("Import undone.", true);
       },
-      ItemComparer = (left, right, mode) => left.from.CompareTo(right.from),
+      ItemComparer = (left, right) => left.from.CompareTo(right.from),
       IsSearchMatch = (data, search) => data.from.Contains(search, StringComparison.OrdinalIgnoreCase) || data.to.Contains(search, StringComparison.OrdinalIgnoreCase),
     };
-
     _localTTSLexiconSectionNode.AttachNode(_localTTSLexiconListNode, indent: false, padding: -4.0f);
 
     AttachNode(_localTTSLexiconSectionNode);
@@ -180,7 +180,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
     {
       Position = new Vector2(_lexiconOverlayToNode.Bounds.Right - 12.0f, 2.0f),
       Size = new Vector2(28.0f, 28.0f),
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       TextTooltip = "Preview",
       OnClick = () =>
       {
@@ -233,7 +233,6 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
   public override void ConfigurationSaved()
   {
     _localTTSLexiconListNode.Options = _configuration.LocalTTSLexicon.Select(kv => (kv.Key, kv.Value)).ToList();
-    _localTTSLexiconListNode.RefreshList();
   }
 
   public override void OnUpdate()

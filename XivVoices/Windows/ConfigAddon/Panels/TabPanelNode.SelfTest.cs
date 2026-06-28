@@ -6,7 +6,7 @@ using KamiToolKit.Nodes;
 namespace XivVoices.Windows;
 
 // If we start having enough self-test's to need scrolling, I'd rather just have the stepNodes be scrollable and the buttons/log static.
-public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.SelfTest;
   private ISelfTestService _selfTestService = null!;
@@ -18,7 +18,7 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
   private TextNode _instructionNode = null!;
   private TextButtonNode _startStopNode = null!;
   private readonly List<TextButtonNode> _actionNodes = [];
-  private TextMultiLineInputNode _logNode = null!;
+  private TextInputNode _logNode = null!;
 
   public override void OnSetup()
   {
@@ -68,7 +68,6 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
       Position = new Vector2(0.0f, (20.0f * _stepNodes.Count) + 50.0f),
       Flags = TextInputFlags.MultiLine | TextInputFlags.WordWrap,
     };
-    _logNode.TextLimitsNode.DetachNode();
     _logNode.CurrentTextNode.TextFlags |= TextFlags.MultiLine;
     _logNode.CurrentTextNode.LineSpacing = 14;
     unsafe
@@ -144,6 +143,7 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode(con
       }
       if (_logNode.String != l)
         _logNode.String = l;
+      _logNode.ShowLimitText = false;
     }
   }
 }

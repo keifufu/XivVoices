@@ -1,11 +1,11 @@
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.AudioHistory;
+  private IKeyState _keyState = null!;
   private Configuration _configuration = null!;
   private IReportService _reportService = null!;
   private IPlaybackService _playbackService = null!;
@@ -14,11 +14,11 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
   private CheckboxNode _logReportsToChatNode = null!;
 
   private ConfigSectionNode _audioLogsSectionNode = null!;
-  private AudioListNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued), AudioHistoryNode> _audioLogsNode = null!;
+  private ListNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued), AudioHistoryNode> _audioLogsNode = null!;
   private LabelTextNode _noAudioLogsNode = null!;
 
   private ConfigOverlayNode _overlayNode = null!;
-  private TextDropDownNode _overlayDropdownNode = null!;
+  private StringDropDownNode _overlayDropdownNode = null!;
   private TextInputNode _overlayInputNode = null!;
   private TextButtonNode _overlaySubmitNode = null!;
   private TextButtonNode _overlayCancelNode = null!;
@@ -26,6 +26,7 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
 
   public override void OnSetup()
   {
+    _keyState = _services.GetRequiredService<IKeyState>();
     _configuration = _services.GetRequiredService<Configuration>();
     _reportService = _services.GetRequiredService<IReportService>();
     _playbackService = _services.GetRequiredService<IPlaybackService>();
@@ -71,17 +72,18 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
     _audioLogsSectionNode.AttachNode(new ConfigTooltipNode()
     {
       TextTooltip = """
-      Left-Click: Play/Pause/Skip voiceline.
-      Right-Click: Report voiceline (not available for yellow LocalTTS or already-reported voicelines).
+      Click: Play/Pause/Skip voiceline.
+      Shift + Click: Report voiceline (not available for yellow LocalTTS or already-reported voicelines).
       """
     }, inline: true);
 
     _audioLogsNode = new()
     {
       OptionsList = [],
-      OnItemSelected = (itemData, isRightClick) =>
+      OnItemSelected = (itemData) =>
       {
-        if (isRightClick)
+        _audioLogsNode.ClearSelection();
+        if (_keyState[VirtualKey.SHIFT])
         {
           if (itemData.isQueued || itemData.message.IsGenerating || itemData.message.IsLocalTTS || itemData.message.Reported) return;
           _overlayInputNode.IsVisible = false;
@@ -132,7 +134,7 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
     _overlayNode.AttachNode(this);
     _overlayNode.Title = "Report Voiceline";
 
-    _overlayDropdownNode = new TextDropDownNode()
+    _overlayDropdownNode = new StringDropDownNode()
     {
       Options = ["Already voiced ingame", "Mispronunciations", "Wrong Voice", "Other"],
       Size = new Vector2(300.0f, 24.0f),

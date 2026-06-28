@@ -3,7 +3,7 @@ using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
-using KamiToolKit.Overlay.UiOverlay;
+using KamiToolKit.UiOverlay;
 
 namespace XivVoices.Windows;
 
@@ -51,9 +51,9 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
       _overlayController = null;
       _xivvOverlayNode = null;
     }
-    else
+    else if (_overlayController == null)
     {
-      _overlayController ??= new();
+      _overlayController = new();
       _xivvOverlayNode = new XivvOverlayNode(services)
       {
         Size = new(370.0f, 100.0f),
@@ -65,9 +65,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
 
   public unsafe bool CheckCollision(AtkEventData* atkEventData)
   {
-    if (_xivvOverlayNode == null || !_xivvOverlayNode.IsVisible)
-      return false;
-
+    if (_xivvOverlayNode == null || !_xivvOverlayNode.IsVisible) return false;
     return _xivvOverlayNode.Frame.CheckCollision(atkEventData);
   }
 }
@@ -85,9 +83,10 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly Configuration _configuration;
   private readonly ILogger _logger;
 
-  public readonly WindowBackgroundNode Frame;
+  private readonly ResNode _moveNode;
+  public readonly WindowBackgroundTextureNode Frame;
   private readonly ViewportEventListener _editEventListener;
-  private readonly WindowBackgroundNode _frameFront;
+  private readonly WindowBackgroundTextureNode _frameFront;
   private readonly TextNode _titleText;
   private readonly CircleButtonNode _pinButton;
   private readonly CircleButtonNode _expandButton;
@@ -119,7 +118,10 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _configuration.Saved += ConfigurationSaved;
 
-    Frame = new WindowBackgroundNode(false)
+    _moveNode = new();
+    _moveNode.AttachNode(this);
+
+    Frame = new WindowBackgroundTextureNode(false)
     {
       Position = Vector2.Zero,
       Offsets = new Vector4(64.0f, 32.0f, 32.0f, 32.0f),
@@ -132,7 +134,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _editEventListener.AddEvent(AtkEventType.MouseMove, Frame);
     _editEventListener.AddEvent(AtkEventType.MouseDown, Frame);
 
-    _frameFront = new WindowBackgroundNode(true)
+    _frameFront = new WindowBackgroundTextureNode(true)
     {
       Position = Vector2.Zero,
       Offsets = new Vector4(64.0f, 32.0f, 32.0f, 32.0f),
@@ -154,7 +156,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _pinButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.Edit,
+      Icon = CircleButtonIcon.Edit,
       OnClick = () =>
       {
         _configuration.OverlayPinned = !_configuration.OverlayPinned;
@@ -165,7 +167,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _expandButton = new CircleButtonNode
     {
-      Icon = _configuration.OverlayExpanded ? ButtonIcon.UpArrow : ButtonIcon.ArrowDown,
+      Icon = _configuration.OverlayExpanded ? CircleButtonIcon.UpArrow : CircleButtonIcon.ArrowDown,
       OnClick = () =>
       {
         _configuration.OverlayExpanded = !_configuration.OverlayExpanded;
@@ -178,7 +180,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _configButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.GearCog,
+      Icon = CircleButtonIcon.GearCog,
       TextTooltip = "Open Configuration",
       OnClick = () =>
       {
@@ -197,7 +199,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _closeButton = new CircleButtonNode
     {
-      Icon = ButtonIcon.Cross,
+      Icon = CircleButtonIcon.Cross,
       TextTooltip = "Close",
       OnClick = () =>
       {
@@ -241,7 +243,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     {
       Width = 28.0f,
       Y = -2.0f,
-      Icon = ButtonIcon.RightArrow,
+      Icon = CircleButtonIcon.RightArrow,
       OnClick = () =>
       {
         _configuration.FastForward = !_configuration.FastForward;
@@ -331,7 +333,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     if (!IsVisible || _disposing) return;
 
     Scale = new(_configuration.OverlayScale / 100.0f);
-    _muteButton.Icon = _configuration.MuteEnabled ? ButtonIcon.Mute : ButtonIcon.Volume;
+    _muteButton.Icon = _configuration.MuteEnabled ? CircleButtonIcon.Mute : CircleButtonIcon.Volume;
 
     _frameFront.IsVisible = _configuration.OverlayBorder;
 
@@ -345,7 +347,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _pinButton.AddColor = new(_configuration.OverlayPinned ? 0.0f : 0.2f);
 
     _expandButton.TextTooltip = _configuration.OverlayExpanded ? "Collapse" : "Expand";
-    _expandButton.Icon = _configuration.OverlayExpanded ? ButtonIcon.UpArrow : ButtonIcon.ArrowDown;
+    _expandButton.Icon = _configuration.OverlayExpanded ? CircleButtonIcon.UpArrow : CircleButtonIcon.ArrowDown;
     if (_expandButtonTooltipVisible) _expandButton.ShowTooltip();
 
     _horizontalLine2.IsVisible = _configuration.OverlayExpanded;
@@ -400,6 +402,8 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _textNode.Width = Width - 16.0f;
     _textNode.Position = new Vector2(8.0f, _horizontalLine2.Bounds.Bottom + 4.0f);
+
+    _moveNode.Size = new Vector2(_pinButton.Bounds.Left, _horizontalLine.Bounds.Top);
   }
 
   private void OnEditEvent(AtkEventListener* thisPtr, AtkEventType eventType, int eventParam, AtkEvent* atkEvent, AtkEventData* atkEventData)
@@ -425,12 +429,11 @@ public unsafe class XivvOverlayNode : OverlayNode
         }
         break;
 
-      case AtkEventType.MouseDown when Frame.CheckCollision(atkEventData) && !_isMoving:
+      case AtkEventType.MouseDown when _moveNode.CheckCollision(atkEventData) && !_isMoving:
         {
-          _editEventListener.AddEvent(AtkEventType.MouseUp, Frame);
-
           _isMoving = true;
           _clickStartPosition = mousePosition;
+          _editEventListener.AddEvent(AtkEventType.MouseUp, Frame);
 
           atkEvent->SetEventIsHandled(true);
         }
@@ -438,14 +441,14 @@ public unsafe class XivvOverlayNode : OverlayNode
 
       case AtkEventType.MouseUp when _isMoving:
         {
-          OnMoveComplete?.Invoke(this);
-          OnEditComplete?.Invoke(this);
-
           _isMoving = false;
           _editEventListener.RemoveEvent(AtkEventType.MouseUp);
 
-          _configuration.OverlayPosition = Position;
-          _configuration.Save();
+          if (_configuration.OverlayPosition != Position)
+          {
+            _configuration.OverlayPosition = Position;
+            _configuration.Save();
+          }
         }
         break;
     }
@@ -461,7 +464,7 @@ public unsafe class XivvOverlayNode : OverlayNode
       _addonEventManager.SetCursor(AddonCursorType.Grab);
       _isCursorSet = true;
     }
-    else if (CheckCollision(atkEventData))
+    else if (_moveNode.CheckCollision(atkEventData))
     {
       _addonEventManager.SetCursor(AddonCursorType.Hand);
       _isCursorSet = true;

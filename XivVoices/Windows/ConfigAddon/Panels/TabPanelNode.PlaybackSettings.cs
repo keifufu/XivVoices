@@ -1,11 +1,11 @@
+using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 using Lumina.Extensions;
 
 namespace XivVoices.Windows;
 
-public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.PlaybackSettings;
   private Configuration _configuration = null!;
@@ -16,9 +16,9 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private CheckboxNode _respectFFXIVMasterVolumeToggleNode = null!;
 
   private LabelTextNode _outputDeviceNode = null!;
-  private TextDropDownNode _playbackDeviceTypeNode = null!;
-  private TextDropDownNode _waveOutDeviceNode = null!;
-  private TextDropDownNode _directSoundDeviceNode = null!;
+  private StringDropDownNode _playbackDeviceTypeNode = null!;
+  private StringDropDownNode _waveOutDeviceNode = null!;
+  private StringDropDownNode _directSoundDeviceNode = null!;
 
   private SliderNode _volumeSliderNode = null!;
   private SliderNode _speedSliderNode = null!;
@@ -37,8 +37,6 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _configuration = _services.GetRequiredService<Configuration>();
     _playbackService = _services.GetRequiredService<IPlaybackService>();
     _messageDispatcher = _services.GetRequiredService<IMessageDispatcher>();
-
-    _playbackService.OnOutputDeviceChanged += OnOutputDeviceChanged;
 
     ConfigSectionNode masterToggleSectionNode = new("Master Toggle");
 
@@ -96,7 +94,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       FontSize = 14,
     }, padding: 2.0f);
 
-    _playbackDeviceTypeNode = new TextDropDownNode()
+    _playbackDeviceTypeNode = new StringDropDownNode()
     {
       Options = Enum.GetValues<PlaybackDeviceType>().Select((e) => e.ToString()).ToList(),
       Size = new Vector2(220.0f, 24.0f),
@@ -121,7 +119,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     };
     outputDeviceSectionNode.AttachNode(_outputDeviceNode, padding: 6.0f);
 
-    _waveOutDeviceNode = new TextDropDownNode()
+    _waveOutDeviceNode = new StringDropDownNode()
     {
       Options = [],
       Size = new Vector2(220.0f, 24.0f),
@@ -147,7 +145,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     };
     outputDeviceSectionNode.AttachNode(_waveOutDeviceNode, inline: true, padding: -2.0f);
 
-    _directSoundDeviceNode = new TextDropDownNode()
+    _directSoundDeviceNode = new StringDropDownNode()
     {
       Options = [],
       Size = new Vector2(220.0f, 24.0f),
@@ -376,13 +374,14 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     }, inline: true);
 
     AttachNode(unfocusedWindowBehaviorSectionNode);
+
+    _playbackService.OnOutputDeviceChanged += OnOutputDeviceChanged;
   }
 
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
-    base.Dispose(disposing, isNativeDestructor);
-
     _playbackService.OnOutputDeviceChanged -= OnOutputDeviceChanged;
+    base.Dispose(disposing, isNativeDestructor);
   }
 
   private void OnOutputDeviceChanged(object? sender, bool initialized)
@@ -398,12 +397,12 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _playbackDeviceTypeNode.SelectedOption = _configuration.PlaybackDeviceType.ToString();
 
     _waveOutDeviceNode.IsVisible = _configuration.PlaybackDeviceType == PlaybackDeviceType.WaveOut;
-    if (_waveOutDeviceNode.Options.Count == 0) _waveOutDeviceNode.Options = ["Default Output Device", .. _playbackService.GetWaveOutDevices().Select((d) => ShortenDeviceName(d.ProductName))];
+    _waveOutDeviceNode.Options = ["Default Output Device", .. _playbackService.GetWaveOutDevices().Select((d) => ShortenDeviceName(d.ProductName))];
     _waveOutDeviceNode.SelectedOption = ShortenDeviceName(_configuration.WaveOutDevice ?? "Default Output Device");
 
     IEnumerable<DirectSoundDeviceInfo> directSoundDevices = _playbackService.GetDirectSoundDevices();
     _directSoundDeviceNode.IsVisible = _configuration.PlaybackDeviceType == PlaybackDeviceType.DirectSound;
-    if (_directSoundDeviceNode.Options.Count == 0) _directSoundDeviceNode.Options = ["Default Output Device", .. directSoundDevices.Select((d) => ShortenDeviceName(d.Description))];
+    _directSoundDeviceNode.Options = ["Default Output Device", .. directSoundDevices.Select((d) => ShortenDeviceName(d.Description))];
     _directSoundDeviceNode.SelectedOption = ShortenDeviceName(directSoundDevices.FirstOrDefault((d) => d.Guid == _configuration.DirectSoundDevice)?.Description ?? "Default Output Device");
 
     _volumeSliderNode.Value = _configuration.Volume;

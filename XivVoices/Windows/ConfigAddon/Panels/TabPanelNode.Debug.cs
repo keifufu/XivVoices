@@ -1,9 +1,8 @@
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.Debug;
   private Configuration _configuration = null!;
@@ -16,7 +15,7 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode(contai
   private ConfigTextEditNode _serverUrlNode = null!;
   private CheckboxNode _liveModeNode = null!;
   private CheckboxNode _warnIgnoredSpeakerNode = null!;
-  private TextDropDownNode _defaultChatChannelNoe = null!;
+  private StringDropDownNode _defaultChatChannelNoe = null!;
 
   private ConfigOverlayNode _overlayNode = null!;
   private TextInputNode _overlayInputNode = null!;

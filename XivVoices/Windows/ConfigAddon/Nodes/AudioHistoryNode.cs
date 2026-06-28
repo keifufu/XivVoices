@@ -1,10 +1,11 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
+using KamiToolKit.Interfaces;
 using KamiToolKit.Nodes;
 
 namespace XivVoices.Windows;
 
-public class AudioHistoryNode : AudioListItemNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued)>, IAudioListItemNode
+public class AudioHistoryNode : ListItemNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued)>, IListItemNode
 {
   public static float ItemHeight => 36.0f;
 
@@ -20,10 +21,7 @@ public class AudioHistoryNode : AudioListItemNode<(XivMessage message, bool isPl
     };
     _textNode.AttachNode(this);
 
-    _progressBarNode = new()
-    {
-      DisableCollisionNode = true,
-    };
+    _progressBarNode = new();
     _progressBarNode.AttachNode(this);
   }
 

@@ -1,12 +1,11 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node.Simple;
 using KamiToolKit.Timelines;
 using Lumina.Text.ReadOnly;
 
-namespace XivVoices.Windows;
+// TabBarNode, but stateless and using StatelessTabBarRadioButtonNode
+namespace KamiToolKit.Nodes;
 
-public class StatelessTabBarNode : SimpleComponentNode
+public class StatelessTabBarNode : ResNode
 {
   private readonly List<StatelessTabBarRadioButtonNode> _radioButtons = [];
 

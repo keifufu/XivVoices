@@ -1,10 +1,9 @@
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
-using KamiToolKit.Premade.Node;
 
 namespace XivVoices.Windows;
 
-public class OverlaySettingsTabPanelNode(IServiceProvider _services) : TabPanelNode(container: false)
+public class OverlaySettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
   public override ConfigTab Tab => ConfigTab.OverlaySettings;
   private Configuration _configuration = null!;
@@ -118,6 +117,9 @@ public class OverlaySettingsTabPanelNode(IServiceProvider _services) : TabPanelN
 
     _overlayHideInDutyNode.IsChecked = _configuration.OverlayHideInDuty;
     _overlayHideInDutyNode.IsEnabled = _configuration.OverlayOpen;
+
+    _overlayHideInCombatNode.IsChecked = _configuration.OverlayHideInCombat;
+    _overlayHideInCombatNode.IsEnabled = _configuration.OverlayOpen;
 
     _overlayHideWhenMutedNode.IsChecked = _configuration.OverlayHideWhenMuted;
     _overlayHideWhenMutedNode.IsEnabled = _configuration.OverlayOpen;

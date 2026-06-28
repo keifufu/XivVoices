@@ -1,6 +1,6 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
-using KamiToolKit;
-using KamiToolKit.Premade.Node.Simple;
+using KamiToolKit.BaseTypes;
+using KamiToolKit.Nodes.Simplified;
 
 namespace XivVoices.Windows;
 
@@ -36,8 +36,6 @@ public class ConfigAddon : NativeAddon
 
   protected override unsafe void OnSetup(AtkUnitBase* addon, Span<AtkValue> atkValueSpan)
   {
-    _configuration.Saved += ConfigurationSaved;
-
     foreach (ConfigTab tab in Enum.GetValues<ConfigTab>())
     {
       (uint iconId, string tooltip, bool enabled, bool visible) = GetTabDetail(tab);
@@ -107,22 +105,17 @@ public class ConfigAddon : NativeAddon
     AddTabPanel<SelfTestTabPanelNode>();
 
     SetTab(CurrentTab);
-    ConfigurationSaved();
-  }
 
-  public override ValueTask DisposeAsync()
-  {
-    if (_framework.IsFrameworkUnloading) return ValueTask.CompletedTask;
-    return base.DisposeAsync();
+    _configuration.Saved += ConfigurationSaved;
   }
 
   protected override unsafe void OnFinalize(AtkUnitBase* addon)
   {
-    base.OnFinalize(addon);
     _configuration.Saved -= ConfigurationSaved;
     _visibleTabButtons = 0;
     _tabButtons.Clear();
     _tabPanels.Clear();
+    base.OnFinalize(addon);
   }
 
   private void ConfigurationSaved()

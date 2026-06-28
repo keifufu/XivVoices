@@ -1,14 +1,15 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.BaseTypes.ComponentNode;
 using KamiToolKit.Classes;
-using KamiToolKit.Premade.Node.Simple;
+using KamiToolKit.Nodes.Simplified;
 using KamiToolKit.Timelines;
 using Lumina.Text.ReadOnly;
 
+// TabBarRadioButtonNode, but with hover feedback
 namespace KamiToolKit.Nodes;
 
 public unsafe class StatelessTabBarRadioButtonNode : ComponentNode<AtkComponentRadioButton, AtkUldComponentDataRadioButton>
 {
-
   public readonly TextNode LabelNode;
   public readonly NineGridNode SelectedNineGridNode;
   public readonly NineGridNode UnselectedNineGridNode;
