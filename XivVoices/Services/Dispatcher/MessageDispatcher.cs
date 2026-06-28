@@ -69,6 +69,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   public void Prev()
   {
     _logger.Debug("Replaying previous voiceline");
+    _playbackService.Stop(MessageSource.AddonBattleTalk);
 
     XivMessage? prev = _playbackService.GetPrev(_prevPlaying);
     if (prev == null)
@@ -77,12 +78,15 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
       return;
     }
 
+    if (_playbackService.SeekToStart()) return;
+
     _prevPlaying = prev;
     List<XivMessage> stopped = _playbackService.StopAll();
     foreach (XivMessage message in stopped)
     {
       if (message.Queued)
       {
+        message.Replay = true;
         lock (_queues[GetQueueForMessage(message)].QueueLock)
         {
           _queues[GetQueueForMessage(message)].Queue.Insert(0, message);
@@ -121,7 +125,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
             _logger.Debug($"Playing queued message: {message.Id}");
             _playbackService.RemoveQueuedLine(message);
             playbackQueue.PlaybackQueueState = PlaybackQueueState.Playing;
-            _ = _playbackService.Play(message);
+            _ = _playbackService.Play(message, message.Replay);
           }
         }
       }
@@ -129,8 +133,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
-    {
-      if (message.Id == _prevPlaying?.Id) _prevPlaying = null;
+  {
+    if (message.Id == _prevPlaying?.Id) _prevPlaying = null;
 
     int count = _playbackService.CountPlaying(GetQueueForMessage(message));
     if (GetQueueForMessage(message) == MessageSource.AddonTalk)

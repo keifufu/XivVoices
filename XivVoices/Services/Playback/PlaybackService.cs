@@ -23,6 +23,7 @@ public interface IPlaybackService : IHostedService
   void Stop(MessageSource source);
   void Stop(string id);
   XivMessage? GetPrev(XivMessage? from);
+  bool SeekToStart();
   void Skip();
 
   int CountPlaying(MessageSource source);
@@ -568,6 +569,18 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       int nextIdx = idx + 1;
       return nextIdx < _playbackHistory.Count ? _playbackHistory[nextIdx] : null;
     }
+  }
+
+  public bool SeekToStart()
+  {
+    bool seeked = false;
+    foreach (TrackableSound track in _playing.Values.Where(t => t.Message.Source != MessageSource.AddonMiniTalk && t.CurrentTime.Seconds > 1))
+    {
+      track.SeekToStart();
+      seeked = true;
+    }
+
+    return seeked;
   }
 
   public void Skip()

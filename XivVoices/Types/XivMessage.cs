@@ -68,6 +68,9 @@ public class XivMessage
   [JsonIgnore]
   public bool Queued { get; set; } = false;
 
+  [JsonIgnore]
+  public bool Replay { get; set; } = false;
+
   public override string ToString() =>
     JsonSerializer.Serialize(this, JsonOptions.Write);
 

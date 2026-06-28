@@ -49,6 +49,7 @@ public class TrackableSound : ISampleProvider, IDisposable
   }
 
   public WaveFormat WaveFormat => _soundTouchProvider.WaveFormat;
+  public TimeSpan CurrentTime => _sourceStream.CurrentTime;
   public TimeSpan TotalTime => _sourceStream.TotalTime;
 
   public int Read(float[] buffer, int offset, int count)
@@ -87,6 +88,14 @@ public class TrackableSound : ISampleProvider, IDisposable
       TimeSpan result = TimeSpan.FromSeconds(Math.Min(estimated.TotalSeconds, TotalTime.TotalSeconds) * (Speed / 100.0));
       return result > TotalTime ? TotalTime : result;
     }
+  }
+
+  public void SeekToStart()
+  {
+    _samplesPlayed = 0;
+    _lastSamplesPlayedAtRead = 0;
+    _lastReadTimeUtc = DateTime.UtcNow;
+    _sourceStream.Seek(0, 0);
   }
 
   public void Dispose()
