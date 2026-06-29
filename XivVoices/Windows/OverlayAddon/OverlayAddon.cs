@@ -315,22 +315,23 @@ public unsafe class XivvOverlayNode : OverlayNode
   private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
   private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
 
-  private bool _disposing = false;
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
-    _disposing = true;
+    if (disposing && !IsDisposed)
+    {
+      _configuration.Saved -= ConfigurationSaved;
+
+      _editEventListener.RemoveEvent(AtkEventType.MouseMove);
+      _editEventListener.RemoveEvent(AtkEventType.MouseDown);
+      _editEventListener.Dispose();
+    }
+
     base.Dispose(disposing, isNativeDestructor);
-
-    _configuration.Saved -= ConfigurationSaved;
-
-    _editEventListener.RemoveEvent(AtkEventType.MouseMove);
-    _editEventListener.RemoveEvent(AtkEventType.MouseDown);
-    _editEventListener.Dispose();
   }
 
   private void ConfigurationSaved()
   {
-    if (!IsVisible || _disposing) return;
+    if (!IsVisible) return;
 
     Scale = new(_configuration.OverlayScale / 100.0f);
     _muteButton.Icon = _configuration.MuteEnabled ? CircleButtonIcon.Mute : CircleButtonIcon.Volume;

@@ -53,6 +53,6 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
       }
     }
 
-    return _openBubbleHook.Original(self, actor, textPtr, notSure, attachmentPointID);
+    return _openBubbleHook.OriginalDisposeSafe(self, actor, textPtr, notSure, attachmentPointID);
   }
 }

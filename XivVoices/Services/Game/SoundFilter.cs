@@ -38,7 +38,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
   // AddonMiniTalk, AddonBattleTalk
   private unsafe SoundData* PlaySoundDetour(SoundManager* thisPtr, CStringPointer path, float volume, uint fadeInDuration, float posX, float posY, float posZ, float speed, int a9, uint soundNumber, bool autoRelease, SoundVolumeCategory volumeCategory, bool a13, int midiNote, bool a15, bool defaultFadeOut, bool isPositional, bool a18)
   {
-    SoundData* soundData = _playSoundHook.Original(thisPtr, path, volume, fadeInDuration, posX, posY, posZ, speed, a9, soundNumber, autoRelease, volumeCategory, a13, midiNote, a15, defaultFadeOut, isPositional, a18);
+    SoundData* soundData = _playSoundHook.OriginalDisposeSafe(thisPtr, path, volume, fadeInDuration, posX, posY, posZ, speed, a9, soundNumber, autoRelease, volumeCategory, a13, midiNote, a15, defaultFadeOut, isPositional, a18);
     string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
 
     if (_selfTestService.Step == SelfTestStep.SoundFilter_PlaySound)
@@ -51,7 +51,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
   // AddonTalk
   private unsafe SoundData* PlayCutsceneVoSoundDetour(SoundManager* thisPtr, CStringPointer path)
   {
-    SoundData* soundData = _playCutsceneVoSoundHook.Original(thisPtr, path);
+    SoundData* soundData = _playCutsceneVoSoundHook.OriginalDisposeSafe(thisPtr, path);
     string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
 
     if (_selfTestService.Step == SelfTestStep.SoundFilter_PlayCutsceneVOSound)

@@ -726,7 +726,11 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
-    _localTTSService.OnInitialized -= ConfigurationSaved;
+    if (disposing && !IsDisposed)
+    {
+      _localTTSService.OnInitialized -= ConfigurationSaved;
+    }
+
     base.Dispose(disposing, isNativeDestructor);
   }
 

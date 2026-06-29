@@ -250,10 +250,14 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
 
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
-    _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
-    _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
-    _dataService.OnServerStatusChanged -= OnServerStatusChanged;
-    _dataService.OnUpdateFinished -= OnUpdateFinished;
+    if (disposing && !IsDisposed)
+    {
+      _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
+      _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
+      _dataService.OnServerStatusChanged -= OnServerStatusChanged;
+      _dataService.OnUpdateFinished -= OnUpdateFinished;
+    }
+
     base.Dispose(disposing, isNativeDestructor);
   }
 

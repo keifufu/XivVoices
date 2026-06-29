@@ -380,7 +380,11 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   protected override void Dispose(bool disposing, bool isNativeDestructor)
   {
-    _playbackService.OnOutputDeviceChanged -= OnOutputDeviceChanged;
+    if (disposing && !IsDisposed)
+    {
+      _playbackService.OnOutputDeviceChanged -= OnOutputDeviceChanged;
+    }
+
     base.Dispose(disposing, isNativeDestructor);
   }
 
