@@ -1,4 +1,5 @@
 using FFXIVClientStructs.FFXIV.Component.GUI;
+using KamiToolKit.BaseTypes;
 using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
@@ -561,12 +562,12 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
       StringDropDownNode maleNode = new()
       {
-        Size = new Vector2(155.0f, 24.0f),
+        Size = new Vector2(150.0f, 24.0f),
       };
 
       StringDropDownNode femaleNode = new()
       {
-        Size = new Vector2(155.0f, 24.0f),
+        Size = new Vector2(150.0f, 24.0f),
       };
 
       chatChannelVoicesContainerNode.ContentNode.AddNode(new HorizontalListNode
@@ -585,6 +586,13 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     chatChannelVoicesContainerNode.ContentNode.RecalculateLayout();
     chatChannelVoicesContainerNode.RecalculateSizes();
+    foreach (NodeBase node in chatChannelVoicesContainerNode.ContentNode.Nodes)
+    {
+      if (node is not HorizontalLineNode)
+      {
+        node.X = 4.0f;
+      }
+    }
 
     _chatChannelVoicesOverlayNode.AttachContent(new HorizontalLineNode
     {
