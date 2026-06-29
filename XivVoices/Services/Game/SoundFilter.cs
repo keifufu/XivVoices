@@ -39,6 +39,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
   private unsafe SoundData* PlaySoundDetour(SoundManager* thisPtr, CStringPointer path, float volume, uint fadeInDuration, float posX, float posY, float posZ, float speed, int a9, uint soundNumber, bool autoRelease, SoundVolumeCategory volumeCategory, bool a13, int midiNote, bool a15, bool defaultFadeOut, bool isPositional, bool a18)
   {
     SoundData* soundData = _playSoundHook.OriginalDisposeSafe(thisPtr, path, volume, fadeInDuration, posX, posY, posZ, speed, a9, soundNumber, autoRelease, volumeCategory, a13, midiNote, a15, defaultFadeOut, isPositional, a18);
+    if (soundData == null) return soundData;
+
     string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
 
     if (_selfTestService.Step == SelfTestStep.SoundFilter_PlaySound)
@@ -52,6 +54,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
   private unsafe SoundData* PlayCutsceneVoSoundDetour(SoundManager* thisPtr, CStringPointer path)
   {
     SoundData* soundData = _playCutsceneVoSoundHook.OriginalDisposeSafe(thisPtr, path);
+    if (soundData == null) return soundData;
+
     string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
 
     if (_selfTestService.Step == SelfTestStep.SoundFilter_PlayCutsceneVOSound)
