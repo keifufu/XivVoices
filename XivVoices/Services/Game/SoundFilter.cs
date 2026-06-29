@@ -35,6 +35,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     return _logger.ServiceLifecycle();
   }
 
+  // AddonMiniTalk, AddonBattleTalk
   private unsafe SoundData* PlaySoundDetour(SoundManager* thisPtr, CStringPointer path, float volume, uint fadeInDuration, float posX, float posY, float posZ, float speed, int a9, uint soundNumber, bool autoRelease, SoundVolumeCategory volumeCategory, bool a13, int midiNote, bool a15, bool defaultFadeOut, bool isPositional, bool a18)
   {
     SoundData* soundData = _playSoundHook.Original(thisPtr, path, volume, fadeInDuration, posX, posY, posZ, speed, a9, soundNumber, autoRelease, volumeCategory, a13, midiNote, a15, defaultFadeOut, isPositional, a18);
@@ -47,6 +48,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     return soundData;
   }
 
+  // AddonTalk
   private unsafe SoundData* PlayCutsceneVoSoundDetour(SoundManager* thisPtr, CStringPointer path)
   {
     SoundData* soundData = _playCutsceneVoSoundHook.Original(thisPtr, path);
