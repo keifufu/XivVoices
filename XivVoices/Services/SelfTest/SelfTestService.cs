@@ -19,10 +19,8 @@ public interface ISelfTestService
   void SkipTo(SelfTestStep state);
   List<(string button, bool enabled, System.Action action)> GetButtonsForCurrentStep();
 
-  void Report_SoundFilter_GetResourceSync(string path);
-  void Report_SoundFilter_GetResourceAsync(string path);
-  void Report_SoundFilter_LoadSoundFile(string name);
-  void Report_SoundFilter_PlaySpecificSound(long a1, int idx);
+  void Report_SoundFilter_PlaySound(string path);
+  void Report_SoundFilter_PlayCutsceneVOSound(string path);
   void Report_Provider_Chat(XivChatType type, string speaker, string? speakerWorld, string sentence);
   void Report_Provider_Talk(string speaker, string sentence);
   unsafe void Report_Provider_MiniTalk(GameObject* actor, string sentence);
@@ -38,35 +36,31 @@ public enum SelfTestStep : long
 {
   None = 0,
 
-  // Don't need to log in for these
-  SoundFilter_GetResourceSync = 1L << 1,
-  SoundFilter_GetResourceAsync = 1L << 2,
-  SoundFilter_LoadSoundFile = 1L << 3,
-  SoundFilter_PlaySpecificSound = 1L << 4,
-
   // Ul'dah plaza
-  Provider_Chat = 1L << 5,
-  Provider_Talk = 1L << 6,
-  Provider_Talk_AutoAdvance = 1L << 7,
-  Interop_GetNpcData = 1L << 8,
-  LipSync = 1L << 9,
+  Provider_Chat = 1L << 1,
+  Provider_Talk = 1L << 2,
+  Provider_Talk_AutoAdvance = 1L << 3,
+  Interop_GetNpcData = 1L << 4,
+  LipSync = 1L << 5,
 
   // Right outside Ul'dah plaza
-  Provider_MiniTalk = 1L << 10,
-  Interop_GetLocation = 1L << 11,
+  Provider_MiniTalk = 1L << 6,
+  Interop_GetLocation = 1L << 7,
 
-  Interop_IsOccupiedBySummoningBell = 1L << 12,
-  Interop_GetActiveQuests = 1L << 13,
-  Interop_GetActiveLeves = 1L << 14,
-  Interop_Camera = 1L << 15,
+  Interop_IsOccupiedBySummoningBell = 1L << 8,
+  Interop_GetActiveQuests = 1L << 9,
+  Interop_GetActiveLeves = 1L << 10,
+  Interop_Camera = 1L << 11,
 
-  Interop_GetClassJob = 1L << 16,
-  Provider_BattleTalk = 1L << 17,
-  Interop_IsInDuty = 1L << 18,
-  Interop_IsInCutscene = 1L << 19,
+  Interop_GetClassJob = 1L << 12,
+  Provider_BattleTalk = 1L << 13,
+  Interop_IsInDuty = 1L << 14,
+  Interop_IsInCutscene = 1L << 15,
 
-  Provider_CutSceneSelectString = 1L << 20,
-  Provider_SelectString = 1L << 21
+  SoundFilter_PlaySound = 1L << 16,
+  SoundFilter_PlayCutsceneVOSound = 1L << 17,
+  Provider_CutSceneSelectString = 1L << 18,
+  Provider_SelectString = 1L << 19
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
@@ -124,19 +118,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
 
     switch (Step)
     {
-      case SelfTestStep.SoundFilter_GetResourceSync:
-        CurrentInstruction = "Validate hook output";
-        Step = SelfTestStep.SoundFilter_GetResourceAsync;
-        break;
-      case SelfTestStep.SoundFilter_GetResourceAsync:
-        CurrentInstruction = "Validate hook output";
-        Step = SelfTestStep.SoundFilter_LoadSoundFile;
-        break;
-      case SelfTestStep.SoundFilter_LoadSoundFile:
-        CurrentInstruction = "Validate hook output";
-        Step = SelfTestStep.SoundFilter_PlaySpecificSound;
-        break;
-      case SelfTestStep.SoundFilter_PlaySpecificSound:
+      case SelfTestStep.None:
         CurrentInstruction = "Send yourself a /tell with the sentence \"banana\"";
         Step = SelfTestStep.Provider_Chat;
         break;
@@ -197,7 +179,15 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Interop_IsInCutscene;
         break;
       case SelfTestStep.Interop_IsInCutscene:
+        CurrentInstruction = "Verify hook output.";
+        Step = SelfTestStep.SoundFilter_PlaySound;
+        break;
+      case SelfTestStep.SoundFilter_PlaySound:
         CurrentInstruction = "View the first cutscene of \"Shadowbringers\".";
+        Step = SelfTestStep.SoundFilter_PlayCutsceneVOSound;
+        break;
+      case SelfTestStep.SoundFilter_PlayCutsceneVOSound:
+        CurrentInstruction = "Select \"We came here for the Exarch.\".";
         Step = SelfTestStep.Provider_CutSceneSelectString;
         break;
       case SelfTestStep.Provider_CutSceneSelectString:
@@ -211,10 +201,6 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
           return;
         }
         goto case SelfTestStep.None;
-      case SelfTestStep.None:
-        Step = SelfTestStep.SoundFilter_GetResourceSync; // Loop back to the start
-        CurrentInstruction = "Validate hook output";
-        break;
     }
 
     AddLog($"Started: {Step}");
@@ -427,14 +413,14 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
             break;
         }
         break;
-      case SelfTestStep.Provider_CutSceneSelectString:
+      case SelfTestStep.SoundFilter_PlayCutsceneVOSound:
         switch (StepState)
         {
           case 0:
             if (_gameInteropService.IsInCutscene())
             {
               StepState = 1;
-              CurrentInstruction = "Select \"We came here for the Exarch.\".";
+              CurrentInstruction = "Verify hook output and whether voiceline was filtered.";
             }
             break;
         }
@@ -454,10 +440,8 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
       case SelfTestStep.Interop_GetActiveLeves:
         completeEnabled = StepState == 2;
         break;
-      case SelfTestStep.SoundFilter_GetResourceSync:
-      case SelfTestStep.SoundFilter_GetResourceAsync:
-      case SelfTestStep.SoundFilter_LoadSoundFile:
-      case SelfTestStep.SoundFilter_PlaySpecificSound:
+      case SelfTestStep.SoundFilter_PlaySound:
+      case SelfTestStep.SoundFilter_PlayCutsceneVOSound:
       case SelfTestStep.Provider_Talk_AutoAdvance:
       case SelfTestStep.LipSync:
       case SelfTestStep.Interop_Camera:
@@ -473,17 +457,11 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     return buttons;
   }
 
-  public void Report_SoundFilter_GetResourceSync(string path)
+  public void Report_SoundFilter_PlaySound(string path)
     => AddLog(path);
 
-  public void Report_SoundFilter_GetResourceAsync(string path)
+  public void Report_SoundFilter_PlayCutsceneVOSound(string path)
     => AddLog(path);
-
-  public void Report_SoundFilter_LoadSoundFile(string name)
-    => AddLog(name);
-
-  public void Report_SoundFilter_PlaySpecificSound(long a1, int idx)
-    => AddLog($"{a1}:{idx}");
 
   public void Report_Provider_Chat(XivChatType type, string speaker, string? speakerWorld, string sentence)
   {

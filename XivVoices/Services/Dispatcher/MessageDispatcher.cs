@@ -35,7 +35,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     foreach (MessageSource source in Enum.GetValues<MessageSource>())
       _queues[source] = new() { MessageSource = source };
 
-    _soundFilter.OnCutsceneAudioDetected += SoundFilter_OnCutSceneAudioDetected;
+    _soundFilter.OnVoicelineDetected += SoundFilter_OnCutSceneAudioDetected;
 
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
@@ -46,7 +46,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   public Task StopAsync(CancellationToken token)
   {
-    _soundFilter.OnCutsceneAudioDetected -= SoundFilter_OnCutSceneAudioDetected;
+    _soundFilter.OnVoicelineDetected -= SoundFilter_OnCutSceneAudioDetected;
 
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;

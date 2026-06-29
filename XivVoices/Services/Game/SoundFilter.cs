@@ -1,54 +1,27 @@
-using FFXIVClientStructs.FFXIV.Client.System.Resource;
-using FFXIVClientStructs.FFXIV.Client.System.Resource.Handle;
+using FFXIVClientStructs.FFXIV.Client.Sound;
 using InteropGenerator.Runtime;
 
 namespace XivVoices.Services;
 
 public interface ISoundFilter : IHostedService
 {
-  event EventHandler<InterceptedSound>? OnCutsceneAudioDetected;
+  event EventHandler<InterceptedSound>? OnVoicelineDetected;
 }
 
-// Cheers to 'SoundFilter' plugin.
-// This intercepts all sounds that are loaded and played,
-// allowing us to block XIVV's voices if a line is voiced,
-// and to block ARR's in-game voices.
 public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IGameInteropService _gameInteropService, IGameInteropProvider _interopProvider) : ISoundFilter
 {
-  private const int ResourceDataPointerOffset = 0xB0;
-  private readonly ConcurrentDictionary<IntPtr, string> _scds = new();
+  public Hook<SoundManager.Delegates.PlaySound> _playSoundHook = null!;
+  public Hook<SoundManager.Delegates.PlayCutsceneVoSound> _playCutsceneVoSoundHook = null!;
 
-  private IntPtr _noSoundPtr;
-  private IntPtr _infoPtr;
-
-  public event EventHandler<InterceptedSound>? OnCutsceneAudioDetected;
-
-  private Hook<ResourceManager.Delegates.GetResourceSync> _getResourceSyncHook = null!;
-  private Hook<ResourceManager.Delegates.GetResourceAsync> _getResourceAsyncHook = null!;
-
-  private unsafe delegate void* PlaySpecificSoundDelegate(long a1, int idx);
-  private Hook<PlaySpecificSoundDelegate> _playSpecificSoundHook = null!;
-
-  private delegate IntPtr LoadSoundFileDelegate(IntPtr resourceHandle, uint a2);
-  private Hook<LoadSoundFileDelegate> _loadSoundFileHook = null!;
+  public event EventHandler<InterceptedSound>? OnVoicelineDetected;
 
   public unsafe Task StartAsync(CancellationToken token)
   {
-    (nint noSoundPtr, nint infoPtr) = SetUpNoSound();
-    _noSoundPtr = noSoundPtr;
-    _infoPtr = infoPtr;
-
 #if !NO_HOOKS
-    _getResourceSyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceSync>(ResourceManager.Addresses.GetResourceSync.Value, GetResourceSyncDetour);
-    _getResourceAsyncHook ??= _interopProvider.HookFromAddress<ResourceManager.Delegates.GetResourceAsync>(ResourceManager.Addresses.GetResourceAsync.Value, GetResourceAsyncDetour);
-
-    _playSpecificSoundHook ??= _interopProvider.HookFromSignature<PlaySpecificSoundDelegate>("48 89 5C 24 ?? 48 89 74 24 ?? 57 48 83 EC 20 33 F6 8B DA 48 8B F9 0F BA E2 0F", PlaySpecificSoundDetour);
-    _loadSoundFileHook ??= _interopProvider.HookFromSignature<LoadSoundFileDelegate>("E8 ?? ?? ?? ?? 48 85 C0 75 12 B0 F6", LoadSoundFileDetour);
-
-    _getResourceSyncHook.Enable();
-    _getResourceAsyncHook.Enable();
-    _loadSoundFileHook.Enable();
-    _playSpecificSoundHook.Enable();
+    _playSoundHook ??= _interopProvider.HookFromAddress<SoundManager.Delegates.PlaySound>(SoundManager.Addresses.PlaySound.Value, PlaySoundDetour);
+    _playCutsceneVoSoundHook ??= _interopProvider.HookFromAddress<SoundManager.Delegates.PlayCutsceneVoSound>(SoundManager.Addresses.PlayCutsceneVoSound.Value, PlayCutsceneVoSoundDetour);
+    _playSoundHook.Enable();
+    _playCutsceneVoSoundHook.Enable();
 #endif
 
     return _logger.ServiceLifecycle();
@@ -56,147 +29,47 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
 
   public Task StopAsync(CancellationToken token)
   {
-    _getResourceSyncHook?.Dispose();
-    _getResourceAsyncHook?.Dispose();
-    _loadSoundFileHook?.Dispose();
-    _playSpecificSoundHook?.Dispose();
-
-    Marshal.FreeHGlobal(_infoPtr);
-    Marshal.FreeHGlobal(_noSoundPtr);
+    _playSoundHook?.Dispose();
+    _playCutsceneVoSoundHook?.Dispose();
 
     return _logger.ServiceLifecycle();
   }
 
-  private byte[] GetNoSoundScd()
+  private unsafe SoundData* PlaySoundDetour(SoundManager* thisPtr, CStringPointer path, float volume, uint fadeInDuration, float posX, float posY, float posZ, float speed, int a9, uint soundNumber, bool autoRelease, SoundVolumeCategory volumeCategory, bool a13, int midiNote, bool a15, bool defaultFadeOut, bool isPositional, bool a18)
   {
-    Assembly assembly = Assembly.GetExecutingAssembly();
-    string resourceName = assembly.GetManifestResourceNames().Single(str => str.EndsWith("nosound.scd"));
-    Stream noSound = assembly.GetManifestResourceStream(resourceName)!;
-    using MemoryStream memoryStream = new();
-    noSound.CopyTo(memoryStream);
-    return memoryStream.ToArray();
+    SoundData* soundData = _playSoundHook.Original(thisPtr, path, volume, fadeInDuration, posX, posY, posZ, speed, a9, soundNumber, autoRelease, volumeCategory, a13, midiNote, a15, defaultFadeOut, isPositional, a18);
+    string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
+
+    if (_selfTestService.Step == SelfTestStep.SoundFilter_PlaySound)
+      _selfTestService.Report_SoundFilter_PlaySound(lPath);
+
+    if (ShouldFilter(lPath)) soundData->Volume = 0.0f;
+    return soundData;
   }
 
-  private (IntPtr noSoundPtr, IntPtr infoPtr) SetUpNoSound()
+  private unsafe SoundData* PlayCutsceneVoSoundDetour(SoundManager* thisPtr, CStringPointer path)
   {
-    // get the data of an empty scd
-    byte[] noSound = GetNoSoundScd();
+    SoundData* soundData = _playCutsceneVoSoundHook.Original(thisPtr, path);
+    string lPath = $"{path.ToString().ToLower()}/{soundData->SoundNumber}";
 
-    // allocate unmanaged memory for this data and copy the data into the memory
-    nint noSoundPtr = Marshal.AllocHGlobal(noSound.Length);
-    Marshal.Copy(noSound, 0, noSoundPtr, noSound.Length);
+    if (_selfTestService.Step == SelfTestStep.SoundFilter_PlayCutsceneVOSound)
+      _selfTestService.Report_SoundFilter_PlayCutsceneVOSound(lPath);
 
-    // allocate some memory for feeding into the play sound function
-    nint infoPtr = Marshal.AllocHGlobal(256);
-    // write a pointer to the empty scd
-    Marshal.WriteIntPtr(infoPtr + 8, noSoundPtr);
-    // specify where the game should offset from for the sound index
-    Marshal.WriteInt32(infoPtr + 0x88, 0x54);
-    // specify the number of sounds in the file
-    Marshal.WriteInt16(infoPtr + 0x94, 0);
-
-    return (noSoundPtr, infoPtr);
-  }
-
-  private unsafe ResourceHandle* GetResourceSyncDetour(ResourceManager* thisPtr, ResourceCategory* category, uint* type, uint* hash, CStringPointer path, void* unknown, void* unkDebugPtr, uint unkDebugInt)
-  {
-    ResourceHandle* ret = _getResourceSyncHook.Original(thisPtr, category, type, hash, path, unknown, unkDebugPtr, unkDebugInt);
-    if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceSync)
-      _selfTestService.Report_SoundFilter_GetResourceSync(path.ToString());
-    GetResourceDetourInner(ret, path);
-    return ret;
-  }
-
-  private unsafe ResourceHandle* GetResourceAsyncDetour(ResourceManager* thisPtr, ResourceCategory* category, uint* type, uint* hash, CStringPointer path, void* unknown, bool isUnknown, void* unkDebugPtr, uint unkDebugInt)
-  {
-    ResourceHandle* ret = _getResourceAsyncHook.Original(thisPtr, category, type, hash, path, unknown, isUnknown, unkDebugPtr, unkDebugInt);
-    if (_selfTestService.Step == SelfTestStep.SoundFilter_GetResourceAsync)
-      _selfTestService.Report_SoundFilter_GetResourceAsync(path.ToString());
-    GetResourceDetourInner(ret, path);
-    return ret;
-  }
-
-  private unsafe void GetResourceDetourInner(void* ret, CStringPointer path)
-  {
-    if (ret != null && EndsWithDotScd(path))
-    {
-      nint scdData = Marshal.ReadIntPtr((IntPtr)ret + ResourceDataPointerOffset);
-      // if we immediately have the scd data, cache it, otherwise add it to a waiting list to hopefully be picked up at sound play time
-      if (scdData != IntPtr.Zero)
-        _scds[scdData] = path.ToString();
-    }
-  }
-
-  private unsafe IntPtr LoadSoundFileDetour(IntPtr resourceHandle, uint a2)
-  {
-    nint ret = _loadSoundFileHook.Original(resourceHandle, a2);
-    try
-    {
-      ResourceHandle* handle = (ResourceHandle*)resourceHandle;
-      string name = handle->FileName.ToString();
-      if (_selfTestService.Step == SelfTestStep.SoundFilter_LoadSoundFile)
-        _selfTestService.Report_SoundFilter_LoadSoundFile(name);
-      if (name.EndsWith(".scd"))
-      {
-        nint dataPtr = Marshal.ReadIntPtr(resourceHandle + ResourceDataPointerOffset);
-        _scds[dataPtr] = name;
-      }
-    }
-    catch (Exception ex)
-    {
-      _logger.Error(ex.ToString());
-    }
-
-    return ret;
-  }
-
-  private unsafe void* PlaySpecificSoundDetour(long a1, int idx)
-  {
-    try
-    {
-      if (_selfTestService.Step == SelfTestStep.SoundFilter_PlaySpecificSound)
-        _selfTestService.Report_SoundFilter_PlaySpecificSound(a1, idx);
-      bool shouldFilter = PlaySpecificSoundDetourInner(a1, idx);
-      if (shouldFilter)
-      {
-        a1 = _infoPtr;
-        idx = 0;
-      }
-    }
-    catch (Exception ex)
-    {
-      _logger.Error(ex.ToString());
-    }
-
-    return _playSpecificSoundHook.Original(a1, idx);
-  }
-
-  private unsafe bool PlaySpecificSoundDetourInner(long a1, int idx)
-  {
-    if (a1 == 0) return false;
-
-    byte* scdData = *(byte**)(a1 + 8);
-    if (scdData == null) return false;
-
-    if (!_scds.TryGetValue((IntPtr)scdData, out string? path)) return false;
-
-    path = path.ToLowerInvariant();
-    string specificPath = $"{path}/{idx}";
-
-    return ShouldFilter(specificPath);
+    if (ShouldFilter(lPath) || _selfTestService.Step == SelfTestStep.SoundFilter_PlayCutsceneVOSound) soundData->Volume = 0.0f;
+    return soundData;
   }
 
   private bool ShouldFilter(string path)
   {
     // if (!path.Contains("sound/battle") && !path.Contains("sound/system") && !path.Contains("sound/foot") && !path.Contains("sound/vfx") && !path.Contains("bgcommon/sound")) _logger.Debug(path);
 
-    // All lines we care about seem to end with /0
+    // All lines we care about seem to be SoundNumber 0
     if (!path.EndsWith("/0")) return false;
 
     // MiniTalk and Battletalk, sound/voice/vo_line/8202105_en.scd/0
     if (path.StartsWith("sound/voice/vo_line/"))
     {
-      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
+      OnVoicelineDetected?.Invoke(this, new InterceptedSound(true, path));
       return false;
     }
 
@@ -206,7 +79,7 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     if (path.StartsWith("cut/ffxiv") && (path.Contains("vo_man") || path.Contains("vo_voiceman")))
     {
       bool shouldBlock = _configuration.ReplaceVoicedARRCutscenes && _gameInteropService.IsInCutscene();
-      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(!shouldBlock, path));
+      OnVoicelineDetected?.Invoke(this, new InterceptedSound(!shouldBlock, path));
       return shouldBlock;
     }
 
@@ -215,26 +88,11 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     // EW cut/ex4/sound/voicem/voiceman_06006/vo_voiceman_06006_006910_m_en.scd/0
     if (path.StartsWith("cut/ex") && path.Contains("sound/voicem/voiceman"))
     {
-      OnCutsceneAudioDetected?.Invoke(this, new InterceptedSound(true, path));
+      OnVoicelineDetected?.Invoke(this, new InterceptedSound(true, path));
       return false;
     }
 
     return false;
-  }
-
-  private unsafe bool EndsWithDotScd(byte* path)
-  {
-    if (path == null) return false;
-
-    int len = 0;
-    while (path[len] != 0) len++;
-
-    if (len < 4) return false;
-
-    return path[len - 4] == (byte)'.' &&
-      path[len - 3] == (byte)'s' &&
-      path[len - 2] == (byte)'c' &&
-      path[len - 1] == (byte)'d';
   }
 }
 
