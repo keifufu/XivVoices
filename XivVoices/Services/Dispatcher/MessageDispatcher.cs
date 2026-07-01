@@ -71,14 +71,14 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _logger.Debug("Replaying previous voiceline");
     _playbackService.Stop(MessageSource.AddonMiniTalk);
 
+    if (_playbackService.SeekToStart()) return;
+
     XivMessage? prev = _playbackService.GetPrev(_prevPlaying);
     if (prev == null)
     {
       _logger.Debug("No previous voiceline found to replay");
       return;
     }
-
-    if (_playbackService.SeekToStart()) return;
 
     _prevPlaying = prev;
     List<XivMessage> stopped = _playbackService.StopAll();
