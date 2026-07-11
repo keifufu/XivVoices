@@ -54,6 +54,7 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
       Arguments:
       - %n : XIVV NPC Name (or null)
       - %v : XIVV Voice Name (or null)
+      - %k : LocalTTS Voice Name(or null)
       - %s : Speaker
       - %t : Sentence
       The response is expected to be a WAV file.

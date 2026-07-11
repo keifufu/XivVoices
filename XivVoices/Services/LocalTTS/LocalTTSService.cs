@@ -151,6 +151,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   private LocalTTSVoice? ResolveVoice(XivMessage message)
   {
+    if (!_initialized) return null;
+
     if (message.VoiceOverride != null)
     {
       LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == message.VoiceOverride);
@@ -256,6 +258,11 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
   private async Task<(WaveStream? waveStream, int relativeVolume)> Generate_Internal(XivMessage message)
   {
+    LocalTTSVoice? voice = ResolveVoice(message);
+
+    string finalMessage = ApplyLexicon(message);
+    if (finalMessage.IsNullOrWhitespace()) return (null, 0);
+
     if (_configuration.LocalTTSRemoteEnabled)
     {
       try
@@ -266,7 +273,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
             .Replace("%n", Uri.EscapeDataString(message.Npc?.Id ?? "null"))
             .Replace("%v", Uri.EscapeDataString(message.Voice?.Id ?? "null"))
             .Replace("%s", Uri.EscapeDataString(message.Speaker))
-            .Replace("%t", Uri.EscapeDataString(message.AddName(message.Sentence)));
+            .Replace("%t", Uri.EscapeDataString(finalMessage))
+            .Replace("%k", Uri.EscapeDataString(voice?.Name ?? "null"));
 
           HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
           if (!response.IsSuccessStatusCode)
@@ -302,16 +310,12 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     }
     Stopwatch sw = Stopwatch.StartNew();
 
-    LocalTTSVoice? voice = ResolveVoice(message);
     if (voice == null)
     {
       _logger.Error("Failed to resolve LocalTTS voice");
       return (null, 0);
     }
     _logger.Debug($"Using LocalTTS Voice: {voice.Name}");
-
-    string finalMessage = ApplyLexicon(message);
-    if (finalMessage.IsNullOrWhitespace()) return (null, 0);
 
     try
     {
