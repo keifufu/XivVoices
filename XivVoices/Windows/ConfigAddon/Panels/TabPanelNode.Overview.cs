@@ -248,17 +248,15 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
     _dataService.OnUpdateFinished += OnUpdateFinished;
   }
 
-  protected override void Dispose(bool disposing, bool isNativeDestructor)
+  protected override void Dispose(bool isNativeDestructor)
   {
-    if (disposing && !IsDisposed)
-    {
-      _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
-      _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
-      _dataService.OnServerStatusChanged -= OnServerStatusChanged;
-      _dataService.OnUpdateFinished -= OnUpdateFinished;
-    }
+    if (IsDisposed) return;
+    _dataService.OnDataDirectoryChanged -= OnDataDirectoryChanged;
+    _dataService.OnLatestVersionChanged -= OnLatestVersionChanged;
+    _dataService.OnServerStatusChanged -= OnServerStatusChanged;
+    _dataService.OnUpdateFinished -= OnUpdateFinished;
 
-    base.Dispose(disposing, isNativeDestructor);
+    base.Dispose(isNativeDestructor);
   }
 
   private static IEnumerable<string> Wrap(string? s, int max = 46)

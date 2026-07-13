@@ -116,8 +116,6 @@ public unsafe class XivvOverlayNode : OverlayNode
     _addonEventManager = services.GetRequiredService<IAddonEventManager>();
     _gameInteropService = services.GetRequiredService<IGameInteropService>();
 
-    _configuration.Saved += ConfigurationSaved;
-
     _moveNode = new();
     _moveNode.AttachNode(this);
 
@@ -309,29 +307,26 @@ public unsafe class XivvOverlayNode : OverlayNode
     _textNode.AttachNode(this);
 
     ConfigurationSaved();
+    _configuration.Saved += ConfigurationSaved;
   }
 
   bool _expandButtonTooltipVisible = false;
   private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
   private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
 
-  protected override void Dispose(bool disposing, bool isNativeDestructor)
+  protected override void Dispose(bool isNativeDestructor)
   {
-    if (disposing && !IsDisposed)
-    {
-      _configuration.Saved -= ConfigurationSaved;
+    if (IsDisposed) return;
 
-      _editEventListener.RemoveEvent(AtkEventType.MouseMove);
-      _editEventListener.RemoveEvent(AtkEventType.MouseDown);
-      _editEventListener.Dispose();
-    }
+    _configuration.Saved -= ConfigurationSaved;
+    _editEventListener.Dispose();
 
-    base.Dispose(disposing, isNativeDestructor);
+    base.Dispose(isNativeDestructor);
   }
 
   private void ConfigurationSaved()
   {
-    if (!IsVisible) return;
+    if (IsDisposed || !IsVisible) return;
 
     Scale = new(_configuration.OverlayScale / 100.0f);
     _muteButton.Icon = _configuration.MuteEnabled ? CircleButtonIcon.Mute : CircleButtonIcon.Volume;
