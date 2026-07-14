@@ -8,11 +8,11 @@
   <PropertyGroup>
     <Author>keifufu</Author>
     <Name>XivVoices</Name>
-    <Punchline>Transforming Final Fantasy XIV by voicing every piece of dialogue!</Punchline>
-    <Description>A plugin that voices every NPC dialogue, battle interaction, and more.</Description>
+    <Punchline>Advanced TTS plugin voicing all dialogue in the game.</Punchline>
+    <Description>XivVoices is a text-to-speech plugin that ships with high-quality pre-generated voicelines covering most of the game's content, with built-in local TTS to fill the gaps.</Description>
     <RepoUrl>https://github.com/keifufu/XivVoices</RepoUrl>
     <IconUrl>https://raw.githubusercontent.com/keifufu/XivVoices/main/XivVoices/assets/logo.png</IconUrl>
-    <Tags>xivvoices;xivv</Tags>
+    <Tags>xivvoices;xivv;tts</Tags>
   </PropertyGroup>
 
   <ItemGroup>

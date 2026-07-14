@@ -1,32 +1,24 @@
 <p align="center"><img alt="logo" src="./XivVoices/assets/logo-text-dark.png#gh-dark-mode-only" width="400"></p>
 <p align="center"><img alt="logo" src="./XivVoices/assets/logo-text-light.png#gh-light-mode-only" width="400"></p>
 
-<h3 align="center">Transforming Final Fantasy XIV by voicing every piece of dialogue!</h3>
+<h3 align="center">Advanced TTS plugin voicing all dialogue in the game.</h3>
 
 <br />
 
 ## Description
 
-**XivVoices** is a plugin for Final Fantasy XIV that voices every NPC dialogue, battle interaction, and more. This plugin not only voices dialogues but also syncs NPC lip movements for an immersive experience. Immerse yourself in main and side quests alike, with every dialogue voiced, whether from named or unnamed NPCs.
-
-### Social
-
-Issues? Kudos? Wanna just hang with fellow FFXIV Story enjoyers?
-[Join us on Discord!](https://xivv.keifufu.dev/discord)
-
-Want to support XivVoices?
-[Support us on Patreon!](https://xivv.keifufu.dev/patreon)
-
-We also have a website for Stats and Leaderboards, if that tickles your fancy. [xivv.keifufu.dev](https://xivv.keifufu.dev)
+**XivVoices** is a text-to-speech plugin that ships with high-quality pre-generated voicelines covering most of the game's content, with built-in local TTS to fill the gaps.
 
 ### Key Features:
 
 1. **Expansive Coverage**: Voices all in-game dialogue, including NPC conversations, battle dialogue, narrator lines, and more.
-2. **Lip Syncing**: Syncs NPCs' lip movements with their voiced dialogues for enhanced realism.
-3. **Player Chat**: Implements voices for player messages using local TTS.
-4. **Report System**: Every missing piece of dialogue gets reported automatically to be processed shortly after. Users can also manually report any dialogue they think should be redone for better quality.
-5. **Always Voiced**: When a line isn't yet voiced, the plugin falls back to local TTS, the same used for chat messages.
-6. **Customization**: We provide plenty of settings to customize what you want voiced and how!
+2. **Report System**: Every missing piece of dialogue gets reported automatically to be processed shortly after. Users can also manually report any dialogue they think should be redone for better quality.
+3. **Always Voiced**: When a line isn't yet generated, the plugin falls back to local TTS.
+4. **Local TTS**: Built-in local TTS with multiple voices and many options such as voice and pitch overrides, and a lexicon to tweak pronunciation.
+5. **Player Chat**: Chat messages and player choices are voiced using local TTS.
+6. **QoL Features**: Auto-advance, lip syncing, dialogue queueing, and more.
+7. **Highly Configurable**: There are plenty of settings to customize what you want voiced and how.
+8. **Cross Platform**: Works on all operating systems out of the box.
 
 ### Requirements
 
@@ -37,6 +29,7 @@ We also have a website for Stats and Leaderboards, if that tickles your fancy. [
 
 Follow these steps to install XivVoices:
 
+<!--TODO: new images with native ui-->
 1. **Prepare Your System**:
    - Ensure that XIVLauncher is installed on your system along with Dalamud.
 2. **Configure Dalamud**:
@@ -57,3 +50,13 @@ Follow these steps to install XivVoices:
    - Upon first launch, you'll be prompted with a setup screen to select a storage location for the plugin’s content.
    - After selecting the appropriate drive or directory, click "Install".
      - <img src="./XivVoices/assets/5.png" alt="XivVoices Install Directory" width="300"/>
+
+### Social
+
+Issues? Kudos? Wanna just hang with fellow FFXIV Story enjoyers?
+[Join us on Discord!](https://xivv.keifufu.dev/discord)
+
+Want to support XivVoices?
+[Support us on Patreon!](https://xivv.keifufu.dev/patreon)
+
+We also have a website for Stats and Leaderboards, if that tickles your fancy. [xivv.keifufu.dev](https://xivv.keifufu.dev)
