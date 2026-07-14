@@ -29,7 +29,6 @@
 
 Follow these steps to install XivVoices:
 
-<!--TODO: new images with native ui-->
 1. **Prepare Your System**:
    - Ensure that XIVLauncher is installed on your system along with Dalamud.
 2. **Configure Dalamud**:
