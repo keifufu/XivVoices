@@ -14,6 +14,7 @@ public partial class LocalTTSService
   public void InitializePhonemizer(string toolsDirectory)
   {
     espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
+    DumpVoices();
     int espeakVoiceCode = espeak_SetVoiceByName(_configuration.LocalTTSPhonemizerLanguage);
     _logger.Debug($"Loaded espeak voice by name {_configuration.LocalTTSPhonemizerLanguage} (from : {Path.Join(toolsDirectory, "espeak-ng-data")} )  : {espeakVoiceCode}");
     espeak_SetSynthCallback(_callback);
@@ -26,6 +27,29 @@ public partial class LocalTTSService
     _completionEvents.Clear();
   }
 
+  public static void DumpVoices()
+  {
+      IntPtr list = espeak_ListVoices(IntPtr.Zero);
+  
+      int index = 0;
+  
+      while (true)
+      {
+          IntPtr voicePtr = Marshal.ReadIntPtr(list, index * IntPtr.Size);
+          if (voicePtr == IntPtr.Zero)
+              break;
+  
+          var voice = Marshal.PtrToStructure<espeak_VOICE>(voicePtr);
+  
+          string? name = Marshal.PtrToStringUTF8(voice.name);
+          string? identifier = Marshal.PtrToStringUTF8(voice.identifier);
+  
+          _logger.Debug($"{index}: name={name} id={identifier}");
+  
+          index++;
+      }
+  }
+  
   public string Phonemize(string text)
   {
     lock (_phonemesLock) { _phonemes.Clear(); }
@@ -157,4 +181,22 @@ public partial class LocalTTSService
 
   [LibraryImport("espeak-ng")]
   private static partial void espeak_Synchronize();
+  
+  [StructLayout(LayoutKind.Sequential)]
+  private struct espeak_VOICE
+  {
+      public IntPtr name;
+      public IntPtr languages;
+      public IntPtr identifier;
+      public byte gender;
+      public byte age;
+      public byte variant;
+      public byte xx1;
+      public int score;
+      public IntPtr spare;
+  }
+  
+  [LibraryImport("espeak-ng")]
+  private static partial IntPtr espeak_ListVoices(IntPtr voice_spec);
+  
 }
