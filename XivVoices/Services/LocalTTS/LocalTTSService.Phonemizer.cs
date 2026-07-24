@@ -27,7 +27,7 @@ public partial class LocalTTSService
     _completionEvents.Clear();
   }
 
-  public static void DumpVoices()
+  public void DumpVoices()
   {
       IntPtr list = espeak_ListVoices(IntPtr.Zero);
   
