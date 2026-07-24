@@ -25,7 +25,7 @@ public partial class LocalTTSService
   {
     string text = PreprocessText(inputText);
     string phonemes = Phonemize(CollectSymbols(text));
-    _logger.Debug("Phomene for [{text}] = [{phonemes}]");
+    _logger.Debug($"Phomene for [{text}] = [{phonemes}]");
     return PostProcessPhonemes(text, phonemes.Split("\n")).Select(x => _vocab[x]).ToArray();
   }
 
