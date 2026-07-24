@@ -92,6 +92,7 @@ public class Configuration : IPluginConfiguration
 
   public bool LocalTTSVoiceRandomization = true;
   public bool LocalTTSPitchRandomization = true;
+  public string LocalTTSPhonemizerLanguage = "en-us";
   public List<string> LocalTTSDisallowedVoices = [];
 
   public bool LocalTTSForced = false;

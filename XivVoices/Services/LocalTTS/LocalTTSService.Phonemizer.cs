@@ -14,7 +14,7 @@ public partial class LocalTTSService
   public void InitializePhonemizer(string toolsDirectory)
   {
     espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
-    espeak_SetVoiceByName("en-us");
+    espeak_SetVoiceByName(_configuration.LocalTTSPhonemizerLanguage);
     espeak_SetSynthCallback(_callback);
   }
 
