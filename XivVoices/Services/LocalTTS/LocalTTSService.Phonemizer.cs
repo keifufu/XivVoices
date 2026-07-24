@@ -15,7 +15,7 @@ public partial class LocalTTSService
   {
     espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
     int espeakVoiceCode = espeak_SetVoiceByName(_configuration.LocalTTSPhonemizerLanguage);
-    _logger.Debug($"Loaded espeak voice by name {_configuration.LocalTTSPhonemizerLanguage} : {espeakVoiceCode}");
+    _logger.Debug($"Loaded espeak voice by name {_configuration.LocalTTSPhonemizerLanguage} (from : {Path.Join(toolsDirectory, "espeak-ng-data")} )  : {espeakVoiceCode}");
     espeak_SetSynthCallback(_callback);
   }
 
