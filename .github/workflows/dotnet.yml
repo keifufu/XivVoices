@@ -30,3 +30,10 @@ jobs:
 
       - name: Build
         run: dotnet build --no-restore -c Release
+
+      - name: Upload a Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest
+          path: XivVoices/bin/Release/XivVoices/latest.zip
+          if-no-files-found: error
