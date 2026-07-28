@@ -79,6 +79,7 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
 
     _audioLogsNode = new()
     {
+      AutoResetScroll = false,
       OptionsList = [],
       OnItemSelected = (itemData) =>
       {
