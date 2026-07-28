@@ -225,7 +225,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       UpdateTrack(track);
 
     _updateCount++;
-    if (_updateCount % 30 == 0)
+    if (_updateCount % 30 == 0 && !_configuration.LiveMode)
     {
       lock (_playbackHistoryLock)
       {
