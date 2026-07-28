@@ -4,8 +4,14 @@ public static class Changelog
 {
   // Newest ones go to the top.
   public readonly static Dictionary<string, string[]> Versions = new() {
-    { "1.5.2.0", new[]
-    {
+    { "1.5.3.0", new[] {
+      "Added advanced LocalTTS settings.",
+      "Added '/xivv prev' and its respective overlay button.",
+      "Added options to set LocalTTS voice based on the chat channel.",
+      "Fixed audo logs not being scrollable.",
+      "Fixed several rare crashes.",
+    }},
+    { "1.5.2.0", new[] {
       "Added LocalTTS CPU usage option.",
       "Added import/export for LocalTTS overrides and lexicon.",
       "Added option to have LocalTTS voice your scenario choices.",
@@ -25,8 +31,7 @@ public static class Changelog
       "Smoothed volume differences between LocalTTS voices.",
       "Use 'yells' and 'shouts' instead of 'says' for those channels."
     }},
-    { "1.5.0.0", new[]
-    {
+    { "1.5.0.0", new[] {
       "Added new Local TTS Engine with 27 voices.",
       "Added NPC or Player specific voice and pitch overrides for Local TTS.",
       "Added persistent voice and pitch randomization for Local TTS.",
@@ -35,18 +40,15 @@ public static class Changelog
       "Added '/xivv localtts' and '/xivv lexicon'.",
       "Removed FFmpeg dependency and its wine workarounds.",
     }},
-    { "1.4.0.0", new[]
-    {
+    { "1.4.0.0", new[] {
       "Refactored configuration window.",
       "Added output driver and device settings."
     }},
-    { "1.3.1.0", new[]
-    {
+    { "1.3.1.0", new[] {
       "Updated for 7.5 (API15)",
       "Added a warning if the plugin is outdated.",
     }},
-    { "1.3.0.0", new[]
-    {
+    { "1.3.0.0", new[] {
       "Added an overlay window to control playback.",
       "Added '/xivv overlay' and '/xivv overlaycfg'.",
       "Added manual report presets.",
@@ -59,8 +61,7 @@ public static class Changelog
       "Fixed LipSync causing NPCs to T-Pose away.",
       "Fixed hourly auto-update potentially causing lag spikes.",
     }},
-    { "1.2.0.0", new[]
-    {
+    { "1.2.0.0", new[] {
       "Updated for 7.4/7.4HF1 (API14/NET10)",
       "Added the command '/xivv pause'.",
       "Added option to disable TTS for your own chat messages.",
