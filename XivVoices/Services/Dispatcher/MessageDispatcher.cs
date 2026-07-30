@@ -335,7 +335,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     bool isIgnoredSpeaker = _dataService.Manifest.IgnoredSpeakers.Contains(message.Speaker);
 
     // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
-    if (message.RawSpeaker == $"{playerName.Split(" ")[0]}?") isIgnoredSpeaker = true;
+    string playerFirstName = playerName.Split(" ")[0];
+    if (message.RawSpeaker == $"{playerFirstName}?") isIgnoredSpeaker = true;
+
+    // See: https://ffxiv.consolegameswiki.com/wiki/Clotted_Crime
+    if (message.RawSpeaker == "Hildibrand" && message.RawSentence.EndsWith($"HEY, {playerFirstName.ToUpper()}!")) isIgnoredSpeaker = true;
 
     if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer && !forcedLocalTTS)
       _reportService.Report(message);
