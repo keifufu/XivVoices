@@ -6,10 +6,13 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
 {
   public override ConfigTab Tab => ConfigTab.LocalTTSAdvanced;
   private Configuration _configuration = null!;
+  private ILocalTTSService _localTTSService = null!;
+  private IGameInteropService _gameInteropService = null!;
 
   private StatelessTabBarNode _tabBarNode = null!;
 
   private CheckboxNode _localTTSForcedNode = null!;
+  private StringDropDownNode _localTTSPhonemizerLanguageNode = null!;
   private CheckboxNode _localTTSRemoteEnabledNode = null!;
   private CheckboxNode _localTTSRemoteFPSLimitNode = null!;
   private ConfigTextEditNode _localTTSRemoteUriNode = null!;
@@ -21,6 +24,8 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
   public override void OnSetup()
   {
     _configuration = _services.GetRequiredService<Configuration>();
+    _localTTSService = _services.GetRequiredService<ILocalTTSService>();
+    _gameInteropService = _services.GetRequiredService<IGameInteropService>();
 
     _tabBarNode = new();
     _tabBarNode.AddTab("Settings", () => SetTab?.Invoke(ConfigTab.LocalTTSSettings));
@@ -42,6 +47,27 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
       }
     };
     advancedSettingsSectionNode.AttachNode(_localTTSForcedNode);
+
+    advancedSettingsSectionNode.AttachNode(new LabelTextNode()
+    {
+      String = "Phonemizer",
+      Height = 18.0f,
+      FontSize = 14,
+    }, padding: 2.0f);
+
+    _localTTSPhonemizerLanguageNode = new StringDropDownNode()
+    {
+      PlaceholderString = "Unavailable",
+      X = 140.0f,
+      Size = new Vector2(220.0f, 24.0f),
+      MaxListOptions = 8,
+      OnOptionSelected = (option) =>
+      {
+        _configuration.LocalTTSPhonemizerLanguage = option;
+        _configuration.Save();
+      }
+    };
+    advancedSettingsSectionNode.AttachNode(_localTTSPhonemizerLanguageNode, inline: true, padding: -2.0f);
 
     AttachNode(advancedSettingsSectionNode);
     ConfigSectionNode remoteSectionNode = new("Remote Generation", advancedSettingsSectionNode);
@@ -132,6 +158,17 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
       Position = new Vector2(60.0f, 32.0f),
       OnClick = () => _overlayNode.IsVisible = false,
     });
+
+    _localTTSService.OnInitialized += ConfigurationSaved;
+  }
+
+  protected override void Dispose(bool isNativeDestructor)
+  {
+    if (IsDisposed) return;
+
+    _localTTSService.OnInitialized -= ConfigurationSaved;
+
+    base.Dispose(isNativeDestructor);
   }
 
   protected override void OnSizeChanged()
@@ -144,11 +181,16 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
 
   public override void ConfigurationSaved()
   {
-    _localTTSForcedNode.IsChecked = _configuration.LocalTTSForced;
-    _localTTSRemoteEnabledNode.IsChecked = _configuration.LocalTTSRemoteEnabled;
-    _localTTSRemoteFPSLimitNode.IsChecked = _configuration.LocalTTSRemoteFPSLimit;
-    _localTTSRemoteFPSLimitNode.IsEnabled = _configuration.LocalTTSRemoteEnabled;
-    _localTTSRemoteUriNode.Value = _configuration.LocalTTSRemoteUri;
-    _localTTSRemoteUriNode.IsEnabled = _configuration.LocalTTSRemoteEnabled;
+    _gameInteropService.RunOnFrameworkThread(() =>
+    {
+      _localTTSForcedNode.IsChecked = _configuration.LocalTTSForced;
+      _localTTSPhonemizerLanguageNode.Options = _localTTSService.PhonemizerLanguages;
+      _localTTSPhonemizerLanguageNode.SelectedOption = _configuration.LocalTTSPhonemizerLanguage;
+      _localTTSRemoteEnabledNode.IsChecked = _configuration.LocalTTSRemoteEnabled;
+      _localTTSRemoteFPSLimitNode.IsChecked = _configuration.LocalTTSRemoteFPSLimit;
+      _localTTSRemoteFPSLimitNode.IsEnabled = _configuration.LocalTTSRemoteEnabled;
+      _localTTSRemoteUriNode.Value = _configuration.LocalTTSRemoteUri;
+      _localTTSRemoteUriNode.IsEnabled = _configuration.LocalTTSRemoteEnabled;
+    });
   }
 }

@@ -95,6 +95,7 @@ public class Configuration : IPluginConfiguration
   public List<string> LocalTTSDisallowedVoices = [];
 
   public bool LocalTTSForced = false;
+  public string LocalTTSPhonemizerLanguage = "English (Great Britain)";
   public bool LocalTTSRemoteEnabled = false;
   public bool LocalTTSRemoteFPSLimit = false;
   public string LocalTTSRemoteUri = "http://127.0.0.1:6969/tts?npc=%n&voice=%v&speaker=%s&sentence=%t";

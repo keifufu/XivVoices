@@ -40,7 +40,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     if (_dataService.DataDirectory == null) OnOpenConfigWindow(this, ConfigTab.Overview);
 
 #if DEBUG
-    OpenTab(ConfigTab.LocalTTSSettings);
+    OpenTab(ConfigTab.LocalTTSAdvanced);
 #endif
 
     return _logger.ServiceLifecycle();

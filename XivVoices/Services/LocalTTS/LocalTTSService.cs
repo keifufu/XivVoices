@@ -10,6 +10,7 @@ namespace XivVoices.Services;
 public interface ILocalTTSService : IHostedService
 {
   List<LocalTTSVoice> Voices { get; }
+  List<string> PhonemizerLanguages { get; }
   Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message);
   void Reinitialize();
   int ResolvePitch(XivMessage message);
@@ -102,8 +103,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     {
       _sessionOptions ??= new() { IntraOpNumThreads = _configuration.LocalTTSThreads, InterOpNumThreads = 1 };
       _model ??= new KokoroModel(Path.Join(toolsDirectory, "kokoro-quant.onnx"), _sessionOptions);
-      foreach (string filePath in Directory.GetFiles(Path.Join(toolsDirectory, "/voices")).Where(f => f.EndsWith(".npy")))
-        Voices.Add(LocalTTSVoice.FromPath(filePath));
+      LoadVoices(Path.Join(toolsDirectory, "/voices"));
+      LoadVoices(Path.Join(_dataService.DataDirectory, "/extra_voices"));
       InitializePhonemizer(toolsDirectory);
       InitializeTokenizer();
       _initialized = true;
@@ -113,6 +114,13 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     {
       _logger.Error(ex);
     }
+  }
+
+  private void LoadVoices(string path)
+  {
+    if (!Directory.Exists(path)) return;
+    foreach (string filePath in Directory.GetFiles(path).Where(f => f.EndsWith(".npy")))
+      Voices.Add(LocalTTSVoice.FromPath(filePath));
   }
 
   private void Dispose()

@@ -6,23 +6,61 @@ public partial class LocalTTSService
   private const int espeakINITIALIZE_PHONEME_IPA = 0x0002;
   private const int AUDIO_OUTPUT_RETRIEVAL = 1;
 
+  public List<string> PhonemizerLanguages { get; private set; } = [];
+
   private static readonly ConcurrentDictionary<uint, ManualResetEventSlim> _completionEvents = new();
   private static readonly SynthCallbackDelegate _callback = SynthCallback;
   private static readonly List<(int pos, string phoneme)> _phonemes = [];
   private static readonly Lock _phonemesLock = new();
+  private string _currentLanguage = "";
 
   public void InitializePhonemizer(string toolsDirectory)
   {
     espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
-    espeak_SetVoiceByName("en-us");
+    InitializeLanguages();
+    SetLanguage();
     espeak_SetSynthCallback(_callback);
+    _configuration.Saved += SetLanguage;
   }
 
   public void DisposePhonemizer()
   {
+    _configuration.Saved -= SetLanguage;
     _ = espeak_Terminate();
     lock (_phonemesLock) { _phonemes.Clear(); }
     _completionEvents.Clear();
+  }
+
+  private void InitializeLanguages()
+  {
+    PhonemizerLanguages.Clear();
+
+    IntPtr voicesList = espeak_ListVoices(IntPtr.Zero);
+    if (voicesList == IntPtr.Zero) return;
+
+    for (int i = 0; i < 500; i++) // 500 for safety, no other reason
+    {
+      IntPtr voicePtr = Marshal.ReadIntPtr(voicesList, i * IntPtr.Size);
+      if (voicePtr == IntPtr.Zero) break;
+
+      espeak_VOICE voice = Marshal.PtrToStructure<espeak_VOICE>(voicePtr);
+      if (voice.name == IntPtr.Zero) continue;
+
+      string? name = Marshal.PtrToStringUTF8(voice.name);
+      if (string.IsNullOrWhiteSpace(name)) continue;
+      _logger.Debug(name);
+
+      PhonemizerLanguages.Add(name);
+    }
+  }
+
+  private void SetLanguage()
+  {
+    if (_currentLanguage != _configuration.LocalTTSPhonemizerLanguage)
+    {
+      espeak_SetVoiceByName(_configuration.LocalTTSPhonemizerLanguage);
+      _currentLanguage = _configuration.LocalTTSPhonemizerLanguage;
+    }
   }
 
   public string Phonemize(string text)
@@ -136,6 +174,20 @@ public partial class LocalTTSService
     public IntPtr id_ptr;
   }
 
+  [StructLayout(LayoutKind.Sequential)]
+  private struct espeak_VOICE
+  {
+    public IntPtr name;
+    public IntPtr languages;
+    public IntPtr identifier;
+    public byte gender;
+    public byte age;
+    public byte variant;
+    public byte xx1;
+    public int score;
+    public IntPtr spare;
+  }
+
   [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
   private delegate int SynthCallbackDelegate(IntPtr wav, int numsamples, IntPtr events);
 
@@ -156,4 +208,7 @@ public partial class LocalTTSService
 
   [LibraryImport("espeak-ng")]
   private static partial void espeak_Synchronize();
+
+  [LibraryImport("espeak-ng")]
+  private static partial IntPtr espeak_ListVoices(IntPtr voice_spec);
 }
