@@ -48,7 +48,6 @@ public partial class LocalTTSService
 
       string? name = Marshal.PtrToStringUTF8(voice.name);
       if (string.IsNullOrWhiteSpace(name)) continue;
-      _logger.Debug(name);
 
       PhonemizerLanguages.Add(name);
     }
