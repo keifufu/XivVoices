@@ -296,9 +296,9 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         {
           _configuration.LocalTTSDisallowedVoices.Clear();
           foreach (CheckboxNode node in _allowedVoicesMaleCheckboxNodes)
-            if (!node.IsChecked && node.IsVisible) _configuration.LocalTTSDisallowedVoices.Add(node.String.ToString());
+            if (!node.IsChecked && !node.String.IsEmpty) _configuration.LocalTTSDisallowedVoices.Add(node.String.ToString());
           foreach (CheckboxNode node in _allowedVoicesFemaleCheckboxNodes)
-            if (!node.IsChecked && node.IsVisible) _configuration.LocalTTSDisallowedVoices.Add(node.String.ToString());
+            if (!node.IsChecked && !node.String.IsEmpty) _configuration.LocalTTSDisallowedVoices.Add(node.String.ToString());
           _configuration.Save();
         };
       }
