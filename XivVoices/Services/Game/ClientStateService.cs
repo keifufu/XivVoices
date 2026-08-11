@@ -4,7 +4,7 @@ namespace XivVoices.Services;
 
 public interface IClientStateService : IHostedService { }
 
-public class ClientStateService(ILogger _logger, IDataService _dataService, Configuration _configuration, IClientState _clientState, IDalamudPluginInterface _pluginInterface) : IClientStateService
+public class ClientStateService(ILogger _logger, IDataService _dataService, Configuration _configuration, IClientState _clientState) : IClientStateService
 {
   public Task StartAsync(CancellationToken token)
   {
@@ -13,7 +13,6 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
 
     // Don't want to warn outdated here, DataService will already do that OnLatestVersionChanged.
     WarnMuted();
-    WarnRepository();
 
     return _logger.ServiceLifecycle();
   }
@@ -30,7 +29,6 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
   {
     WarnMuted();
     WarnOutdated();
-    WarnRepository();
   }
 
   private void WarnMuted()
@@ -48,14 +46,6 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     {
       _logger.Chat(pre: "Plugin is outdated. Reports will not be processed.", preColor: 25);
       _logger.DalamudToast(NotificationType.Warning, "Plugin is outdated", "Reports will not be processed.", 15);
-    }
-  }
-
-  private void WarnRepository()
-  {
-    if (_pluginInterface.SourceRepository.Contains("fantasticalmouthpiece", StringComparison.OrdinalIgnoreCase))
-    {
-      _logger.DalamudToast(NotificationType.Warning, "Deprecated Repository", "You are using a deprecated plugin repository URL for this plugin. Please migrate to 'https://xivv.keifufu.dev/repo'. Join our Discord for help.", 60);
     }
   }
 }
