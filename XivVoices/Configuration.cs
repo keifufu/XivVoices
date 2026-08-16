@@ -125,6 +125,7 @@ public class Configuration : IPluginConfiguration
   public bool LiveMode = false;
   public bool WarnIgnoredSpeaker = false;
   public XivChatType DefaultChatChannel = XivChatType.Debug;
+  public bool IncreaseVolumeLimits = false;
 
   [NonSerialized]
   private ILogger? Logger;

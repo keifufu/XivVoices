@@ -185,7 +185,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _volumeSliderNode = new SliderNode()
     {
-      Range = 1..100,
+      Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100,
       Size = new Vector2(220.0f, 16.0f),
       OnValueChanged = (value) =>
       {
@@ -231,7 +231,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
     _ttsVolumeSliderNode = new SliderNode()
     {
-      Range = 1..100,
+      Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100,
       Size = new Vector2(220.0f, 16.0f),
       OnValueChanged = (value) =>
       {
