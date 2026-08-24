@@ -12,6 +12,7 @@ public interface ILocalTTSService : IHostedService
   List<LocalTTSVoice> Voices { get; }
   List<string> PhonemizerLanguages { get; }
   Task<(WaveStream? waveStream, int relativeVolume)> Generate(XivMessage message);
+  RawSourceWaveStream DecodeOggOpusToPCM(Stream stream);
   void Reinitialize();
   int ResolvePitch(XivMessage message);
   event System.Action? OnInitialized;
@@ -292,6 +293,10 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
             return null;
           }
 
+          if (response.Content.Headers.ContentType?.MediaType == "audio/ogg")
+            return (WaveStream)DecodeOggOpusToPCM(await response.Content.ReadAsStreamAsync());
+
+          // Assume audio/wav
           byte[] bytes = await response.Content.ReadAsByteArrayAsync();
           MemoryStream memoryStream = new(bytes);
           return new WaveFileReader(memoryStream);
@@ -361,5 +366,37 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       _logger.Debug(finalMessage);
       return (null, 0);
     }
+  }
+
+  public RawSourceWaveStream DecodeOggOpusToPCM(Stream stream)
+  {
+    IOpusDecoder decoder = OpusCodecFactory.CreateDecoder(48000, 1);
+    OpusOggReadStream oggStream = new(decoder, stream);
+
+    List<float> pcmSamples = [];
+
+    while (oggStream.HasNextPacket)
+    {
+      short[] packet = oggStream.DecodeNextPacket();
+      if (packet != null)
+      {
+        foreach (short sample in packet)
+        {
+          pcmSamples.Add(sample / 32768f);
+        }
+      }
+    }
+
+    WaveFormat waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 1);
+    MemoryStream memoryStream = new();
+    using (BinaryWriter writer = new(memoryStream, Encoding.Default, leaveOpen: true))
+    {
+      foreach (float sample in pcmSamples)
+      {
+        writer.Write(sample);
+      }
+    }
+    memoryStream.Position = 0;
+    return new RawSourceWaveStream(memoryStream, waveFormat);
   }
 }

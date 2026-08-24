@@ -452,37 +452,10 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     }
   }
 
-  private static RawSourceWaveStream DecodeOggOpusToPCM(string filePath)
+  private RawSourceWaveStream DecodeOggOpusToPCM(string filePath)
   {
     using FileStream fileStream = new(filePath, FileMode.Open, FileAccess.Read);
-    IOpusDecoder decoder = OpusCodecFactory.CreateDecoder(48000, 1);
-    OpusOggReadStream oggStream = new(decoder, fileStream);
-
-    List<float> pcmSamples = [];
-
-    while (oggStream.HasNextPacket)
-    {
-      short[] packet = oggStream.DecodeNextPacket();
-      if (packet != null)
-      {
-        foreach (short sample in packet)
-        {
-          pcmSamples.Add(sample / 32768f);
-        }
-      }
-    }
-
-    WaveFormat waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 1);
-    MemoryStream stream = new();
-    using (BinaryWriter writer = new(stream, Encoding.Default, leaveOpen: true))
-    {
-      foreach (float sample in pcmSamples)
-      {
-        writer.Write(sample);
-      }
-    }
-    stream.Position = 0;
-    return new RawSourceWaveStream(stream, waveFormat);
+    return _localTTSService.DecodeOggOpusToPCM(fileStream);
   }
 
   private async Task<string?> TryDownloadVoiceline(XivMessage message)
