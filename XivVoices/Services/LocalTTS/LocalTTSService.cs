@@ -282,7 +282,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
             .Replace("%v", Uri.EscapeDataString(message.Voice?.Id ?? "null"))
             .Replace("%s", Uri.EscapeDataString(message.Speaker))
             .Replace("%t", Uri.EscapeDataString(finalMessage))
-            .Replace("%k", Uri.EscapeDataString(voice?.Name ?? "null"));
+            .Replace("%k", Uri.EscapeDataString(voice?.Name ?? "null"))
+            .Replace("%i", Uri.EscapeDataString(message.Id));
 
           HttpResponseMessage response = await _dataService.HttpClient.GetAsync(requestUri, message.GenerationToken.Token);
           if (!response.IsSuccessStatusCode)

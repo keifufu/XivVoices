@@ -78,6 +78,7 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
       Lets you hook up any external TTS provider.
       Modify the URI below according to your requirements.
       Arguments:
+      - %i : XIVV Message ID
       - %n : XIVV NPC Name (or null)
       - %v : XIVV Voice Name (or null)
       - %k : LocalTTS Voice Name(or null)
