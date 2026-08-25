@@ -251,7 +251,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _volumeSlider = new SliderNode
     {
-      Range = ..100,
+      Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100,
       IsEnabled = !_configuration.MuteEnabled,
       Size = new Vector2(150.0f, 16.0f),
       Position = new Vector2(225.0f, 56.0f),
