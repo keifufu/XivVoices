@@ -135,5 +135,6 @@ public enum MessageSource
   AddonMiniTalk,
   AddonBattleTalk,
   ChatMessage,
-  SelectString
+  SelectString,
+  AddonTalkSubtitle,
 }

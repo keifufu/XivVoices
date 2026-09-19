@@ -10,7 +10,6 @@ namespace XivVoices;
 public sealed class Plugin : IAsyncDalamudPlugin
 {
   private readonly IDalamudPluginInterface _pluginInterface;
-  private readonly IFramework _framework;
   private readonly IHost _host;
 
   public Plugin(
@@ -39,7 +38,6 @@ public sealed class Plugin : IAsyncDalamudPlugin
   )
   {
     _pluginInterface = pluginInterface;
-    _framework = framework;
 
     _host = new HostBuilder()
       .UseContentRoot(pluginInterface.ConfigDirectory.FullName)
@@ -97,6 +95,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         collection.AddSingleton<ISelectStringProvider, SelectStringProvider>();
         collection.AddSingleton<IAddonMiniTalkProvider, AddonMiniTalkProvider>();
         collection.AddSingleton<IAddonBattleTalkProvider, AddonBattleTalkProvider>();
+        collection.AddSingleton<IAddonTalkSubtitleProvider, AddonTalkSubtitleProvider>();
 
         collection.AddSingleton(InitializeConfiguration);
         collection.AddSingleton(new WindowSystem(pluginInterface.InternalName));
@@ -118,6 +117,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
         collection.AddHostedService(sp => sp.GetRequiredService<ISelectStringProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonMiniTalkProvider>());
         collection.AddHostedService(sp => sp.GetRequiredService<IAddonBattleTalkProvider>());
+        collection.AddHostedService(sp => sp.GetRequiredService<IAddonTalkSubtitleProvider>());
 
 #if !NO_KTK
         collection.AddHostedService(sp => sp.GetRequiredService<IOverlayAddon>());
@@ -137,7 +137,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
   public async Task LoadAsync(CancellationToken token)
   {
 #if !NO_KTK
-    KamiToolKitLibrary.Initialize(_pluginInterface, _pluginInterface.InternalName);
+    await KamiToolKitLibrary.InitializeAsync(_pluginInterface, _pluginInterface.InternalName);
 #endif
 
     await _host.StartAsync(token);
@@ -149,7 +149,7 @@ public sealed class Plugin : IAsyncDalamudPlugin
     _host.Dispose();
 
 #if !NO_KTK
-    await _framework.RunOnFrameworkThread(KamiToolKitLibrary.Dispose);
+    await KamiToolKitLibrary.DisposeAsync();
 #endif
   }
 }

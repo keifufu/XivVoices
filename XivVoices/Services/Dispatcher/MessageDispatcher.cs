@@ -138,7 +138,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     int count = _playbackService.CountPlaying(GetQueueForMessage(message));
     if (GetQueueForMessage(message) == MessageSource.AddonTalk)
+    {
       count += _playbackService.CountPlaying(MessageSource.SelectString);
+      count += _playbackService.CountPlaying(MessageSource.AddonTalkSubtitle);
+    }
 
     if (count == 0)
     {
@@ -174,7 +177,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     string speaker = rawSpeaker;
     string sentence = rawSentence;
 
-    if ((_gameInteropService.IsInCutscene() && source == MessageSource.AddonTalk) || (_gameInteropService.IsInDuty() && (source == MessageSource.AddonBattleTalk || source == MessageSource.AddonMiniTalk)))
+    if ((_gameInteropService.IsInCutscene() && (source == MessageSource.AddonTalk || source == MessageSource.AddonTalkSubtitle)) ||
+        (_gameInteropService.IsInDuty() && (source == MessageSource.AddonBattleTalk || source == MessageSource.AddonMiniTalk)))
     {
       // SoundFilter is a lil slower than our providers so we wait a bit.
       // This is NOT that great but it works. 100 is an arbitrary number that seems to work for now.
@@ -313,7 +317,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // We don't usually want to replace uppercase names, so this will need
     // special handling per quest.
     string playerFirstName = playerName.Split(" ")[0];
-    if (rawSpeaker == "Hildibrand" && rawSentence.EndsWith($"HEY, {playerFirstName.ToUpper()}!")) {
+    string playerLastName = playerName.Split(" ")[1];
+    if (rawSpeaker == "Hildibrand" && rawSentence.EndsWith($"HEY, {playerFirstName.ToUpper()}!"))
+    {
       rawSentence = "_FIRSTNAME_! HEY, _FIRSTNAME_!";
       cleanedSentence = "_FIRSTNAME_! HEY, _FIRSTNAME_!";
     }
@@ -345,6 +351,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     // See: https://ffxiv.consolegameswiki.com/wiki/Who%27s_Who
     if (message.RawSpeaker == $"{playerFirstName}?") isIgnoredSpeaker = true;
+    // See: https://ffxiv.consolegameswiki.com/wiki/Our_Answer (and maybe others)
+    if (message.RawSpeaker == $"{playerFirstName} ${playerLastName}") isIgnoredSpeaker = true;
 
     if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer && !forcedLocalTTS)
       _reportService.Report(message);
@@ -379,6 +387,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         message.Queued = _configuration.QueueChatMessages;
         break;
       case MessageSource.SelectString:
+        message.Queued = _configuration.QueueDialogue;
+        break;
+      case MessageSource.AddonTalkSubtitle:
         message.Queued = _configuration.QueueDialogue;
         break;
     }

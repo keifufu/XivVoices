@@ -27,6 +27,7 @@ public interface ISelfTestService
   void Report_Provider_BattleTalk(string speaker, string sentence);
   void Report_Provider_CutSceneSelectString(string speaker, string speakerWorld, string sentence);
   void Report_Provider_SelectString(string speaker, string speakerWorld, string sentence);
+  void Report_Provider_TalkSubtitle(string sentence);
 
   void LipSyncTarget();
 }
@@ -60,7 +61,9 @@ public enum SelfTestStep : long
   SoundFilter_PlaySound = 1L << 16,
   SoundFilter_PlayCutsceneVOSound = 1L << 17,
   Provider_CutSceneSelectString = 1L << 18,
-  Provider_SelectString = 1L << 19
+  Provider_SelectString = 1L << 19,
+
+  Provider_TalkSubtitle = 1L << 20
 }
 
 public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
@@ -195,6 +198,10 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
         Step = SelfTestStep.Provider_SelectString;
         break;
       case SelfTestStep.Provider_SelectString:
+        CurrentInstruction = "View the 21st cutscene of \"The Ultimate Weapon\".";
+        Step = SelfTestStep.Provider_TalkSubtitle;
+        break;
+      case SelfTestStep.Provider_TalkSubtitle:
         if (!loop)
         {
           Stop();
@@ -540,6 +547,26 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
       Next(true, false);
     else
       AddLog($"Unexpected message: {speaker}@{speakerWorld}, {sentence}");
+  }
+
+  public void Report_Provider_TalkSubtitle(string sentence)
+  {
+    int initialStepState = StepState;
+    switch (StepState)
+    {
+      case 0:
+        if (sentence == "What is it?") StepState = 1;
+        break;
+      case 1:
+        if (sentence == "Dread tidings! Chaos and carnage...") StepState = 2;
+        break;
+      case 2:
+        if (sentence == "It is an abomination─! A...primal! A primal has awakened!") Next(true, false);
+        break;
+    }
+
+    if (StepState == initialStepState && StepState != 0) AddLog($"Unexpected message: {sentence}");
+    else AddLog($"Correct message. {StepState}/3");
   }
 
   public void LipSyncTarget()

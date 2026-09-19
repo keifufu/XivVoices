@@ -4,6 +4,8 @@ using FrameworkStruct = FFXIVClientStructs.FFXIV.Client.System.Framework.Framewo
 
 namespace XivVoices.Services;
 
+// If NAudio ever fails us, this could be useful:
+// https://github.com/LSXPrime/SoundFlow
 public interface IPlaybackService : IHostedService
 {
   event EventHandler<XivMessage>? PlaybackCompleted;

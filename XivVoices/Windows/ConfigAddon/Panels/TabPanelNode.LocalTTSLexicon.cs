@@ -43,7 +43,7 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
     _localTTSLexiconSectionNode.AttachNode(new ConfigTooltipNode()
     {
       TextTooltip = """
-      Specify text replacements for LocalTTS.  
+      Specify text replacements for LocalTTS.
       Use these to fix pronunciation and other word-level substitutions.
 
       Examples
