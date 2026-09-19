@@ -68,6 +68,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
       OnItemSelected = OnListItemSelected,
     };
     _listNode.AttachNode(this);
+    _listNode.NoResultsTextNode.TextId = 0;
 
     _addButton = new TextButtonNode
     {
@@ -90,6 +91,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
     };
     _removeButton.AttachNode(this);
 
+    SearchTextChanged("");
     UpdateButtonStates();
   }
 
@@ -143,6 +145,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
 
   private void SearchTextChanged(ReadOnlySeString newSearchString)
   {
+    _listNode.NoResultsTextNode.String = newSearchString.IsEmpty ? "No entries. Click \"Add\" to create one." : "No search results found.";
     _searchText = newSearchString.ToString();
     RebuildList(_searchText);
   }
