@@ -25,9 +25,9 @@
       },
       "KamiToolKit": {
         "type": "Direct",
-        "requested": "[2.2.1, )",
-        "resolved": "2.2.1",
-        "contentHash": "PTa5Hs1JwNP1QTuD8BJatSYXGN90SeBImIkBvckWB2UF1VzFOaI3ApkP/PfHRFXSsSB/TozUQ+Q0SIRRAbDVyg=="
+        "requested": "[2.2.45, )",
+        "resolved": "2.2.45",
+        "contentHash": "C0JOr2uCHt4NUKIgwKghmpTxWCGJWYfJsFMODJSxmbe1fmpJMWKwC+QRVAioUqprBuj6DnsKoNbwp5jM9M9qlw=="
       },
       "KokoroSharp": {
         "type": "Direct",
