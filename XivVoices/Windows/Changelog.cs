@@ -4,6 +4,13 @@ public static class Changelog
 {
   // Newest ones go to the top.
   public readonly static Dictionary<string, string[]> Versions = new() {
+    { "1.6.0.0", new[] {
+      "Added support for cutscene subtitles.",
+      "Added option to increase volume limits.",
+      "Added LocalTTS phonemizer language selection.",
+      "Fixed 'Allowed Voices' not saving correctly.",
+      "Remote TTS now also accepts ogg/opus and has new parameters."
+    }},
     { "1.5.3.0", new[] {
       "Added advanced LocalTTS settings.",
       "Added '/xivv prev' and its respective overlay button.",
