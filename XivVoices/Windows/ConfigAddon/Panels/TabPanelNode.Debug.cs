@@ -16,7 +16,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode
   private CheckboxNode _liveModeNode = null!;
   private CheckboxNode _warnIgnoredSpeakerNode = null!;
   private StringDropDownNode _defaultChatChannelNode = null!;
-  private CheckboxNode _increaseVolumeLimitsNode = null!;
 
   private ConfigOverlayNode _overlayNode = null!;
   private TextInputNode _overlayInputNode = null!;
@@ -117,18 +116,6 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode
     };
     debugSectionNode.AttachNode(_defaultChatChannelNode, inline: true, padding: -2.0f);
 
-    _increaseVolumeLimitsNode = new()
-    {
-      String = "IncreaseVolumeLimits",
-      Size = new Vector2(185.0f, 20.0f),
-      OnClick = (value) =>
-      {
-        _configuration.IncreaseVolumeLimits = value;
-        _configuration.Save();
-      }
-    };
-    debugSectionNode.AttachNode(_increaseVolumeLimitsNode);
-
     AttachNode(debugSectionNode);
 
     _overlayNode = new ConfigOverlayNode(_services);
@@ -181,6 +168,5 @@ public class DebugTabPanelNode(IServiceProvider _services) : TabPanelNode
     _liveModeNode.IsChecked = _configuration.LiveMode;
     _warnIgnoredSpeakerNode.IsChecked = _configuration.WarnIgnoredSpeaker;
     _defaultChatChannelNode.SelectedOption = _configuration.DefaultChatChannel.ToString();
-    _increaseVolumeLimitsNode.IsChecked = _configuration.IncreaseVolumeLimits;
   }
 }

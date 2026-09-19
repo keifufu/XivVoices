@@ -20,6 +20,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private StringDropDownNode _waveOutDeviceNode = null!;
   private StringDropDownNode _directSoundDeviceNode = null!;
 
+  private CheckboxNode _increaseVolumeLimitsNode = null!;
   private SliderNode _volumeSliderNode = null!;
   private SliderNode _speedSliderNode = null!;
 
@@ -182,6 +183,18 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     AttachNode(outputDeviceSectionNode);
 
     ConfigSectionNode playbackSettingsSectionNode = new("Playback Settings", outputDeviceSectionNode);
+
+    _increaseVolumeLimitsNode = new()
+    {
+      String = "Increase Volume Limits",
+      Size = new Vector2(185.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.IncreaseVolumeLimits = value;
+        _configuration.Save();
+      }
+    };
+    playbackSettingsSectionNode.AttachNode(_increaseVolumeLimitsNode);
 
     _volumeSliderNode = new SliderNode()
     {
@@ -408,13 +421,17 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _directSoundDeviceNode.Options = ["Default Output Device", .. directSoundDevices.Select((d) => ShortenDeviceName(d.Description))];
     _directSoundDeviceNode.SelectedOption = ShortenDeviceName(directSoundDevices.FirstOrDefault((d) => d.Guid == _configuration.DirectSoundDevice)?.Description ?? "Default Output Device");
 
+    _increaseVolumeLimitsNode.IsChecked = _configuration.IncreaseVolumeLimits;
+
     _volumeSliderNode.Value = _configuration.Volume;
+    _volumeSliderNode.Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100;
     NativeUtils.FixSliderNode(_volumeSliderNode);
 
     _speedSliderNode.Value = _configuration.Speed;
     NativeUtils.FixSliderNode(_speedSliderNode);
 
     _ttsVolumeSliderNode.Value = _configuration.LocalTTSVolume;
+    _ttsVolumeSliderNode.Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100;
     NativeUtils.FixSliderNode(_ttsVolumeSliderNode);
 
     _ttsSpeedSliderNode.Value = _configuration.LocalTTSSpeed;

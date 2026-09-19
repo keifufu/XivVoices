@@ -337,6 +337,7 @@ public unsafe class XivvOverlayNode : OverlayNode
 
     _volumeSlider.IsEnabled = !_configuration.MuteEnabled;
     _volumeSlider.Value = _configuration.Volume;
+    _volumeSlider.Range = _configuration.IncreaseVolumeLimits ? 1..200 : 1..100;
     NativeUtils.FixSliderNode(_volumeSlider);
 
     _pinButton.TextTooltip = _configuration.OverlayPinned ? "Enable Moving" : "Disable Moving";

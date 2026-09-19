@@ -68,6 +68,7 @@ public class Configuration : IPluginConfiguration
   public PlaybackDeviceType PlaybackDeviceType = PlaybackDeviceType.WaveOut;
   public string? WaveOutDevice = null;
   public Guid? DirectSoundDevice = null;
+  public bool IncreaseVolumeLimits = false;
 
   public int Speed = 100;
   public int Volume = 100;
@@ -125,7 +126,6 @@ public class Configuration : IPluginConfiguration
   public bool LiveMode = false;
   public bool WarnIgnoredSpeaker = false;
   public XivChatType DefaultChatChannel = XivChatType.Debug;
-  public bool IncreaseVolumeLimits = false;
 
   [NonSerialized]
   private ILogger? Logger;
