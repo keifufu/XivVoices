@@ -366,6 +366,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     switch (source)
     {
       case MessageSource.AddonTalk:
+      case MessageSource.AddonTalkSubtitle:
         allowed = _configuration.AddonTalkEnabled
           && (isNarrator
             ? _configuration.AddonTalkNarratorEnabled && (!message.IsLocalTTS || _configuration.AddonTalkTTSEnabled)
@@ -387,9 +388,6 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
         message.Queued = _configuration.QueueChatMessages;
         break;
       case MessageSource.SelectString:
-        message.Queued = _configuration.QueueDialogue;
-        break;
-      case MessageSource.AddonTalkSubtitle:
         message.Queued = _configuration.QueueDialogue;
         break;
     }
