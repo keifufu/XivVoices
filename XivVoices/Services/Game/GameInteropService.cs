@@ -5,6 +5,7 @@ using FFXIVClientStructs.FFXIV.Application.Network.WorkDefinitions;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using FFXIVClientStructs.FFXIV.Client.Game.Character;
 using FFXIVClientStructs.FFXIV.Client.Game.Control;
+using FFXIVClientStructs.FFXIV.Client.Game.Object;
 using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 
@@ -83,13 +84,14 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
   public IGameObject? GetTarget()
     => _targetManager.Target;
 
-  public IntPtr TryFindCharacter(string name, uint? baseId)
+  public unsafe IntPtr TryFindCharacter(string name, uint? baseId)
   {
     IntPtr baseIdCharacter = IntPtr.Zero;
 
     foreach (IGameObject gameObject in _objectTable)
     {
       if ((gameObject as ICharacter) == null) continue;
+      if (((GameObject*)gameObject.Address)->RenderFlags != VisibilityFlags.None) continue;
 
       if (gameObject.BaseId == baseId && baseId != 0)
         baseIdCharacter = gameObject.Address;
