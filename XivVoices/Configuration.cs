@@ -147,7 +147,7 @@ public class Configuration : IPluginConfiguration
     Save();
 
     _previousConfig = GetAllFields();
-    Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.Write));
+    Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.WriteLog));
   }
 
   private bool IsKeySecret(string key)

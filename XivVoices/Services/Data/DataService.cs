@@ -749,4 +749,37 @@ public static class JsonOptions
     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
     WriteIndented = true
   };
+
+  public static JsonSerializerOptions WriteLog { get; } = new(Write)
+  {
+    Converters = { new NpcLogConverter() },
+    PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+    WriteIndented = true
+  };
+}
+
+// The Narrator was flooding logs with its aliases, we strip them here.
+public sealed class NpcLogConverter : JsonConverter<NpcEntry>
+{
+  public override void Write(Utf8JsonWriter writer, NpcEntry npc, JsonSerializerOptions options)
+  {
+    var value = new
+    {
+      npc.Id,
+      npc.VoiceId,
+      npc.Gender,
+      npc.Race,
+      npc.Tribe,
+      npc.Body,
+      npc.Eyes,
+      npc.BaseId,
+      Speakers = npc.Id == "Narrator" ? ["Narrator"] : npc.Speakers,
+      npc.HasVariedLooks
+    };
+
+    JsonSerializer.Serialize(writer, value, options);
+  }
+
+  public override NpcEntry Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) => throw new NotSupportedException();
 }

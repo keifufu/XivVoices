@@ -72,7 +72,7 @@ public class XivMessage
   public bool Replay { get; set; } = false;
 
   public override string ToString() =>
-    JsonSerializer.Serialize(this, JsonOptions.Write);
+    JsonSerializer.Serialize(this, JsonOptions.WriteLog);
 
   public XivMessage(
     string id,
