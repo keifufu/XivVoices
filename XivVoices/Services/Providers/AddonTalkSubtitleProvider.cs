@@ -28,7 +28,7 @@ public class AddonTalkSubtitleProvider(ILogger _logger, IGameInteropService _gam
     if (addon == null) return;
 
     string sentence = _gameInteropService.ReadUtf8String(addon->SubtitleText);
-    if (_lastSentence != sentence)
+    if (!sentence.IsNullOrEmpty() && _lastSentence != sentence)
     {
       if (_selfTestService.Step == SelfTestStep.Provider_TalkSubtitle)
         _selfTestService.Report_Provider_TalkSubtitle(sentence);
