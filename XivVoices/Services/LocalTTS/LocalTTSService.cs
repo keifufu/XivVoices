@@ -150,7 +150,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     {
       byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(speaker));
       ulong v = BitConverter.ToUInt64(hash);
-      const int min = 90, max = 110;
+      const int min = 95, max = 105;
       int range = max - min + 1;
       return (int)(min + (v % (ulong)range));
     }
