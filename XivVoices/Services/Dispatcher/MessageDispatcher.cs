@@ -394,14 +394,15 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     if (isFake) allowed = true;
 
-    if (source == MessageSource.AddonMiniTalk)
-      _logger.Chat(message.RawSentence, name: npc?.Id ?? "Bubble", channel: XivChatType.NPCDialogue, addPrefix: false);
-
-    if (isNarrator)
-      _logger.Chat(message.RawSentence, name: "Narrator", channel: XivChatType.NPCDialogue, addPrefix: false);
-
-    if (source == MessageSource.SelectString)
-      _logger.Chat(message.RawSentence, name: playerName, channel: XivChatType.NPCDialogue, addPrefix: false);
+    // All of these are not logged by the game, so we do it ourselves.
+    if (source is not (MessageSource.AddonTalk or MessageSource.ChatMessage))
+    {
+      string? logSpeaker = source == MessageSource.SelectString ? playerName : npc?.Id;
+      logSpeaker ??= source == MessageSource.AddonMiniTalk ? "Bubble" : source == MessageSource.AddonTalkSubtitle ? "Subtitle" : "Unknown";
+      // Bubbles should always say "Bubble", as they aren't really first-class dialogue.
+      if (source == MessageSource.AddonMiniTalk && logSpeaker != "Bubble") logSpeaker += $" (Bubble)";
+      _logger.Chat(message.RawSentence, name: logSpeaker, channel: XivChatType.NPCDialogue, addPrefix: false);
+    }
 
     if ((_configuration.MuteEnabled && !isFake) || !allowed || (isRetainer && !_configuration.RetainersEnabled))
     {
