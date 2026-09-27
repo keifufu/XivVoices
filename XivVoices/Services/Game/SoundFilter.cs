@@ -84,7 +84,8 @@ public class SoundFilter(ILogger _logger, Configuration _configuration, ISelfTes
     // POST-ARR cut/ffxiv/sound/voicem/voiceman_02500/vo_voiceman_02500_w00010_m_en.scd/0
     if (path.StartsWith("cut/ffxiv") && (path.Contains("vo_man") || path.Contains("vo_voiceman")))
     {
-      bool shouldBlock = _configuration.ReplaceVoicedARRCutscenes && _gameInteropService.IsInCutscene();
+      bool shouldBlock = _configuration.ReplaceVoicedARRCutscenes && _gameInteropService.IsInCutscene() && !_configuration.MuteEnabled;
+      if (shouldBlock) _logger.Debug($"Blocked ARR voiceline: {path}");
       OnVoicelineDetected?.Invoke(this, new InterceptedSound(!shouldBlock, path));
       return shouldBlock;
     }
