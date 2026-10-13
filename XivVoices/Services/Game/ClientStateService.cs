@@ -4,9 +4,13 @@ namespace XivVoices.Services;
 
 public interface IClientStateService : IHostedService { }
 
-public class ClientStateService(ILogger _logger, IDataService _dataService, Configuration _configuration, IClientState _clientState) : IClientStateService
+public class ClientStateService(
+  ILogger _logger,
+  IClientState _clientState,
+  IDataService _dataService,
+  Configuration _configuration) : IClientStateService
 {
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _clientState.Login += OnLogin;
     _dataService.OnLatestVersionChanged += WarnOutdated;
@@ -17,7 +21,7 @@ public class ClientStateService(ILogger _logger, IDataService _dataService, Conf
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _clientState.Login -= OnLogin;
     _dataService.OnLatestVersionChanged -= WarnOutdated;

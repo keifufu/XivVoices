@@ -64,20 +64,19 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  private List<string> _availableDrives = [];
   public List<string> AvailableDrives
   {
     get
     {
-      if (_availableDrives.Count > 0) return _availableDrives;
-      _availableDrives = DriveInfo.GetDrives()
+      if (field.Count > 0) return field;
+      field = DriveInfo.GetDrives()
         .Where(drive => drive.IsReady)
         .Select(drive => drive.Name.Trim('\\'))
         .ToList();
-      if (Util.IsWine()) _availableDrives = _availableDrives.Where((d) => d != "C:").ToList();
-      return _availableDrives;
+      if (Util.IsWine()) field = field.Where((d) => d != "C:").ToList();
+      return field;
     }
-  }
+  } = [];
 
   private bool _toolsDirectoryExists;
   public string? ToolsDirectory
@@ -113,7 +112,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  private bool? _voicelinesOverrideDirectoryExists = null;
+  private bool? _voicelinesOverrideDirectoryExists;
   public string? VoicelinesOverrideDirectory
   {
     get
@@ -143,17 +142,11 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  public string Version
-  {
-    get => Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
-  }
+  public string Version => Assembly.GetExecutingAssembly()?.GetName()?.Version?.ToString() ?? "0.0.0.0";
 
   public string LatestVersion { get; private set; } = "0.0.0.0";
 
-  public bool IsOutdated
-  {
-    get => Version != LatestVersion;
-  }
+  public bool IsOutdated => Version != LatestVersion;
 
   public string? TempFilePath(string fileName)
   {
@@ -173,7 +166,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _configuration.DataDirectory = dataDirectory;
     _configuration.Save();
 
-    // Incase the new data directory is an existing installation, try to import these instead of overwriting them with empty ones.
+    // Incase the new data directory is an existing installation,
+    // try to import these instead of overwriting them with empty ones.
     LoadCachedPlayers();
     OnDataDirectoryChanged?.Invoke(); // Used in ReportService for localReports.json
 
@@ -187,7 +181,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     _ = UpdateServerStatus(default);
   }
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _dataDirectoryExists = Directory.Exists(_configuration.DataDirectory);
 
@@ -205,7 +199,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     CancelUpdate();
     SaveCachedPlayers();
@@ -219,9 +213,7 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
   }
 
   private void UpdateTimerElapsed(object? source, ElapsedEventArgs e)
-  {
-    _ = Update(false);
-  }
+    => _ = Update(false);
 
   private async Task SetLatestVersion()
   {
@@ -288,7 +280,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     try
     {
       string jsonContent = File.ReadAllText(manifestPath);
-      ManifestJson json = JsonSerializer.Deserialize<ManifestJson>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize manifest.json");
+      ManifestJson json = JsonSerializer.Deserialize<ManifestJson>(jsonContent, JsonOptions.Read)
+        ?? throw new InvalidDataException("Failed to deserialize manifest.json");
 
       Manifest manifest = new()
       {
@@ -423,7 +416,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       }
 
       string toolsMd5Path = Path.Join(dataDirectory, "tools.md5");
-      if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) && IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
+      if ((!File.Exists(toolsMd5Path) || File.ReadAllText(toolsMd5Path) != Manifest.ToolsMd5) &&
+          IsVersionGreaterOrSame(Version, Manifest.ToolsMinimumVersion))
       {
         string currentToolsMd5 = File.Exists(toolsMd5Path) ? File.ReadAllText(toolsMd5Path) : "";
         _logger.Debug($"Updating tools. Current: {currentToolsMd5}. Latest: {Manifest.ToolsMd5}. Version {Version}/{Manifest.ToolsMinimumVersion}");
@@ -467,7 +461,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
       }
 
       List<(string filePath, string fileName)> missingFiles = [];
-      Dictionary<string, long> fileSizeMap = new DirectoryInfo(voicelinesDirectory).GetFiles("*", SearchOption.TopDirectoryOnly).ToDictionary(f => f.Name, f => f.Length);
+      Dictionary<string, long> fileSizeMap = new DirectoryInfo(voicelinesDirectory)
+        .GetFiles("*", SearchOption.TopDirectoryOnly).ToDictionary(f => f.Name, f => f.Length);
 
       foreach (KeyValuePair<string, long> voiceline in Manifest.Voicelines)
       {
@@ -562,14 +557,10 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
 
   private string CalculateMD5(string filename)
   {
-    using (MD5 md5 = MD5.Create())
-    {
-      using (FileStream stream = File.OpenRead(filename))
-      {
-        byte[] hash = md5.ComputeHash(stream);
-        return System.Convert.ToHexStringLower(hash);
-      }
-    }
+    using MD5 md5 = MD5.Create();
+    using FileStream stream = File.OpenRead(filename);
+    byte[] hash = md5.ComputeHash(stream);
+    return Convert.ToHexStringLower(hash);
   }
 
   private bool IsVersionGreaterOrSame(string a, string b)
@@ -580,8 +571,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     int n = Math.Max(A.Length, B.Length);
     for (int i = 0; i < n; i++)
     {
-      int va = i < A.Length ? int.Parse(A[i]) : 0;
-      int vb = i < B.Length ? int.Parse(B[i]) : 0;
+      int va = i < A.Length ? int.Parse(A[i], CultureInfo.InvariantCulture) : 0;
+      int vb = i < B.Length ? int.Parse(B[i], CultureInfo.InvariantCulture) : 0;
       if (va != vb) return va > vb;
     }
     return true;
@@ -597,10 +588,10 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     }
   }
 
-  private int _subsequentFails = 0;
-  private int _cacheHits = 0;
-  private int _cacheMisses = 0;
-  private int _downloaded = 0;
+  private int _subsequentFails;
+  private int _cacheHits;
+  private int _cacheMisses;
+  private int _downloaded;
   private async Task<bool> DownloadFile(string filePath, string fileName, CancellationToken token)
   {
     try
@@ -664,7 +655,8 @@ public partial class DataService(ILogger _logger, Configuration _configuration) 
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, NpcEntry> json = JsonSerializer.Deserialize<Dictionary<string, NpcEntry>>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize players.json");
+      Dictionary<string, NpcEntry> json = JsonSerializer.Deserialize<Dictionary<string, NpcEntry>>(jsonContent, JsonOptions.Read)
+        ?? throw new InvalidDataException("Failed to deserialize players.json");
       _cachedPlayers = json;
     }
     catch (Exception ex)
@@ -781,5 +773,6 @@ public sealed class NpcLogConverter : JsonConverter<NpcEntry>
     JsonSerializer.Serialize(writer, value, options);
   }
 
-  public override NpcEntry Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options) => throw new NotSupportedException();
+  public override NpcEntry Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    => throw new NotSupportedException();
 }

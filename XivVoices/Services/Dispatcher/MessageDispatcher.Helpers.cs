@@ -23,7 +23,7 @@ public partial class MessageDispatcher
 
   private NpcEntry? GetNpc(MessageSource source, string speaker)
   {
-    if (source == MessageSource.ChatMessage || source == MessageSource.SelectString) return null;
+    if (source is MessageSource.ChatMessage or MessageSource.SelectString) return null;
     if (_dataService.Manifest == null) return null;
     if (_dataService.Manifest.Npcs.TryGetValue(speaker, out NpcEntry? npc))
       return npc;
@@ -79,7 +79,7 @@ public partial class MessageDispatcher
     byte[] hashBytes = MD5.HashData(inputBytes);
     StringBuilder sb = new();
     foreach (byte b in hashBytes)
-      sb.Append(b.ToString("x2"));
+      sb.Append(b.ToString("x2", CultureInfo.InvariantCulture));
     return sb.ToString();
   }
 
@@ -111,7 +111,7 @@ public partial class MessageDispatcher
       string[] suffixes = ["'s Voice", "'s Avatar"];
       foreach (string suffix in suffixes)
       {
-        if (speaker.EndsWith(suffix))
+        if (speaker.EndsWith(suffix, StringComparison.Ordinal))
         {
           speaker = speaker[..^suffix.Length];
           break;
@@ -206,7 +206,7 @@ public partial class MessageDispatcher
         sentence = Regex.Replace(sentence, pattern, "Come one, come all - drawing number");
 
         // 2-  Cactpot Winning Prize
-        if (speaker == "Cactpot Cashier" && sentence.StartsWith("Congratulations! You have won"))
+        if (speaker == "Cactpot Cashier" && sentence.StartsWith("Congratulations! You have won", StringComparison.Ordinal))
           sentence = "Congratulations! You have won!";
 
         // 3- Delivery Moogle carrier level removal
@@ -232,17 +232,17 @@ public partial class MessageDispatcher
         // 8- Feo Ul Lines
         if (speaker == "Feo Ul")
         {
-          if (sentence.StartsWith("A whispered word, and off"))
+          if (sentence.StartsWith("A whispered word, and off", StringComparison.Ordinal))
             sentence = "A whispered word, and off goes yours on a grand adventure! What wonders await at journey's end?";
-          else if (sentence.StartsWith("Carried by the wind, the leaf flutters to the ground"))
+          else if (sentence.StartsWith("Carried by the wind, the leaf flutters to the ground", StringComparison.Ordinal))
             sentence = "Carried by the wind, the leaf flutters to the ground - and so does yours return to your side. Was the journey a fruitful one?";
-          else if (sentence.StartsWith("From verdant green to glittering gold"))
+          else if (sentence.StartsWith("From verdant green to glittering gold", StringComparison.Ordinal))
             sentence = "From verdant green to glittering gold, so does the leaf take on delightful hues with each new season. If you would see yours dressed in new colors, your beautiful branch will attend to the task.";
-          else if (sentence.StartsWith("Oh, my adorable sapling! You have need"))
+          else if (sentence.StartsWith("Oh, my adorable sapling! You have need", StringComparison.Ordinal))
             sentence = "Oh, my adorable sapling! You have need of yours, yes? But sing the word, and let your beautiful branch do what only they can.";
-          else if (sentence.StartsWith("Very well. I shall slip quietly from"))
+          else if (sentence.StartsWith("Very well. I shall slip quietly from", StringComparison.Ordinal))
             sentence = "Very well. I shall slip quietly from your servant's dreams. May your leaf flutter, float, and find a way back to you.";
-          else if (sentence.StartsWith("You have no more need of"))
+          else if (sentence.StartsWith("You have no more need of", StringComparison.Ordinal))
             sentence = "You have no more need of yours? So be it! I shall steal quietly from your loyal servant's dreams.";
         }
 
@@ -271,9 +271,9 @@ public partial class MessageDispatcher
         // 13- Mini Cactpot Broker
         if (speaker == "Mini Cactpot Broker")
         {
-          if (sentence.StartsWith("We have a winner! Please accept my congratulations"))
+          if (sentence.StartsWith("We have a winner! Please accept my congratulations", StringComparison.Ordinal))
             sentence = "We have a winner! Please accept my congratulations!";
-          if (sentence.StartsWith("Congratulations! Here is your prize"))
+          if (sentence.StartsWith("Congratulations! Here is your prize", StringComparison.Ordinal))
             sentence = "Congratulations! Here is your prize. Would you like to purchase another ticket?";
         }
       }
@@ -283,7 +283,7 @@ public partial class MessageDispatcher
 
       // This is at the end because of lines like "<gulp> <gulp> <gulp> ...See, empty already."
       // Remove leading "..." if present
-      if (sentence.Trim().StartsWith("..."))
+      if (sentence.Trim().StartsWith("...", StringComparison.Ordinal))
         sentence = sentence[3..];
 
       // Yes this second trim is intended.
@@ -320,20 +320,32 @@ public partial class MessageDispatcher
     {
       string key1 = npc.Race + npc.Gender;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key1, out NpcEntry? _npc1))
+      {
         if (_npc1.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc1.VoiceId, out VoiceEntry? _voice1))
+        {
           voice = _voice1;
+        }
+      }
 
       string key2 = npc.Race;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key2, out NpcEntry? _npc2))
+      {
         if (_npc2.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc2.VoiceId, out VoiceEntry? _voice2))
+        {
           voice = _voice2;
+        }
+      }
     }
     else
     {
       string key = npc.Gender + npc.Race + npc.Tribe + npc.Body + npc.Eyes;
       if (_dataService.Manifest.Npcs_Generic.TryGetValue(key, out NpcEntry? _npc))
+      {
         if (_npc.VoiceId != null && _dataService.Manifest.Voices.TryGetValue(_npc.VoiceId, out VoiceEntry? _voice))
+        {
           voice = _voice;
+        }
+      }
     }
 
     return voice;
@@ -378,7 +390,7 @@ public partial class MessageDispatcher
       string numeral = RomanTo(i);
       if (numeral.Length > 1)
       {
-        value = value.Replace(numeral, i.ToString());
+        value = value.Replace(numeral, i.ToString(CultureInfo.InvariantCulture));
       }
     }
     return value;

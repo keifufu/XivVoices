@@ -26,5 +26,5 @@ public abstract class TabPanelNode : ResNode
   public virtual void OnSetup() { }
   public virtual void ConfigurationSaved() { }
   public virtual void OnUpdate() { }
-  public Action<ConfigTab>? SetTab;
+  public Action<ConfigTab>? SetTab { get; set; }
 }

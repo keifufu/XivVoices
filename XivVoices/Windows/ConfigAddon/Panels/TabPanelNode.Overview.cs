@@ -273,18 +273,25 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
         continue;
       }
 
-      if (cur.Length == 0) cur.Append(word);
-      else if (cur.Length + 1 + word.Length <= max) cur.Append(' ').Append(word);
-      else { yield return cur.ToString(); cur.Clear(); cur.Append(word); }
+      if (cur.Length == 0)
+      {
+        cur.Append(word);
+      }
+      else if (cur.Length + 1 + word.Length <= max)
+      {
+        cur.Append(' ').Append(word);
+      }
+      else
+      {
+        yield return cur.ToString(); cur.Clear(); cur.Append(word);
+      }
     }
 
     if (cur.Length > 0) yield return cur.ToString();
   }
 
   private bool IsImport(string path)
-  {
-    return File.Exists(Path.Join(path, "manifest.json")) && File.Exists(Path.Join(path, "tools.md5"));
-  }
+    => File.Exists(Path.Join(path, "manifest.json")) && File.Exists(Path.Join(path, "tools.md5"));
 
   protected override void OnSizeChanged()
   {
@@ -319,9 +326,7 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
   }
 
   private void OnDataDirectoryChanged()
-  {
-    UpdateLoginInstallUpdateState();
-  }
+    => UpdateLoginInstallUpdateState();
 
   private void OnServerStatusChanged()
   {
@@ -392,7 +397,11 @@ public class OverviewTabPanelNode(IServiceProvider _services) : TabPanelNode
       if (_dataService.DataStatus.UpdateInProgress)
       {
         TimeSpan ETA = _dataService.DataStatus.UpdateETA;
-        _actionButtonNode.String = "ETA: " + (ETA == TimeSpan.MaxValue ? "Calculating..." : ETA.ToString(@"hh\:mm\:ss"));
+        _actionButtonNode.String = "ETA: " + (
+          ETA == TimeSpan.MaxValue
+            ? "Calculating..."
+            : ETA.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)
+        );
       }
       else
       {

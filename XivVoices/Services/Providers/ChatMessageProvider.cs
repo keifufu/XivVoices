@@ -6,16 +6,23 @@ namespace XivVoices.Services;
 
 public interface IChatMessageProvider : IHostedService;
 
-public class ChatMessageProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IChatGui _chatGui, IObjectTable _objectTable) : IChatMessageProvider
+public class ChatMessageProvider(
+  ILogger _logger,
+  IChatGui _chatGui,
+  IObjectTable _objectTable,
+  Configuration _configuration,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService) : IChatMessageProvider
 {
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _chatGui.ChatMessage += OnChatMessage;
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _chatGui.ChatMessage -= OnChatMessage;
 
@@ -116,7 +123,8 @@ public class ChatMessageProvider(ILogger _logger, Configuration _configuration, 
     if (allowed)
     {
       _logger.Debug($"speaker::{speaker}@{speakerWorld ?? "Unknown"} sentence::{message.Message}");
-      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(), speakerWorld: speakerWorld, chatChannel: message.LogKind);
+      _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(),
+            speakerWorld: speakerWorld, chatChannel: message.LogKind);
     }
   }
 }

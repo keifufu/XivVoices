@@ -6,8 +6,7 @@ namespace XivVoices.Windows;
 
 public class SelfTestStepNode : ResNode
 {
-  public SelfTestStep Step;
-
+  public SelfTestStep Step { get; init; }
   private readonly TextNode _stateNode;
 
   public SelfTestStepNode(ISelfTestService _selfTestService, SelfTestStep step)
@@ -55,7 +54,7 @@ public class SelfTestStepNode : ResNode
       field = value;
       UpdateState();
     }
-  } = false;
+  }
 
   public bool Skipped
   {
@@ -65,7 +64,7 @@ public class SelfTestStepNode : ResNode
       field = value;
       UpdateState();
     }
-  } = false;
+  }
 
   public bool Completed
   {
@@ -75,5 +74,5 @@ public class SelfTestStepNode : ResNode
       field = value;
       UpdateState();
     }
-  } = false;
+  }
 }

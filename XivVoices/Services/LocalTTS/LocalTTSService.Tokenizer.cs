@@ -41,7 +41,7 @@ public partial class LocalTTSService
       text = text.Replace($"{punc}", $"{punc} ");
     }
 
-    while (text.Length > 0 && _replaceablePhonemes.Contains(text[0]) || _deletableCharacters.Any(text.StartsWith)) { text = text[1..]; }
+    while ((text.Length > 0 && _replaceablePhonemes.Contains(text[0])) || _deletableCharacters.Any(text.StartsWith)) { text = text[1..]; }
     while (text.Contains("\n\n")) { text = text.Replace("\n\n", "\n"); }
     for (int i = 0; i < 10; i++) { text = text.Replace("  ", " "); }
 
@@ -74,7 +74,7 @@ public partial class LocalTTSService
     for (int i = 0; i < phonemesArray.Length; i++)
     {
       string vf = phonemesArray[i];
-      if (vf.StartsWith("ˈɛ")) { vf = "ˌɛ" + vf[2..]; }
+      if (vf.StartsWith("ˈɛ", StringComparison.Ordinal)) { vf = "ˌɛ" + vf[2..]; }
       sb.Append(vf);
       if (puncs.Count > i) { sb.Append(puncs[i]); }
     }

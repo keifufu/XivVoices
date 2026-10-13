@@ -2,7 +2,15 @@ namespace XivVoices.Services;
 
 public interface IMessageDispatcher : IHostedService
 {
-  Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null);
+  Task TryDispatch(MessageSource source,
+    string rawSpeaker,
+    string rawSentence,
+    uint? speakerBaseId = null,
+    bool isFake = false,
+    string? voiceOverride = null,
+    int? pitchOverride = null,
+    string? speakerWorld = null,
+    XivChatType? chatChannel = null);
   void ClearQueue();
   void Prev();
   string ReplaceName(string sentence, string playerName);
@@ -17,20 +25,29 @@ public enum PlaybackQueueState
   Stopped
 }
 
-public class PlaybackQueue
+public class PlaybackQueueInfo
 {
-  public object QueueLock = new();
+  public object QueueLock { get; init; } = new();
   public List<XivMessage> Queue { get; set; } = [];
-  public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
   public MessageSource MessageSource { get; set; }
+  public PlaybackQueueState PlaybackQueueState { get; set; } = PlaybackQueueState.Stopped;
 }
 
-public partial class MessageDispatcher(ILogger _logger, Configuration _configuration, IDataService _dataService, ISoundFilter _soundFilter, IReportService _reportService, IPlaybackService _playbackService, IGameInteropService _gameInteropService, IFramework _framework, IClientState _clientState) : IMessageDispatcher
+public partial class MessageDispatcher(
+  ILogger _logger,
+  IFramework _framework,
+  IClientState _clientState,
+  IDataService _dataService,
+  ISoundFilter _soundFilter,
+  Configuration _configuration,
+  IReportService _reportService,
+  IPlaybackService _playbackService,
+  IGameInteropService _gameInteropService) : IMessageDispatcher
 {
-  private Dictionary<MessageSource, PlaybackQueue> _queues = [];
-  private InterceptedSound? _interceptedSound;
+  private Dictionary<MessageSource, PlaybackQueueInfo> _queues = [];
+  private InterceptedSoundEventArgs? _interceptedSound;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     foreach (MessageSource source in Enum.GetValues<MessageSource>())
       _queues[source] = new() { MessageSource = source };
@@ -44,7 +61,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _soundFilter.OnVoicelineDetected -= SoundFilter_OnCutSceneAudioDetected;
 
@@ -59,7 +76,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   public void ClearQueue()
   {
-    foreach (PlaybackQueue playbackQueue in _queues.Values)
+    foreach (PlaybackQueueInfo playbackQueue in _queues.Values)
     {
       playbackQueue.Queue.Clear();
     }
@@ -96,7 +113,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _playbackService.Play(prev, true);
   }
 
-  private bool TryDequeue(PlaybackQueue queue, out XivMessage message)
+  private bool TryDequeue(PlaybackQueueInfo queue, out XivMessage message)
   {
     lock (queue.QueueLock)
     {
@@ -114,7 +131,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
   private void OnFrameworkUpdate(IFramework framework)
   {
-    foreach (PlaybackQueue playbackQueue in _queues.Values)
+    foreach (PlaybackQueueInfo playbackQueue in _queues.Values)
     {
       lock (playbackQueue.QueueLock)
       {
@@ -163,7 +180,7 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
   }
 
-  private void SoundFilter_OnCutSceneAudioDetected(object? sender, InterceptedSound sound)
+  private void SoundFilter_OnCutSceneAudioDetected(object? sender, InterceptedSoundEventArgs sound)
   {
     if (_dataService.Manifest == null) return;
     if (!_clientState.IsLoggedIn || !(_gameInteropService.IsInCutscene() || _gameInteropService.IsInDuty())) return;
@@ -171,7 +188,16 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     _interceptedSound = sound;
   }
 
-  public async Task TryDispatch(MessageSource source, string rawSpeaker, string rawSentence, uint? speakerBaseId = null, bool isFake = false, string? voiceOverride = null, int? pitchOverride = null, string? speakerWorld = null, XivChatType? chatChannel = null)
+  public async Task TryDispatch(
+    MessageSource source,
+    string rawSpeaker,
+    string rawSentence,
+    uint? speakerBaseId = null,
+    bool isFake = false,
+    string? voiceOverride = null,
+    int? pitchOverride = null,
+    string? speakerWorld = null,
+    XivChatType? chatChannel = null)
   {
     if (_dataService.Manifest == null) return;
     string speaker = rawSpeaker;
@@ -253,11 +279,13 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
 
     NpcEntry? npc = mappedNpc ?? GetNpc(source, cleanedSpeaker);
     if (npc == null || npc.HasVariedLooks)
-      npc = await _gameInteropService.RunOnFrameworkThread(() => _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc));
+      npc = await _gameInteropService.Run(() => _gameInteropService.TryGetNpc(speaker, speakerBaseId, npc));
 
     VoiceEntry? voice = null;
     if (!(npc?.HasVariedLooks ?? false) && _dataService.Manifest.Voices.TryGetValue(npc?.VoiceId ?? "", out VoiceEntry? _voice))
+    {
       voice = _voice;
+    }
     else
     {
       voice = GetGenericVoice(npc);
@@ -283,7 +311,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     {
       (_, string legacySentence) = CleanMessage(speaker, sentence, playerName, true);
       (id, voicelinePath) = await TryGetVoiceline(voice, npc, legacySentence);
-      if (voicelinePath == null) _logger.Debug("Did not find legacy name voiceline");
+      if (voicelinePath == null)
+      {
+        _logger.Debug("Did not find legacy name voiceline");
+      }
       else
       {
         _logger.Debug("Found legacy name voiceline");
@@ -297,7 +328,10 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     {
       (_, string fallbackSentence) = CleanMessage(speaker, sentence, "NotAReal Name", false);
       (id, voicelinePath) = await TryGetVoiceline(voice, npc, fallbackSentence);
-      if (voicelinePath == null) _logger.Debug("Did not find fallback name voiceline");
+      if (voicelinePath == null)
+      {
+        _logger.Debug("Did not find fallback name voiceline");
+      }
       else
       {
         _logger.Debug("Found fallback name voiceline");
@@ -318,7 +352,8 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // special handling per quest.
     string playerFirstName = playerName.Split(" ")[0];
     string playerLastName = playerName.Split(" ")[1];
-    if (rawSpeaker == "Hildibrand" && rawSentence.EndsWith($"HEY, {playerFirstName.ToUpper()}!"))
+    if (rawSpeaker == "Hildibrand" &&
+        rawSentence.EndsWith($"HEY, {playerFirstName.ToUpper(CultureInfo.InvariantCulture)}!", StringComparison.Ordinal))
     {
       rawSentence = "_FIRSTNAME_! HEY, _FIRSTNAME_!";
       cleanedSentence = "_FIRSTNAME_! HEY, _FIRSTNAME_!";
@@ -354,8 +389,11 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     // See: https://ffxiv.consolegameswiki.com/wiki/Our_Answer (and maybe others)
     if (message.RawSpeaker == $"{playerFirstName} ${playerLastName}") isIgnoredSpeaker = true;
 
-    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString && message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer && !forcedLocalTTS)
+    if (!isFake && source != MessageSource.ChatMessage && source != MessageSource.SelectString &&
+        message.VoicelinePath == null && !isIgnoredSpeaker && !isRetainer && !forcedLocalTTS)
+    {
       _reportService.Report(message);
+    }
 
     // If in LiveMode, warn about ignored speakers in chat, but only for addontalk messages.
     if (source == MessageSource.AddonTalk && isIgnoredSpeaker && (_configuration.LiveMode || _configuration.WarnIgnoredSpeaker))
@@ -432,11 +470,9 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
     }
   }
 
+  // Enqueue SelectString with AddonTalk
   private MessageSource GetQueueForMessage(XivMessage message)
-  {
-    // Enqueue SelectString with AddonTalk
-    return message.Source == MessageSource.SelectString ? MessageSource.AddonTalk : message.Source;
-  }
+    => message.Source == MessageSource.SelectString ? MessageSource.AddonTalk : message.Source;
 
   public void DispatchTestMessage()
   {
@@ -445,7 +481,5 @@ public partial class MessageDispatcher(ILogger _logger, Configuration _configura
   }
 
   public void DispatchLocalTTSMessage(string voice, int pitch, string sentence)
-  {
-    _ = TryDispatch(MessageSource.AddonTalk, "Preview", sentence, null, true, voice, pitch);
-  }
+    => _ = TryDispatch(MessageSource.AddonTalk, "Preview", sentence, null, true, voice, pitch);
 }

@@ -21,7 +21,15 @@ public class XivReport
 
   private string GetDate() => DateTime.UtcNow.ToString("o");
 
-  public XivReport(string pluginVersion, XivMessage message, string location, string classJob, bool isInCutscene, bool isInDuty, List<string> activeQuests, List<string> activeLeves)
+  public XivReport(
+    string pluginVersion,
+    XivMessage message,
+    string location,
+    string classJob,
+    bool isInCutscene,
+    bool isInDuty,
+    List<string> activeQuests,
+    List<string> activeLeves)
   {
     Type = ReportType.Automatic;
     PluginVersion = pluginVersion;

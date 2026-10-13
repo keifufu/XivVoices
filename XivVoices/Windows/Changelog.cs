@@ -3,7 +3,7 @@ namespace XivVoices.Windows;
 public static class Changelog
 {
   // Newest ones go to the top.
-  public readonly static Dictionary<string, string[]> Versions = new() {
+  public static readonly Dictionary<string, string[]> Versions = new() {
     { "1.6.0.0", new[] {
       "Added support for cutscene subtitles.",
       "Added option to increase volume limits.",

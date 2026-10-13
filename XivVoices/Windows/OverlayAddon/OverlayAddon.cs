@@ -9,15 +9,21 @@ namespace XivVoices.Windows;
 
 public interface IOverlayAddon : IHostedService
 {
-  public unsafe bool CheckCollision(AtkEventData* atkEventData);
+  unsafe bool CheckCollision(AtkEventData* atkEventData);
 }
 
-public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramework _framework, IClientState _clientState, IServiceProvider services) : IOverlayAddon
+public class OverlayAddon(
+  ILogger _logger,
+  IFramework _framework,
+  IClientState _clientState,
+  IServiceProvider services,
+  Configuration _configuration
+) : IOverlayAddon
 {
   private OverlayController? _overlayController;
   private XivvOverlayNode? _xivvOverlayNode;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _clientState.Login += RebuildOverlay;
     _configuration.Saved += RebuildOverlay;
@@ -26,7 +32,7 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
     return _logger.ServiceLifecycle();
   }
 
-  public async Task StopAsync(CancellationToken token)
+  public async Task StopAsync(CancellationToken cancellationToken)
   {
     _clientState.Login -= RebuildOverlay;
     _configuration.Saved -= RebuildOverlay;
@@ -37,13 +43,13 @@ public class OverlayAddon(ILogger _logger, Configuration _configuration, IFramew
       {
         _overlayController?.Dispose();
         _overlayController = null;
-      }, token);
+      }, cancellationToken);
     }
 
     await _logger.ServiceLifecycle();
   }
 
-  private void RebuildOverlay() => _framework.RunOnFrameworkThread(() =>
+  private void RebuildOverlay() => _framework.Run(() =>
   {
     if (!_clientState.IsLoggedIn || !_configuration.OverlayOpen)
     {
@@ -83,8 +89,8 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly Configuration _configuration;
   private readonly ILogger _logger;
 
+  public WindowBackgroundTextureNode Frame { get; private init; }
   private readonly ResNode _moveNode;
-  public readonly WindowBackgroundTextureNode Frame;
   private readonly ViewportEventListener _editEventListener;
   private readonly WindowBackgroundTextureNode _frameFront;
   private readonly TextNode _titleText;
@@ -101,10 +107,10 @@ public unsafe class XivvOverlayNode : OverlayNode
   private readonly HorizontalLineNode _horizontalLine2;
   private readonly TextNode _textNode;
 
-  private bool _hasVisitedOverlaySettings = false;
   private Vector2 _clickStartPosition = Vector2.Zero;
-  private bool _isCursorSet = false;
-  private bool _isMoving = false;
+  private bool _hasVisitedOverlaySettings;
+  private bool _isCursorSet;
+  private bool _isMoving;
 
   public XivvOverlayNode(IServiceProvider services)
   {
@@ -310,7 +316,7 @@ public unsafe class XivvOverlayNode : OverlayNode
     _configuration.Saved += ConfigurationSaved;
   }
 
-  bool _expandButtonTooltipVisible = false;
+  private bool _expandButtonTooltipVisible;
   private void ExpandButtonMouseOver() => _expandButtonTooltipVisible = true;
   private void ExpandButtonMouseOut() => _expandButtonTooltipVisible = false;
 

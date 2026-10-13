@@ -1,6 +1,6 @@
-namespace XivVoices.Windows;
-
 using LocalTTSOverride = (string speaker, (string voice, int pitch) options);
+
+namespace XivVoices.Windows;
 
 public class LocalTTSOverrideItemNode : IconListItemNode<LocalTTSOverride>
 {

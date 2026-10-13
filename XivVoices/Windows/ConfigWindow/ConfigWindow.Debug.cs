@@ -8,12 +8,7 @@ public partial class ConfigWindow
     ImGui.Text($"Mixer Sources: {_playbackService.Debug_GetMixerSourceCount()}");
 
     DrawConfigCheckbox("Debug Logging", ref _configuration.DebugLogging);
-
-    DrawConfigText("ServerUrl", "ServerUrl", _dataService.ServerUrl, (value) =>
-    {
-      _dataService.SetServerUrl(value);
-    });
-
+    DrawConfigText("ServerUrl", "ServerUrl", _dataService.ServerUrl, _dataService.SetServerUrl);
     DrawConfigCheckbox("LiveMode", ref _configuration.LiveMode);
     DrawConfigCheckbox("WarnIgnoredSpeaker", ref _configuration.WarnIgnoredSpeaker);
   }

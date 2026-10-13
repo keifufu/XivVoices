@@ -128,26 +128,26 @@ public class Configuration : IPluginConfiguration
   public XivChatType DefaultChatChannel = XivChatType.Debug;
 
   [NonSerialized]
-  private ILogger? Logger;
+  private ILogger _logger = null!;
   [NonSerialized]
-  private IDalamudPluginInterface? PluginInterface;
+  private IDalamudPluginInterface _pluginInterface = null!;
   [NonSerialized]
   private Dictionary<string, object?>? _previousConfig;
 
   public void Initialize(ILogger logger, IDalamudPluginInterface pluginInterface)
   {
-    Logger = logger;
-    PluginInterface = pluginInterface;
+    _logger = logger;
+    _pluginInterface = pluginInterface;
 
-    Logger.SetConfiguration(this);
-    ConfigurationMigrator.Migrate(this, Logger!);
+    _logger.SetConfiguration(this);
+    ConfigurationMigrator.Migrate(this, _logger);
 
     // Can remove this eventually, i guess.
     LocalTTSDisallowedVoices = LocalTTSDisallowedVoices.Distinct().ToList();
     Save();
 
     _previousConfig = GetAllFields();
-    Logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.WriteLog));
+    _logger.Debug(JsonSerializer.Serialize(_previousConfig, JsonOptions.WriteLog));
   }
 
   private bool IsKeySecret(string key)
@@ -178,11 +178,11 @@ public class Configuration : IPluginConfiguration
           _previousConfig.TryGetValue(field.Key, out object? oldValue) &&
           !Equals(oldValue, field.Value) && !IsKeySecret(field.Key))
       {
-        Logger?.Debug($"Changed {field.Key}: from '{oldValue}' to '{field.Value}'");
+        _logger.Debug($"Changed {field.Key}: from '{oldValue}' to '{field.Value}'");
       }
     }
 
-    PluginInterface!.SavePluginConfig(this);
+    _pluginInterface.SavePluginConfig(this);
     _previousConfig = currentConfig;
 
     Saved?.Invoke();

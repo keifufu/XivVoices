@@ -15,11 +15,11 @@ public interface IGameInteropService : IHostedService
 {
   string? PlayerName { get; }
   string? PlayerWorld { get; }
-  Task<T> RunOnFrameworkThread<T>(Func<T> func);
-  Task RunOnFrameworkThread(System.Action action);
+  Task<T> Run<T>(Func<T> func);
+  Task Run(System.Action action);
   IGameObject? GetTarget();
   IntPtr TryFindCharacter(string name, uint? baseId);
-  NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npc);
+  NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npcEntry);
   string GetLocation();
   string GetClassJob();
   List<string> GetActiveQuests();
@@ -36,30 +36,39 @@ public interface IGameInteropService : IHostedService
 
 public class CameraView
 {
-  public Vector3 Forward;
-  public Vector3 Up;
-  public Vector3 Right;
+  public Vector3 Forward { get; init; }
+  public Vector3 Up { get; init; }
+  public Vector3 Right { get; init; }
 }
 
-public partial class GameInteropService(ILogger _logger, ICondition _condition, IDataService _dataService, IFramework _framework, IClientState _clientState, IDataManager _dataManager, IObjectTable _objectTable, IPlayerState _playerState, ITargetManager _targetManager) : IGameInteropService
+public partial class GameInteropService(
+  ILogger _logger,
+  ICondition _condition,
+  IFramework _framework,
+  IClientState _clientState,
+  IDataManager _dataManager,
+  IDataService _dataService,
+  IObjectTable _objectTable,
+  IPlayerState _playerState,
+  ITargetManager _targetManager) : IGameInteropService
 {
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
-    if (_clientState.IsLoggedIn) RunOnFrameworkThread(OnLogin);
+    if (_clientState.IsLoggedIn) Run(OnLogin);
     _clientState.Login += OnLogin;
     _clientState.Logout += OnLogout;
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _clientState.Login -= OnLogin;
     _clientState.Logout -= OnLogout;
     return _logger.ServiceLifecycle();
   }
 
-  public string? PlayerName { get; private set; } = null;
-  public string? PlayerWorld { get; private set; } = null;
+  public string? PlayerName { get; private set; }
+  public string? PlayerWorld { get; private set; }
 
   private void OnLogin()
   {
@@ -75,11 +84,11 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
     PlayerWorld = null;
   }
 
-  public Task<T> RunOnFrameworkThread<T>(Func<T> func) =>
-    _framework.RunOnFrameworkThread(func);
+  public Task<T> Run<T>(Func<T> func) =>
+    _framework.Run(func);
 
-  public Task RunOnFrameworkThread(System.Action action) =>
-    _framework.RunOnFrameworkThread(action);
+  public Task Run(System.Action action) =>
+    _framework.Run(action);
 
   public IGameObject? GetTarget()
     => _targetManager.Target;
@@ -103,7 +112,7 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
     return baseIdCharacter;
   }
 
-  public unsafe NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? _npc)
+  public unsafe NpcEntry? TryGetNpc(string name, uint? baseId, NpcEntry? npcEntry)
   {
     Character* character = (Character*)TryFindCharacter(name, baseId);
     if (character == null) return null;
@@ -119,16 +128,16 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
 
     NpcEntry npc = new()
     {
-      Id = _npc?.Id,
-      VoiceId = _npc?.VoiceId,
+      Id = npcEntry?.Id,
+      VoiceId = npcEntry?.VoiceId,
       Gender = GetGender(gender),
       Race = GetRace(race),
       Tribe = GetTribe(tribe),
       Body = GetBody(body),
       Eyes = GetEyes(eyes),
       BaseId = character->BaseId,
-      Speakers = _npc?.Speakers ?? [speaker],
-      HasVariedLooks = _npc?.HasVariedLooks ?? false
+      Speakers = npcEntry?.Speakers ?? [speaker],
+      HasVariedLooks = npcEntry?.HasVariedLooks ?? false
     };
 
     if (npc.Body == "Beastman")
@@ -167,9 +176,7 @@ public partial class GameInteropService(ILogger _logger, ICondition _condition, 
   }
 
   public string GetClassJob()
-  {
-    return _playerState.ClassJob.ValueNullable?.NameEnglish.ToString() ?? "Unknown ClassJob";
-  }
+    => _playerState.ClassJob.ValueNullable?.NameEnglish.ToString() ?? "Unknown ClassJob";
 
   public List<string> GetActiveQuests()
   {

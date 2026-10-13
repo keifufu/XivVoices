@@ -15,9 +15,9 @@ public interface IPlaybackService : IHostedService
   bool Paused { get; set; }
   bool IsOutputDeviceInitialized { get; }
 
-  public void InitializeOutputDevice();
-  public IEnumerable<WaveOutCapabilities> GetWaveOutDevices();
-  public IEnumerable<DirectSoundDeviceInfo> GetDirectSoundDevices();
+  void InitializeOutputDevice();
+  IEnumerable<WaveOutCapabilities> GetWaveOutDevices();
+  IEnumerable<DirectSoundDeviceInfo> GetDirectSoundDevices();
 
   Task Play(XivMessage message, bool replay = false);
 
@@ -42,7 +42,16 @@ public interface IPlaybackService : IHostedService
   int Debug_GetMixerSourceCount();
 }
 
-public class PlaybackService(ILogger _logger, Configuration _configuration, ILipSync _lipSync, IDataService _dataService, ILocalTTSService _localTTSService, IGameInteropService _gameInteropService, IFramework _framework, IObjectTable _objectTable, IGameConfig _gameConfig) : IPlaybackService
+public class PlaybackService(
+  ILogger _logger,
+  ILipSync _lipSync,
+  IFramework _framework,
+  IGameConfig _gameConfig,
+  IDataService _dataService,
+  IObjectTable _objectTable,
+  Configuration _configuration,
+  ILocalTTSService _localTTSService,
+  IGameInteropService _gameInteropService) : IPlaybackService
 {
   private WaveOutEvent? _waveOutputDevice;
   private DirectSoundOut? _directSoundOutputDevice;
@@ -61,17 +70,17 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   public bool Paused
   {
     get => field || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Pause && IsWindowUnfocused);
-    set => field = value;
-  } = false;
+    set;
+  }
 
   public bool IsOutputDeviceInitialized { get; private set; }
 
   private bool _wasWindowUnfocused = false;
   private unsafe bool IsWindowUnfocused => FrameworkStruct.Instance() != null && FrameworkStruct.Instance()->WindowInactive;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
-    _framework.Update += FrameworkOnUpdate;
+    _framework.Update += OnFrameworkUpdate;
 
     InitializeOutputDevice();
 
@@ -189,14 +198,14 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (device != null) yield return device;
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
-    _framework.Update -= FrameworkOnUpdate;
+    _framework.Update -= OnFrameworkUpdate;
 
     foreach (TrackableSound track in _playing.Values)
     {
       _mixer?.RemoveMixerInput(track);
-      track.Dispose();
+      // track.Dispose();
     }
 
     foreach (XivMessage message in _queuedMessages)
@@ -210,8 +219,8 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     return _logger.ServiceLifecycle();
   }
 
-  private int _updateCount = 0;
-  private void FrameworkOnUpdate(IFramework framework)
+  private readonly Stopwatch _timer = Stopwatch.StartNew();
+  private void OnFrameworkUpdate(IFramework framework)
   {
     if (_wasWindowUnfocused != IsWindowUnfocused)
     {
@@ -226,9 +235,9 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
     foreach (TrackableSound track in _playing.Values)
       UpdateTrack(track);
 
-    _updateCount++;
-    if (_updateCount % 30 == 0 && !_configuration.LiveMode)
+    if (_timer.ElapsedMilliseconds > 250 && !_configuration.LiveMode)
     {
+      _timer.Restart();
       lock (_playbackHistoryLock)
       {
         XivMessage? message = _queuedMessages.LastOrDefault(m => !m.IsGenerating && m.WaveStream == null && m.IsLocalTTS);
@@ -248,10 +257,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
   private unsafe Task UpdateTrack(TrackableSound track)
   {
-    return _gameInteropService.RunOnFrameworkThread(() =>
+    return _gameInteropService.Run(() =>
     {
       if (track.IsStopping) return;
-      track.IsMuted = !track.Message.IsFake && ((_configuration.RespectFFXIVMasterVolumeToggle && _gameConfig.System.GetBool("IsSndMaster")) || (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused));
+      track.IsMuted = !track.Message.IsFake &&
+        ((_configuration.RespectFFXIVMasterVolumeToggle && _gameConfig.System.GetBool("IsSndMaster")) ||
+          (_configuration.UnfocusedBehavior == UnfocusedBehavior.Mute && IsWindowUnfocused));
       track.Speed = track.Message.IsLocalTTS ? _configuration.LocalTTSSpeed : _configuration.Speed;
       float volume = (track.Message.IsLocalTTS ? _configuration.LocalTTSVolume : _configuration.Volume) / 100f;
 
@@ -394,7 +405,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
       if (_playing.TryRemove(message.Id, out TrackableSound? oldTrack))
       {
         _mixer.RemoveMixerInput(oldTrack);
-        oldTrack.Dispose();
+        // oldTrack.Dispose();
       }
 
       sourceStream.Position = 0;
@@ -412,7 +423,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
         // Apparently no need to call .RemoveMixerInput, it seems to automagically remove itself
         // when playback is completed. Calling .RemoveMixerInput here does not cause any exceptions
         // but any future lines will be broken.
-        t.Dispose();
+        // t.Dispose();
 
         // Sleep a little before finishing the playback and thus auto advancing.
         // I personally don't think this is needed but after trimming audio files of silence
@@ -521,8 +532,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     _logger.Debug($"Stopping playing audio from source {source}");
     foreach (TrackableSound track in _playing.Values)
+    {
       if (track.Message.Source == source)
+      {
         _ = FadeOutAndStopAsync(track);
+      }
+    }
   }
 
   public void Stop(string id)
@@ -571,8 +586,12 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   {
     int count = 0;
     foreach (TrackableSound track in _playing.Values)
+    {
       if (track.Message.Source == source)
+      {
         count++;
+      }
+    }
 
     return count;
   }
@@ -599,9 +618,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   }
 
   public XivMessage? GetLatestCurrentlyPlayingMessage()
-  {
-    return _playing.FirstOrNull()?.Value.Message;
-  }
+    => _playing.FirstOrNull()?.Value.Message;
 
   public void AddQueuedLine(XivMessage message)
   {
@@ -644,9 +661,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
   }
 
   public int Debug_GetMixerSourceCount()
-  {
-    return _mixer?.MixerInputs.Count() ?? -1;
-  }
+    => _mixer?.MixerInputs.Count() ?? -1;
 
   private async Task FadeOutAndStopAsync(TrackableSound track, int fadeDurationMs = 0)
   {
@@ -673,7 +688,7 @@ public class PlaybackService(ILogger _logger, Configuration _configuration, ILip
 
     _mixer?.RemoveMixerInput(track);
     track.OnPlaybackStopped = null;
-    track.Dispose();
+    // track.Dispose();
 
     string key = _playing.FirstOrDefault(kvp => kvp.Value == track).Key;
     if (key != null)

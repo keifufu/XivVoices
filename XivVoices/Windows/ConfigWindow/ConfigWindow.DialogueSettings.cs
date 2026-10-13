@@ -30,8 +30,12 @@ public partial class ConfigWindow
 
     DrawConfigCheckbox("Queue Dialogue", ref _configuration.QueueDialogue);
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Queues regular dialogue so it won't get skipped when you click away.");
+      }
+    }
 
     using (ImRaii.TableDisposable table = ImRaii.Table("AddonSettingsTable", 4, ImGuiTableFlags.Borders | ImGuiTableFlags.RowBg))
     {
@@ -94,19 +98,31 @@ public partial class ConfigWindow
     The spinner in the bottom-right of the dialogue box shows the auto-advance status.
     """;
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text(autoAdvanceHelp);
+      }
+    }
 
     DrawConfigCheckbox("Fast Forward", ref _configuration.FastForward);
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Dialogue boxes will be skipped immediately, useful if used in combination with \"Queue Dialogue\". Will not take effect if muted.");
+      }
+    }
 
     DrawConfigCheckbox("Retainers Enabled", ref _configuration.RetainersEnabled);
     DrawConfigCheckbox("Replace Voiced ARR Cutscenes", ref _configuration.ReplaceVoicedARRCutscenes);
     DrawConfigCheckbox("Prevent Accidental Dialogue Advance", ref _configuration.PreventAccidentalDialogueAdvance);
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Prevents advancing dialogue when left-clicking unless hovering over the actual dialogue box. (Disabled while plugin is muted)");
+      }
+    }
   }
 }

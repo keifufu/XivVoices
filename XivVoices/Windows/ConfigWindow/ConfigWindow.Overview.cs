@@ -56,7 +56,7 @@ public partial class ConfigWindow
     bool mostVoicelinesDownloaded = _dataService.Manifest != null && (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
     Vector4 voicelineColor = allVoicelinesDownloaded ? _green : mostVoicelinesDownloaded ? _yellow : _red;
     using (ImRaii.PushColor(ImGuiCol.Text, voicelineColor))
-      ImGui.Text(_dataService.DataStatus.VoicelinesDownloaded.ToString());
+      ImGui.Text(_dataService.DataStatus.VoicelinesDownloaded.ToString(CultureInfo.InvariantCulture));
 
     DrawHorizontallyCenteredText("Version:", $"Version: {_dataService.Version}");
     ImGui.SameLine();
@@ -65,8 +65,12 @@ public partial class ConfigWindow
       ImGui.Text(_dataService.Version);
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text(_dataService.IsOutdated ? $"Your plugin is outdated. Latest version available: {_dataService.LatestVersion}" : "Your plugin is up to date.");
+      }
+    }
 
     ImGui.Dummy(ScaledVector2(0, 10));
 
@@ -163,8 +167,12 @@ public partial class ConfigWindow
       ImGui.Dummy(ScaledVector2(0, 10));
 
       if (_errorMessage != null)
+      {
         using (ImRaii.PushColor(ImGuiCol.Text, _red))
+        {
           DrawHorizontallyCenteredText(_errorMessage);
+        }
+      }
 
       if (_selectedPath != null)
       {
@@ -197,34 +205,32 @@ public partial class ConfigWindow
       {
         TimeSpan ETA = _dataService.DataStatus.UpdateETA;
         ImGui.Dummy(ScaledVector2(0, 10));
-        ImGui.ProgressBar(_dataService.DataStatus.UpdateProgressPercent, new Vector2(ImGui.GetContentRegionAvail().X - ScaledFloat(8), ScaledFloat(24)), "ETA: " + (ETA == TimeSpan.MaxValue ? "Calculating..." : ETA.ToString(@"hh\:mm\:ss")));
+        ImGui.ProgressBar(_dataService.DataStatus.UpdateProgressPercent, new Vector2(ImGui.GetContentRegionAvail().X - ScaledFloat(8), ScaledFloat(24)), "ETA: " + (ETA == TimeSpan.MaxValue ? "Calculating..." : ETA.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture)));
       }
     }
 
     ImGui.Unindent(ScaledFloat(8));
     ImGui.SetCursorPosY(ImGui.GetContentRegionAvail().Y + ImGui.GetCursorPosY() - ScaledFloat(175));
-    using (ImRaii.ChildDisposable child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar))
-    {
-      if (!child.Success) return;
-      DrawHorizontallyCenteredText("Plugin Changelogs. Join our Discord for Announcements.");
+    using ImRaii.ChildDisposable child = ImRaii.Child("##changelogs", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), true, ImGuiWindowFlags.AlwaysVerticalScrollbar);
+    if (!child.Success) return;
+    DrawHorizontallyCenteredText("Plugin Changelogs. Join our Discord for Announcements.");
 
-      bool first = true;
-      foreach ((string version, string[] notes) in Changelog.Versions)
+    bool first = true;
+    foreach ((string version, string[] notes) in Changelog.Versions)
+    {
+      using (ImRaii.PushId(version))
       {
-        using (ImRaii.PushId(version))
+        ImGuiTreeNodeFlags flags = first ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None;
+        if (ImGui.CollapsingHeader($"Version {version}", flags))
         {
-          ImGuiTreeNodeFlags flags = first ? ImGuiTreeNodeFlags.DefaultOpen : ImGuiTreeNodeFlags.None;
-          if (ImGui.CollapsingHeader($"Version {version}", flags))
+          foreach (string note in notes)
           {
-            foreach (string note in notes)
-            {
-              ImGui.Bullet();
-              ImGui.TextWrapped(note);
-            }
+            ImGui.Bullet();
+            ImGui.TextWrapped(note);
           }
         }
-        first = false;
       }
+      first = false;
     }
   }
 }

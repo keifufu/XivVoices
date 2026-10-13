@@ -4,9 +4,9 @@ using KamiToolKit.Classes;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 
-namespace XivVoices.Windows;
-
 using LocalTTSOverride = (string speaker, (string voice, int pitch) options);
+
+namespace XivVoices.Windows;
 
 public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
@@ -41,7 +41,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
 
   private ConfigOverlayNode _chatChannelVoicesOverlayNode = null!;
   private CheckboxNode _chatChannelVoicesEnabledNode = null!;
-  private Dictionary<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> _chatChannelVoicesNodes = [];
+  private readonly Dictionary<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> _chatChannelVoicesNodes = [];
   private TextButtonNode _chatChannelVoicesApplyNode = null!;
   private System.Action? _chatChannelVoicesOnApply = null;
 
@@ -54,7 +54,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   private LabelTextNode _allowedVoicesMaleLabelNode = null!;
   private LabelTextNode _allowedVoicesFemaleLabelNode = null!;
   private TextButtonNode _allowedVoicesApplyNode = null!;
-  private System.Action? _allowedVoicesOnApply = null;
+  private System.Action? _allowedVoicesOnApply;
 
   public override void OnSetup()
   {
@@ -399,7 +399,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
         _configuration.Save();
         return ("Import undone.", true);
       },
-      ItemComparer = (left, right) => left.speaker.CompareTo(right.speaker),
+      ItemComparer = (left, right) => left.speaker.CompareTo(right.speaker, StringComparison.Ordinal),
       IsSearchMatch = (data, search) => data.speaker.Contains(search, StringComparison.OrdinalIgnoreCase),
     };
     _localTTSOverridesSectionNode.AttachNode(_localTTSOverridesListNode, indent: false, padding: -4.0f);
@@ -745,6 +745,8 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     _localTTSOverridesListNode.Size = new Vector2(Width, Height - _localTTSOverridesSectionNode.Y - _localTTSOverridesListNode.Y);
   }
 
+  private static readonly string[] DefaultMaleVoices = ["Default Male"];
+  private static readonly string[] DefaultFemaleVoices = ["Default Female"];
   public override void ConfigurationSaved()
   {
     List<string> maleVoices = _localTTSService.Voices
@@ -762,7 +764,7 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
     List<string> maleAndFemaleVoices = maleVoices.Concat(["=== FEMALE ==="]).Concat(femaleVoices).ToList();
     List<string> femaleAndMaleVoices = femaleVoices.Concat(["=== MALE ==="]).Concat(maleVoices).ToList();
 
-    _gameInteropService.RunOnFrameworkThread(() =>
+    _gameInteropService.Run(() =>
     {
       _localTTSDefaultVoiceNode.SelectedOption = _configuration.LocalTTSDefaultVoice;
 
@@ -796,12 +798,12 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
       foreach (KeyValuePair<XivChatType, (StringDropDownNode maleNode, StringDropDownNode femaleNode)> kvp in _chatChannelVoicesNodes)
       {
         bool success = _configuration.LocalTTSChatChannelVoices.TryGetValue(kvp.Key, out (string? male, string? female) chatChannelVoices);
-        kvp.Value.maleNode.Options = (new[] { "Default Male" }).Concat(maleAndFemaleVoices).ToList();
+        kvp.Value.maleNode.Options = DefaultMaleVoices.Concat(maleAndFemaleVoices).ToList();
         kvp.Value.maleNode.SelectedOption = success ? chatChannelVoices.male ?? "Default Male" : "Default Male";
         kvp.Value.maleNode.OnOptionSelected = (_) => _chatChannelVoicesApplyNode.IsEnabled = true;
         kvp.Value.maleNode.IsEnabled = _configuration.LocalTTSChatChannelVoicesEnabled;
         kvp.Value.maleNode.Alpha = _configuration.LocalTTSChatChannelVoicesEnabled ? 1.0f : 0.5f;
-        kvp.Value.femaleNode.Options = (new[] { "Default Female" }).Concat(femaleAndMaleVoices).ToList();
+        kvp.Value.femaleNode.Options = DefaultFemaleVoices.Concat(femaleAndMaleVoices).ToList();
         kvp.Value.femaleNode.SelectedOption = success ? chatChannelVoices.female ?? "Default Female" : "Default Female";
         kvp.Value.femaleNode.OnOptionSelected = (_) => _chatChannelVoicesApplyNode.IsEnabled = true;
         kvp.Value.femaleNode.IsEnabled = _configuration.LocalTTSChatChannelVoicesEnabled;
@@ -874,7 +876,5 @@ public class LocalTTSSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   }
 
   public override void OnUpdate()
-  {
-    _localTTSOverridesListNode.OnUpdate();
-  }
+   => _localTTSOverridesListNode.OnUpdate();
 }

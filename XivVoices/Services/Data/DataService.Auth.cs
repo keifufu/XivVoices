@@ -27,7 +27,7 @@ public partial class DataService
 
   private CookieContainer _cookieContainer = new();
 
-  private string? _cookiesPath
+  private string? CookiesPath
   {
     get
     {
@@ -110,7 +110,8 @@ public partial class DataService
     if (IsLoggingIn) return;
     IsLoggingIn = true;
 
-    string state = new(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", 10).Select(s => s[new Random().Next(s.Length)]).ToArray());
+    string state = new(Enumerable.Repeat("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", 10)
+      .Select(s => s[new Random().Next(s.Length)]).ToArray());
     string url = $"{ServerUrl}/auth/oauth2/discord?state={state}";
     Util.OpenLink(url);
 
@@ -127,7 +128,7 @@ public partial class DataService
   private CookieContainer LoadCookies()
   {
     CookieContainer cookieContainer = new();
-    string? cookiesPath = _cookiesPath;
+    string? cookiesPath = CookiesPath;
 
     if (cookiesPath != null && File.Exists(cookiesPath))
     {
@@ -156,7 +157,7 @@ public partial class DataService
 
   private void SaveCookies()
   {
-    string? cookiesPath = _cookiesPath;
+    string? cookiesPath = CookiesPath;
     if (cookiesPath == null) return;
 
     List<SerializableCookie> serializableCookies = [];

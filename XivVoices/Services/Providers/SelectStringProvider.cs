@@ -7,9 +7,15 @@ namespace XivVoices.Services;
 
 public interface ISelectStringProvider : IHostedService;
 
-public class SelectStringProvider(ILogger _logger, Configuration _configuration, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IAddonLifecycle _addonLifecycle) : ISelectStringProvider
+public class SelectStringProvider(
+  ILogger _logger,
+  Configuration _configuration,
+  IAddonLifecycle _addonLifecycle,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService) : ISelectStringProvider
 {
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "SelectString", OnSelectStringFinalize);
     _addonLifecycle.RegisterListener(AddonEvent.PreFinalize, "CutSceneSelectString", OnCutSceneSelectStringFinalize);
@@ -17,7 +23,7 @@ public class SelectStringProvider(ILogger _logger, Configuration _configuration,
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.UnregisterListener(OnSelectStringFinalize);
     _addonLifecycle.UnregisterListener(OnCutSceneSelectStringFinalize);

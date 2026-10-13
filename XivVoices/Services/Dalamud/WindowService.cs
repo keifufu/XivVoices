@@ -6,27 +6,19 @@ public interface IWindowService : IHostedService
   void Toggle();
 }
 
-public enum ConfigTab
-{
-  Overview,
-  DialogueSettings,
-  PlaybackSettings,
-  LocalTTSSettings,
-  LocalTTSLexicon,
-  LocalTTSAdvanced,
-  OverlaySettings,
-  AudioHistory,
-  Debug,
-  SelfTest,
-}
-
-public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataService _dataService, IFramework _framework, WindowSystem _windowSystem, IDalamudPluginInterface _pluginInterface
+public class WindowService(
+  ILogger _logger,
+  IFramework _framework,
+  IDataService _dataService,
+  ConfigWindow _configWindow,
+  WindowSystem _windowSystem,
+  IDalamudPluginInterface _pluginInterface
 #if !NO_KTK
 , ConfigAddon _configAddon
 #endif
 ) : IWindowService
 {
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _windowSystem.AddWindow(_configWindow);
 
@@ -46,7 +38,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     return _logger.ServiceLifecycle();
   }
 
-  public async Task StopAsync(CancellationToken token)
+  public async Task StopAsync(CancellationToken cancellationToken)
   {
     _pluginInterface.UiBuilder.OpenConfigUi -= Toggle;
     _pluginInterface.UiBuilder.OpenMainUi -= Toggle;
@@ -70,7 +62,7 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
     _configWindow.SelectedTab = tab;
     _configWindow.IsOpen = forceOpen || isDifferentTab || !_configWindow.IsOpen;
 #else
-    _framework.RunOnFrameworkThread(() =>
+    _framework.Run(() =>
     {
       bool isDifferentTab = _configAddon.CurrentTab != tab;
       _configAddon.SetTab(tab);
@@ -82,21 +74,27 @@ public class WindowService(ILogger _logger, ConfigWindow _configWindow, IDataSer
   }
 
   private void OnOpenConfigWindow(object? sender, ConfigTab tab)
-  {
-    OpenTab(tab, true);
-  }
+    => OpenTab(tab, true);
 
-  public void Toggle()
-  {
 #if NO_KTK
-    _configWindow.Toggle();
+  public void Toggle() => _configWindow.Toggle();
 #else
-    _configAddon.Toggle();
+  public void Toggle() => _configAddon.Toggle();
 #endif
-  }
 
-  private void UiBuilderOnDraw()
-  {
-    _windowSystem.Draw();
-  }
+  private void UiBuilderOnDraw() => _windowSystem.Draw();
+}
+
+public enum ConfigTab
+{
+  Overview,
+  DialogueSettings,
+  PlaybackSettings,
+  LocalTTSSettings,
+  LocalTTSLexicon,
+  LocalTTSAdvanced,
+  OverlaySettings,
+  AudioHistory,
+  Debug,
+  SelfTest,
 }

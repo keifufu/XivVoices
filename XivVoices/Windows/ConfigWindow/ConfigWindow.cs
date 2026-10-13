@@ -120,8 +120,12 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     }
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Support us on Patreon!");
+      }
+    }
   }
 
   private void DrawDiscordButton()
@@ -138,8 +142,12 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
     }
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Join us on Discord!");
+      }
+    }
 
     if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(ImGuiMouseButton.Right))
     {
@@ -156,7 +164,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
         _debugModeClickCount = 0;
         _configuration.DebugMode = !_configuration.DebugMode;
         _configuration.Save();
-        if (SelectedTab == ConfigTab.Debug || SelectedTab == ConfigTab.SelfTest)
+        if (SelectedTab is ConfigTab.Debug or ConfigTab.SelfTest)
           SelectedTab = ConfigTab.Overview;
         _logger.Debug("Toggled Debug Mode");
       }
@@ -182,12 +190,19 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
       using (ImRaii.Disabled(_dataService.DataDirectory == null && tab != ConfigTab.Overview))
       {
-        if (ImGui.ImageButton(imageHandle, ScaledVector2(42, 42), Vector2.Zero, Vector2.One, (int)style.FramePadding.X, Vector4.Zero, tintColor)) SelectedTab = tab;
+        if (ImGui.ImageButton(imageHandle, ScaledVector2(42, 42), Vector2.Zero, Vector2.One, (int)style.FramePadding.X, Vector4.Zero, tintColor))
+        {
+          SelectedTab = tab;
+        }
       }
 
       if (ImGui.IsItemHovered())
+      {
         using (ImRaii.Tooltip())
+        {
           ImGui.Text(tabName);
+        }
+      }
     }
   }
 
@@ -212,7 +227,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawConfigSlider(string label, ref int value, int min, int max)
   {
-    if (ImGui.SliderInt($"##{label.Replace(" ", "").ToLowerInvariant()}", ref value, min, max, value.ToString()))
+    if (ImGui.SliderInt($"##{label.Replace(" ", "").ToLowerInvariant()}", ref value, min, max, value.ToString(CultureInfo.InvariantCulture)))
       _configuration.Save();
 
     ImGui.SameLine();
@@ -231,63 +246,67 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
     using (ImRaii.PushColor(ImGuiCol.ChildBg, overlayColor))
     {
-      using (ImRaii.ChildDisposable overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false))
+      using ImRaii.ChildDisposable overlay = ImRaii.Child("##inputPromptOverlay", windowSize, false);
+      if (!overlay.Success) return;
+
+      Vector2 promptSize = ScaledVector2(300, 125);
+      Vector2 promptPos = (windowSize - promptSize) / 2.0f;
+      ImGui.SetCursorPos(new(promptPos.X + ScaledFloat(25), promptPos.Y));
+
+      using (ImRaii.PushColor(ImGuiCol.ChildBg, promptColor))
       {
-        if (!overlay.Success) return;
+        using ImRaii.ChildDisposable prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding);
+        if (!prompt.Success) return;
+        ImGui.TextWrapped(_promptDescription);
+        ImGui.Dummy(ScaledVector2(0, 5));
 
-        Vector2 promptSize = ScaledVector2(300, 125);
-        Vector2 promptPos = (windowSize - promptSize) / 2.0f;
-        ImGui.SetCursorPos(new(promptPos.X + ScaledFloat(25), promptPos.Y));
+        bool isReport = _promptDescription == "Report Reason";
+        List<string> reportReasons = ["Already voiced ingame", "Mispronunciations", "\"Our Friend\"", "Wrong Voice", "Other"];
 
-        using (ImRaii.PushColor(ImGuiCol.ChildBg, promptColor))
+        if (isReport)
         {
-          using (ImRaii.ChildDisposable prompt = ImRaii.Child("##inputPrompt", promptSize, false, ImGuiWindowFlags.AlwaysUseWindowPadding))
+          ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
+          using ImRaii.ComboDisposable combo = ImRaii.Combo(
+            "##reportReason",
+            _promptInputSelected
+              ? reportReasons.Contains(_promptInputBuffer)
+              ? _promptInputBuffer
+                : "Other"
+                : "Select a Reason...");
+
+          if (combo.Success)
           {
-            if (!prompt.Success) return;
-            ImGui.TextWrapped(_promptDescription);
-            ImGui.Dummy(ScaledVector2(0, 5));
-
-            bool isReport = _promptDescription == "Report Reason";
-            List<string> reportReasons = ["Already voiced ingame", "Mispronunciations", "\"Our Friend\"", "Wrong Voice", "Other"];
-
-            if (isReport)
+            foreach (string reason in reportReasons)
             {
-              ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
-              using (ImRaii.ComboDisposable combo = ImRaii.Combo("##reportReason", _promptInputSelected ? reportReasons.Contains(_promptInputBuffer) ? _promptInputBuffer : "Other" : "Select a Reason..."))
+              if (ImGui.Selectable(reason, _promptInputBuffer == reason))
               {
-                if (combo.Success)
-                {
-                  foreach (string reason in reportReasons)
-                  {
-                    if (ImGui.Selectable(reason, _promptInputBuffer == reason))
-                    {
-                      _promptInputBuffer = reason == "Other" ? "" : reason;
-                      _promptInputSelected = true;
-                    }
-                  }
-                }
+                _promptInputBuffer = reason == "Other" ? "" : reason;
+                _promptInputSelected = true;
               }
-            }
-
-            ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
-            if (!isReport || _promptInputSelected && !reportReasons.Contains(_promptInputBuffer)) ImGui.InputText("##input", ref _promptInputBuffer, 256);
-
-            ImGui.Dummy(ScaledVector2(0, 5));
-            using (ImRaii.Disabled(_promptInputBuffer.Length == 0))
-            {
-              if (ImGui.Button("Submit"))
-              {
-                _promptCallback?.Invoke(_promptInputBuffer);
-                _promptOpen = false;
-              }
-            }
-
-            ImGui.SameLine();
-            if (ImGui.Button("Cancel"))
-            {
-              _promptOpen = false;
             }
           }
+        }
+
+        ImGui.SetNextItemWidth(ImGui.GetContentRegionAvail().X - ImGui.GetStyle().WindowPadding.X);
+        if (!isReport || (_promptInputSelected && !reportReasons.Contains(_promptInputBuffer)))
+        {
+          ImGui.InputText("##input", ref _promptInputBuffer, 256);
+        }
+
+        ImGui.Dummy(ScaledVector2(0, 5));
+        using (ImRaii.Disabled(_promptInputBuffer.Length == 0))
+        {
+          if (ImGui.Button("Submit"))
+          {
+            _promptCallback?.Invoke(_promptInputBuffer);
+            _promptOpen = false;
+          }
+        }
+
+        ImGui.SameLine();
+        if (ImGui.Button("Cancel"))
+        {
+          _promptOpen = false;
         }
       }
     }
@@ -304,7 +323,7 @@ public partial class ConfigWindow(ILogger _logger, Configuration _configuration,
 
   private void DrawConfigText(string label, string description, string value, Action<string> callback)
   {
-    if (ImGuiComponents.IconButton($"{label.Replace(" ", "")}", Dalamud.Interface.FontAwesomeIcon.Edit, new(20)))
+    if (ImGuiComponents.IconButton($"{label.Replace(" ", "")}", FontAwesomeIcon.Edit, new(20)))
       OpenInputPrompt(description, value, callback);
     ImGui.SameLine();
     ImGui.Text($"{label}: {value}");

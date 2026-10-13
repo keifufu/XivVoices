@@ -16,7 +16,12 @@ public partial class LocalTTSService
 
   public void InitializePhonemizer(string toolsDirectory)
   {
-    espeak_Initialize(AUDIO_OUTPUT_RETRIEVAL, 0, Path.Join(toolsDirectory, "espeak-ng-data"), espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA);
+    espeak_Initialize(
+      AUDIO_OUTPUT_RETRIEVAL,
+      0,
+      Path.Join(toolsDirectory, "espeak-ng-data"),
+      espeakINITIALIZE_PHONEME_EVENTS | espeakINITIALIZE_PHONEME_IPA
+    );
     InitializeLanguages();
     SetLanguage();
     espeak_SetSynthCallback(_callback);
@@ -43,7 +48,7 @@ public partial class LocalTTSService
       IntPtr voicePtr = Marshal.ReadIntPtr(voicesList, i * IntPtr.Size);
       if (voicePtr == IntPtr.Zero) break;
 
-      espeak_VOICE voice = Marshal.PtrToStructure<espeak_VOICE>(voicePtr);
+      Espeak_VOICE voice = Marshal.PtrToStructure<Espeak_VOICE>(voicePtr);
       if (voice.name == IntPtr.Zero) continue;
 
       string? name = Marshal.PtrToStringUTF8(voice.name);
@@ -111,7 +116,7 @@ public partial class LocalTTSService
   {
     if (eventsPtr == IntPtr.Zero) return 0;
 
-    int eventSize = Marshal.SizeOf<espeak_EVENT>();
+    int eventSize = Marshal.SizeOf<Espeak_EVENT>();
     int offset = 0;
 
     while (true)
@@ -119,17 +124,17 @@ public partial class LocalTTSService
       try
       {
         IntPtr evtPtr = IntPtr.Add(eventsPtr, offset);
-        espeak_EVENT raw = Marshal.PtrToStructure<espeak_EVENT>(evtPtr);
+        Espeak_EVENT raw = Marshal.PtrToStructure<Espeak_EVENT>(evtPtr);
 
-        if (raw.type == espeak_EVENT_TYPE.espeakEVENT_LIST_TERMINATED || raw.type == espeak_EVENT_TYPE.espeakEVENT_MSG_TERMINATED)
+        if (raw.type is Espeak_EVENT_TYPE.espeakEVENT_LIST_TERMINATED or Espeak_EVENT_TYPE.espeakEVENT_MSG_TERMINATED)
         {
           if (_completionEvents.TryGetValue(raw.unique_identifier, out ManualResetEventSlim? mre)) mre.Set();
-          if (raw.type == espeak_EVENT_TYPE.espeakEVENT_LIST_TERMINATED) break;
+          if (raw.type == Espeak_EVENT_TYPE.espeakEVENT_LIST_TERMINATED) break;
         }
 
-        if (raw.type == espeak_EVENT_TYPE.espeakEVENT_PHONEME)
+        if (raw.type == Espeak_EVENT_TYPE.espeakEVENT_PHONEME)
         {
-          IntPtr inlineBytesAddr = IntPtr.Add(evtPtr, Marshal.OffsetOf<espeak_EVENT>("id_ptr").ToInt32());
+          IntPtr inlineBytesAddr = IntPtr.Add(evtPtr, Marshal.OffsetOf<Espeak_EVENT>("id_ptr").ToInt32());
           byte[] buf = new byte[8];
           Marshal.Copy(inlineBytesAddr, buf, 0, buf.Length);
           int len = Array.IndexOf(buf, (byte)0);
@@ -153,7 +158,7 @@ public partial class LocalTTSService
     return 0;
   }
 
-  private enum espeak_EVENT_TYPE : int
+  private enum Espeak_EVENT_TYPE : int
   {
     espeakEVENT_LIST_TERMINATED = 0,
     espeakEVENT_MSG_TERMINATED = 6,
@@ -161,9 +166,9 @@ public partial class LocalTTSService
   }
 
   [StructLayout(LayoutKind.Sequential)]
-  private struct espeak_EVENT
+  private struct Espeak_EVENT
   {
-    public espeak_EVENT_TYPE type;
+    public Espeak_EVENT_TYPE type;
     public uint unique_identifier;
     public int text_position;
     public int length;
@@ -174,7 +179,7 @@ public partial class LocalTTSService
   }
 
   [StructLayout(LayoutKind.Sequential)]
-  private struct espeak_VOICE
+  private struct Espeak_VOICE
   {
     public IntPtr name;
     public IntPtr languages;
@@ -197,7 +202,15 @@ public partial class LocalTTSService
   private static partial void espeak_SetSynthCallback(SynthCallbackDelegate callback);
 
   [LibraryImport("espeak-ng")]
-  private static partial int espeak_Synth(IntPtr text, UIntPtr size, uint position, int position_type, uint end_position, uint flags, out uint unique_identifier, IntPtr user_data);
+  private static partial int espeak_Synth(
+    IntPtr text,
+    UIntPtr size,
+    uint position,
+    int position_type,
+    uint end_position,
+    uint flags,
+    out uint unique_identifier,
+    IntPtr user_data);
 
   [LibraryImport("espeak-ng", StringMarshalling = StringMarshalling.Utf8)]
   private static partial int espeak_SetVoiceByName(string name);

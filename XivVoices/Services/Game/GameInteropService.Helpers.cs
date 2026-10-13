@@ -62,9 +62,9 @@ public partial class GameInteropService
 
   public string GetGender(bool id) => id ? "Female" : "Male";
   public string GetBody(int id) => _bodyMap.TryGetValue(id, out string? name) ? name : "Adult";
-  public string GetRace(int id) => _raceMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString();
-  public string GetTribe(int id) => _tribeMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString();
-  public string GetEyes(int id) => _eyesMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString();
+  public string GetRace(int id) => _raceMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString(CultureInfo.InvariantCulture);
+  public string GetTribe(int id) => _tribeMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString(CultureInfo.InvariantCulture);
+  public string GetEyes(int id) => _eyesMap.TryGetValue(id, out string? name) ? name : "Unknown:" + id.ToString(CultureInfo.InvariantCulture);
   public unsafe (string race, string gender) GetBeastmanRace(Character* character)
   {
     int modelSkeletonId = character->ModelContainer.ModelSkeletonId;
@@ -72,9 +72,9 @@ public partial class GameInteropService
 
     if (_dataService.Manifest != null)
     {
-      if (_dataService.Manifest.RaceMappings.TryGetValue((modelSkeletonId, modelCharaId), out var tuple))
+      if (_dataService.Manifest.RaceMappings.TryGetValue((modelSkeletonId, modelCharaId), out (string race, string gender) tuple))
         return tuple;
-      else if (_dataService.Manifest.RaceMappings.TryGetValue((modelSkeletonId, 0), out var tuple2))
+      else if (_dataService.Manifest.RaceMappings.TryGetValue((modelSkeletonId, 0), out (string race, string gender) tuple2))
         return tuple2;
     }
 

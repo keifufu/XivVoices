@@ -1,10 +1,9 @@
-using System.Collections.Immutable;
 using KamiToolKit.Enums;
 using KamiToolKit.Nodes;
 
-namespace XivVoices.Windows;
-
 using LocalTTSLexicon = (string from, string to);
+
+namespace XivVoices.Windows;
 
 public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelNode
 {
@@ -144,8 +143,10 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
         _configuration.Save();
         return ("Import undone.", true);
       },
-      ItemComparer = (left, right) => left.from.CompareTo(right.from),
-      IsSearchMatch = (data, search) => data.from.Contains(search, StringComparison.OrdinalIgnoreCase) || data.to.Contains(search, StringComparison.OrdinalIgnoreCase),
+      ItemComparer = (left, right) => left.from.CompareTo(right.from, StringComparison.Ordinal),
+      IsSearchMatch = (data, search) =>
+        data.from.Contains(search, StringComparison.OrdinalIgnoreCase) ||
+        data.to.Contains(search, StringComparison.OrdinalIgnoreCase),
     };
     _localTTSLexiconSectionNode.AttachNode(_localTTSLexiconListNode, indent: false, padding: -4.0f);
 
@@ -231,12 +232,8 @@ public class LocalTTSLexiconTabPanelNode(IServiceProvider _services) : TabPanelN
   }
 
   public override void ConfigurationSaved()
-  {
-    _localTTSLexiconListNode.Options = _configuration.LocalTTSLexicon.Select(kv => (kv.Key, kv.Value)).ToList();
-  }
+    => _localTTSLexiconListNode.Options = _configuration.LocalTTSLexicon.Select(kv => (kv.Key, kv.Value)).ToList();
 
   public override void OnUpdate()
-  {
-    _localTTSLexiconListNode.OnUpdate();
-  }
+    => _localTTSLexiconListNode.OnUpdate();
 }

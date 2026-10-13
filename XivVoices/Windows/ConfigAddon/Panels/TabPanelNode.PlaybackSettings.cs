@@ -1,4 +1,3 @@
-using FFXIVClientStructs.FFXIV.Component.GUI;
 using KamiToolKit.Classes;
 using KamiToolKit.Nodes;
 using Lumina.Extensions;
@@ -401,9 +400,7 @@ public class PlaybackSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   }
 
   private void OnOutputDeviceChanged(object? sender, bool initialized)
-  {
-    _outputDeviceNode.TextColor = ColorHelper.GetColor(initialized ? 8u : 15u);
-  }
+    => _outputDeviceNode.TextColor = ColorHelper.GetColor(initialized ? 8u : 15u);
 
   public override void ConfigurationSaved()
   {

@@ -16,14 +16,14 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
   private const ushort SpeakNormalMiddle = 630;
   private const ushort SpeakNormalShort = 629;
 
-  private ConcurrentDictionary<string, CancellationTokenSource> _runningTasks = [];
+  private readonly ConcurrentDictionary<string, CancellationTokenSource> _runningTasks = [];
 
   private string GetTaskId(XivMessage message)
   {
     // Using .Speaker instead of .Id now as we don't want to
     // lipsync the same character multiple times at once.
     if (!string.IsNullOrEmpty(message.Speaker)) return message.Speaker;
-    if (message.Npc != null) return message.Npc.BaseId.ToString();
+    if (message.Npc != null) return message.Npc.BaseId.ToString(CultureInfo.InvariantCulture);
     return message.Id;
   }
 
@@ -33,7 +33,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
 
     TryStopLipSync(message);
 
-    IntPtr character = await _gameInteropService.RunOnFrameworkThread(() => _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0));
+    IntPtr character = await _gameInteropService.Run(() => _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0));
     if (character == IntPtr.Zero)
     {
       _logger.Debug($"No lipsync target found for speaker {message.Speaker} ({message.Npc?.BaseId})");
@@ -102,7 +102,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
       }
       finally
       {
-        await _gameInteropService.RunOnFrameworkThread(() =>
+        await _gameInteropService.Run(() =>
         {
           IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
           TrySetLipsOverride(character, SpeakNone);
@@ -136,7 +136,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
   {
     if (token.IsCancellationRequested) return;
 
-    await _gameInteropService.RunOnFrameworkThread(() =>
+    await _gameInteropService.Run(() =>
     {
       IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
       TrySetLipsOverride(character, speakValue);
@@ -146,7 +146,7 @@ public class LipSync(ILogger _logger, IGameInteropService _gameInteropService) :
 
     if (!token.IsCancellationRequested)
     {
-      await _gameInteropService.RunOnFrameworkThread(() =>
+      await _gameInteropService.Run(() =>
       {
         IntPtr character = _gameInteropService.TryFindCharacter(message.Speaker, message.Npc?.BaseId ?? 0);
         TrySetLipsOverride(character, SpeakNone);

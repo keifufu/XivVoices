@@ -182,7 +182,7 @@ public class LocalTTSAdvancedTabPanelNode(IServiceProvider _services) : TabPanel
 
   public override void ConfigurationSaved()
   {
-    _gameInteropService.RunOnFrameworkThread(() =>
+    _gameInteropService.Run(() =>
     {
       _localTTSForcedNode.IsChecked = _configuration.LocalTTSForced;
       _localTTSPhonemizerLanguageNode.Options = _localTTSService.PhonemizerLanguages;

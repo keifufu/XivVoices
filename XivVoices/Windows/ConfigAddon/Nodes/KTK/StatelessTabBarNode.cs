@@ -25,7 +25,7 @@ public class StatelessTabBarNode : ResNode
     StatelessTabBarRadioButtonNode newButton = new()
     {
       Height = Height,
-      String = label,
+      StringValue = label,
       OnClick = callback,
       IsEnabled = isEnabled,
       MultiplyColor = isEnabled ? Vector3.One : new Vector3(0.6f, 0.6f, 0.6f),

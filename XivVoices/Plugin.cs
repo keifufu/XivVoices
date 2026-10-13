@@ -134,13 +134,13 @@ public sealed class Plugin : IAsyncDalamudPlugin
     return configuration;
   }
 
-  public async Task LoadAsync(CancellationToken token)
+  public async Task LoadAsync(CancellationToken cancellationToken)
   {
 #if !NO_KTK
     await KamiToolKitLibrary.InitializeAsync(_pluginInterface, _pluginInterface.InternalName);
 #endif
 
-    await _host.StartAsync(token);
+    await _host.StartAsync(cancellationToken);
   }
 
   public async ValueTask DisposeAsync()

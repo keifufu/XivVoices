@@ -66,7 +66,11 @@ public enum SelfTestStep : long
   Provider_TalkSubtitle = 1L << 20
 }
 
-public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInteropService, IObjectTable _objectTable, IFramework _framework) : ISelfTestService
+public class SelfTestService(
+  ILipSync _lipSync,
+  IFramework _framework,
+  IObjectTable _objectTable,
+  IGameInteropService _gameInteropService) : ISelfTestService
 {
   public SelfTestStep Step { get; private set; } = SelfTestStep.None;
   public SelfTestStep SkippedTests { get; private set; } = SelfTestStep.None;
@@ -321,7 +325,9 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
               CurrentInstruction = "Abandon the accepted Quest";
             }
             else
+            {
               AddLog($"Quest count remains the same ({quests.Count}/{_questLeveState}). Accept a Quest");
+            }
             break;
           case 1:
             if (quests.Count == _questLeveState - 1)
@@ -331,7 +337,9 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
               CurrentInstruction = "Confirm the quest names were correct.";
             }
             else
+            {
               AddLog($"Quest count remains the same ({quests.Count}/{_questLeveState}). Abandon the Quest");
+            }
             break;
         }
         break;
@@ -350,7 +358,9 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
               CurrentInstruction = "Abandon the accepted Leve";
             }
             else
+            {
               AddLog($"Leve count remains the same ({leves.Count}/{_questLeveState}). Accept a Leve");
+            }
             break;
           case 1:
             if (leves.Count == _questLeveState - 1)
@@ -360,7 +370,9 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
               CurrentInstruction = "Confirm the leve names were correct.";
             }
             else
+            {
               AddLog($"Leve count remains the same ({leves.Count}/{_questLeveState}). Abandon the Leve");
+            }
             break;
         }
         break;
@@ -459,7 +471,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
     buttons.Add(("Complete", completeEnabled, () => Next(true, false)));
     buttons.Add(("Skip", Step != SelfTestStep.None, () => Next(false, true)));
     if (Step == SelfTestStep.LipSync)
-      buttons.Add(("LipSync", true, () => LipSyncTarget()));
+      buttons.Add(("LipSync", true, LipSyncTarget));
 
     return buttons;
   }
@@ -472,7 +484,7 @@ public class SelfTestService(ILipSync _lipSync, IGameInteropService _gameInterop
 
   public void Report_Provider_Chat(XivChatType type, string speaker, string? speakerWorld, string sentence)
   {
-    _gameInteropService.RunOnFrameworkThread(() =>
+    _gameInteropService.Run(() =>
     {
       if (_objectTable.LocalPlayer == null)
       {

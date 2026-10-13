@@ -10,9 +10,9 @@ namespace KamiToolKit.Nodes;
 
 public unsafe class StatelessTabBarRadioButtonNode : ComponentNode<AtkComponentRadioButton, AtkUldComponentDataRadioButton>
 {
-  public readonly TextNode LabelNode;
-  public readonly NineGridNode SelectedNineGridNode;
-  public readonly NineGridNode UnselectedNineGridNode;
+  private readonly TextNode LabelNode;
+  private readonly NineGridNode SelectedNineGridNode;
+  private readonly NineGridNode UnselectedNineGridNode;
 
   public StatelessTabBarRadioButtonNode()
   {
@@ -71,7 +71,7 @@ public unsafe class StatelessTabBarRadioButtonNode : ComponentNode<AtkComponentR
 
   public System.Action? OnClick { get; set; }
 
-  public ReadOnlySeString String
+  public ReadOnlySeString StringValue
   {
     get => LabelNode.String;
     set => Component->SetText(value);
@@ -103,9 +103,7 @@ public unsafe class StatelessTabBarRadioButtonNode : ComponentNode<AtkComponentR
   }
 
   private void ClickHandler()
-  {
-    OnClick?.Invoke();
-  }
+    => OnClick?.Invoke();
 
   protected override void OnSizeChanged()
   {

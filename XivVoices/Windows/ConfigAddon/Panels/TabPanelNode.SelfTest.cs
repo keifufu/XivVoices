@@ -86,7 +86,7 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode
     _logNode.Size = new Vector2(Width, Height - _logNode.Y);
   }
 
-  private int _updateCount = 0;
+  private readonly Stopwatch _timer = Stopwatch.StartNew();
   public override void OnUpdate()
   {
     if (_selfTestService.Step != _lastStep || _selfTestService.StepState != _lastStepState)
@@ -133,9 +133,10 @@ public class SelfTestTabPanelNode(IServiceProvider _services) : TabPanelNode
       }
     }
 
-    _updateCount++;
-    if (_updateCount % 30 == 0)
+    if (_timer.ElapsedMilliseconds > 250)
     {
+      _timer.Restart();
+
       string l = "";
       lock (_selfTestService.CurrentLogsLock)
       {

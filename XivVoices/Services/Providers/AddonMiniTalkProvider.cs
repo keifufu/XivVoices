@@ -4,25 +4,33 @@ namespace XivVoices.Services;
 
 public interface IAddonMiniTalkProvider : IHostedService;
 
-public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInteropService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropProvider _gameInteropProvider) : IAddonMiniTalkProvider
+public class AddonMiniTalkProvider(
+  ILogger _logger,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService,
+  IGameInteropProvider _gameInteropProvider) : IAddonMiniTalkProvider
 {
   private readonly ConcurrentDictionary<string, DateTime> _recentSentences = new();
   private readonly TimeSpan _sentenceCooldown = TimeSpan.FromSeconds(30);
 
   private unsafe delegate void* OpenBubbleDelegate(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID);
-  private Hook<OpenBubbleDelegate> _openBubbleHook = null!;
+  private Hook<OpenBubbleDelegate>? _openBubbleHook;
 
-  public unsafe Task StartAsync(CancellationToken token)
+  public unsafe Task StartAsync(CancellationToken cancellationToken)
   {
 #if !NO_HOOKS
-    _openBubbleHook ??= _gameInteropProvider.HookFromSignature<OpenBubbleDelegate>("E8 ?? ?? ?? ?? F6 86 ?? ?? ?? ?? ?? C7 46 ?? ?? ?? ?? ??", OpenBubbleDetour);
+    _openBubbleHook = _gameInteropProvider.HookFromSignature<OpenBubbleDelegate>(
+      "E8 ?? ?? ?? ?? F6 86 ?? ?? ?? ?? ?? C7 46 ?? ?? ?? ?? ??",
+      OpenBubbleDetour
+    );
     _openBubbleHook.Enable();
 #endif
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _openBubbleHook?.Dispose();
 
@@ -31,7 +39,8 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
 
   private unsafe void* OpenBubbleDetour(nint self, GameObject* actor, nint textPtr, bool notSure, int attachmentPointID)
   {
-    if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Pc && !_gameInteropService.IsInCutscene())
+    if (actor != null && (byte)actor->ObjectKind != (byte)Dalamud.Game.ClientState.Objects.Enums.ObjectKind.Pc
+        && !_gameInteropService.IsInCutscene())
     {
       string speaker = actor->GetName().ToString();
       if (string.IsNullOrEmpty(speaker)) speaker = "Bubble";
@@ -53,6 +62,6 @@ public class AddonMiniTalkProvider(ILogger _logger, IGameInteropService _gameInt
       }
     }
 
-    return _openBubbleHook.OriginalDisposeSafe(self, actor, textPtr, notSure, attachmentPointID);
+    return _openBubbleHook!.OriginalDisposeSafe(self, actor, textPtr, notSure, attachmentPointID);
   }
 }

@@ -1,6 +1,6 @@
-namespace XivVoices.Windows;
-
 using LocalTTSLexicon = (string from, string to);
+
+namespace XivVoices.Windows;
 
 public class LocalTTSLexiconItemNode : IconListItemNode<LocalTTSLexicon>
 {

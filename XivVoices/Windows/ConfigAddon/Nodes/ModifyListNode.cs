@@ -11,7 +11,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
   private string _searchText = string.Empty;
   private readonly IKeyState _keyState;
 
-  public readonly TextInputNode _searchInputNode;
+  private readonly TextInputNode _searchInputNode;
   private readonly CircleButtonNode _exportButton;
   private readonly ListNode<T, TU> _listNode;
 
@@ -35,7 +35,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
       Size = new Vector2(30.0f, 30.0f),
       OnClick = () =>
       {
-        if (_exportButton?.Icon == CircleButtonIcon.CheckedBox || _exportButton?.Icon == CircleButtonIcon.Cross) return;
+        if (_exportButton?.Icon is CircleButtonIcon.CheckedBox or CircleButtonIcon.Cross) return;
 
         (string result, bool success) result;
         if (_exportButton?.Icon == CircleButtonIcon.Undo)
@@ -95,17 +95,17 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
     UpdateButtonStates();
   }
 
-  private DateTime _lastImportExport = new();
-  private bool _lastImportExportSuccess = false;
+  private DateTime _lastImportExport;
+  private bool _lastImportExportSuccess;
   private string _lastImportExportResult = "";
-  private bool _lastWasImport = false;
+  private bool _lastWasImport;
   public Func<bool, (string result, bool success)>? OnImport { get; init; }
   public Func<(string result, bool success)>? OnExport { get; init; }
   public Func<(string result, bool success)>? OnUndo { get; init; }
 
-  bool tooltipVisible = false;
-  private void MouseOver() => tooltipVisible = true;
-  private void MouseOut() => tooltipVisible = false;
+  private bool _tooltipVisible;
+  private void MouseOver() => _tooltipVisible = true;
+  private void MouseOut() => _tooltipVisible = false;
 
   public void OnUpdate()
   {
@@ -115,31 +115,31 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
     {
       _exportButton.Icon = CircleButtonIcon.Undo;
       _exportButton.TextTooltip = _lastImportExportResult + " Click to undo.";
-      if (tooltipVisible) _exportButton.ShowTooltip();
+      if (_tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (showImportExportResult && _exportButton.Icon != importExportResultIcon && !(_lastWasImport && _lastImportExportSuccess))
     {
       _exportButton.Icon = importExportResultIcon;
       _exportButton.TextTooltip = _lastImportExportResult;
-      if (tooltipVisible) _exportButton.ShowTooltip();
+      if (_tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && _keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Override duplicates)"))
     {
       _exportButton.Icon = CircleButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Override duplicates)";
-      if (tooltipVisible) _exportButton.ShowTooltip();
+      if (_tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (!showImportExportResult && _keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && !_exportButton.TextTooltip.ToString().Contains("(Hold Control"))
     {
       _exportButton.Icon = CircleButtonIcon.Add;
       _exportButton.TextTooltip = "Import (Hold Control to override duplicates)";
-      if (tooltipVisible) _exportButton.ShowTooltip();
+      if (_tooltipVisible) _exportButton.ShowTooltip();
     }
     else if (!showImportExportResult && !_keyState[VirtualKey.SHIFT] && !_keyState[VirtualKey.CONTROL] && _exportButton.Icon != CircleButtonIcon.Document)
     {
       _exportButton.Icon = CircleButtonIcon.Document;
       _exportButton.TextTooltip = "Export (Hold Shift to Import)";
-      if (tooltipVisible) _exportButton.ShowTooltip();
+      if (_tooltipVisible) _exportButton.ShowTooltip();
     }
   }
 
@@ -172,7 +172,7 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
     _editButton.Position = new Vector2(buttonWidth + buttonPadding, Height - 28.0f);
 
     _removeButton.Size = new Vector2(buttonWidth, 28.0f);
-    _removeButton.Position = new Vector2(buttonWidth * 2.0f + buttonPadding * 2.0f, Height - 28.0f);
+    _removeButton.Position = new Vector2((buttonWidth * 2.0f) + (buttonPadding * 2.0f), Height - 28.0f);
   }
 
   public List<T> Options
@@ -217,13 +217,9 @@ public class ModifyListNode<T, TU> : ResNode where T : struct where TU : ListIte
     }
   }
 
-  public delegate int ItemCompareDelegate(T left, T right);
+  public Comparison<T>? ItemComparer { get; set; }
 
-  public ItemCompareDelegate? ItemComparer { get; set; }
-
-  public delegate bool IsSearchMatchDelegate(T obj, string searchString);
-
-  public IsSearchMatchDelegate? IsSearchMatch { get; set; }
+  public Func<T, string, bool>? IsSearchMatch { get; set; }
 
   public T? SelectedOption { get; private set; }
 

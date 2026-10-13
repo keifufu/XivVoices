@@ -14,7 +14,19 @@ public interface IAddonTalkProvider : IHostedService;
 // If we do end up regenerating all lines to be the full multiline-text, my best guess as to how
 // Auto-Advance should work would be: just fucking continue to the next slide at like 75% of the line
 // being played or something like that.
-public class AddonTalkProvider(ILogger _logger, Configuration _configuration, IDataService _dataService, IPlaybackService _playbackService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, IGameGui _gameGui, IKeyState _keyState, IFramework _framework, IGamepadState _gamepadState, IAddonLifecycle _addonLifecycle
+public class AddonTalkProvider(
+  ILogger _logger,
+  IGameGui _gameGui,
+  IKeyState _keyState,
+  IFramework _framework,
+  IDataService _dataService,
+  IGamepadState _gamepadState,
+  Configuration _configuration,
+  IAddonLifecycle _addonLifecycle,
+  IPlaybackService _playbackService,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService
 #if !NO_KTK
 , IOverlayAddon _overlayWindow, ConfigAddon _configAddon
 #endif
@@ -25,7 +37,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
   private string _lastSentence = "";
   private bool? _lastMuteState = null;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _framework.Update += OnFrameworkUpdate;
     _playbackService.PlaybackCompleted += OnPlaybackCompleted;
@@ -35,7 +47,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _framework.Update -= OnFrameworkUpdate;
     _playbackService.PlaybackCompleted -= OnPlaybackCompleted;
@@ -125,7 +137,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     return (speaker, sentence);
   }
 
-  private int _updateCount = 0;
+  private readonly Stopwatch _timer = Stopwatch.StartNew();
   private unsafe void OnFrameworkUpdate(IFramework framework)
   {
     // If I reload the plugin with dialogue already open, the manifest can at times be loaded
@@ -139,7 +151,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
     if (visible != _lastVisible)
     {
       _lastVisible = visible;
-      if (visible == false)
+      if (!visible)
       {
         _logger.Debug("AddonTalk was clicked away.");
         if (!_configuration.QueueDialogue)
@@ -184,12 +196,11 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       }
     }
 
-    if (_configuration.FastForward && _updateCount % 15 == 0)
+    if (_configuration.FastForward && _timer.ElapsedMilliseconds > 100)
     {
+      _timer.Restart();
       AutoAdvance(null);
     }
-
-    _updateCount++;
   }
 
   private void OnPlaybackCompleted(object? sender, XivMessage message)
@@ -207,7 +218,7 @@ public class AddonTalkProvider(ILogger _logger, Configuration _configuration, ID
       return;
     }
 
-    _gameInteropService.RunOnFrameworkThread(() =>
+    _gameInteropService.Run(() =>
     {
       AddonTalk* addon = (AddonTalk*)_gameGui.GetAddonByName("Talk").Address;
       if (addon == null || !addon->IsVisible) return;

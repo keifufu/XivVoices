@@ -6,7 +6,14 @@ public interface IReportService : IHostedService
   void ReportWithReason(XivMessage message, string reason);
 }
 
-public class ReportService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IClientState _clientState, IObjectTable _objectTable, IDalamudPluginInterface _pluginInterface) : IReportService
+public class ReportService(
+  ILogger _logger,
+  IClientState _clientState,
+  IDataService _dataService,
+  IObjectTable _objectTable,
+  Configuration _configuration,
+  IGameInteropService _gameInteropService,
+  IDalamudPluginInterface _pluginInterface) : IReportService
 {
   private bool _languageWarningThisSession = false;
   private bool _invalidPluginsWarningsThisSession = false;
@@ -14,7 +21,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
   private Dictionary<string, XivReport> _reports = [];
   private CancellationTokenSource? _cts;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _cts = new();
     _dataService.OnDataDirectoryChanged += OnDataDirectoryChanged;
@@ -25,7 +32,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _cts?.Cancel();
     _cts?.Dispose();
@@ -49,7 +56,8 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     try
     {
       string jsonContent = File.ReadAllText(filePath);
-      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent, JsonOptions.Read) ?? throw new Exception("Failed to deserialize reports.json");
+      Dictionary<string, XivReport> json = JsonSerializer.Deserialize<Dictionary<string, XivReport>>(jsonContent, JsonOptions.Read)
+        ?? throw new InvalidDataException("Failed to deserialize reports.json");
       _reports = json;
       _logger.Debug($"Loaded {_reports.Count} reports");
     }
@@ -168,8 +176,12 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
     List<string> invalidPlugins = ["Echoglossian", "ARealmRepopulated", "AQuestReborn"];
     List<string> loadedPlugins = [];
     foreach (string invalidPlugin in invalidPlugins)
+    {
       if (_pluginInterface.InstalledPlugins.Any(pluginInfo => pluginInfo.InternalName == invalidPlugin && pluginInfo.IsLoaded))
+      {
         loadedPlugins.Add(invalidPlugin);
+      }
+    }
 
     if (loadedPlugins.Count > 0)
     {
@@ -181,7 +193,9 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       return false;
     }
 
-    bool mostVoicelinesDownloaded = _dataService.Manifest != null && (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
+    bool mostVoicelinesDownloaded = _dataService.Manifest != null &&
+      (_dataService.DataStatus.VoicelinesDownloaded + 10000) >= _dataService.Manifest.Voicelines.Count;
+
     if (!mostVoicelinesDownloaded)
     {
       _logger.Chat("You are missing over 10k voicelines. Reporting is unavailable, please update.");
@@ -199,7 +213,7 @@ public class ReportService(ILogger _logger, Configuration _configuration, IDataS
       return;
     }
 
-    _gameInteropService.RunOnFrameworkThread(() =>
+    _gameInteropService.Run(() =>
     {
       if (!CanReport() || !_clientState.IsLoggedIn || _objectTable.LocalPlayer == null) return;
 

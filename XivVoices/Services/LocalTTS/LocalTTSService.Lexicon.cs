@@ -171,7 +171,7 @@ public partial class LocalTTSService
     // Regex: remove coordinates
     sentence = Regex.Replace(sentence, @"(\ue0bb[^\(]*?)\([^\)]*\)", "$1", regexOptions);
 
-    if (_configuration.LocalTTSPlayerSays && !sentence.StartsWith(playerName))
+    if (_configuration.LocalTTSPlayerSays && !sentence.StartsWith(playerName, StringComparison.Ordinal))
     {
       string says = chatChannel switch
       {
@@ -186,7 +186,10 @@ public partial class LocalTTSService
     // Replace "min" following numbers with "minutes", ensuring proper pluralization
     sentence = Regex.Replace(sentence, @"(\b\d+)\s*min\b", m =>
     {
-      return int.Parse(m.Groups[1].Value) == 1 ? $"{m.Groups[1].Value} minute" : $"{m.Groups[1].Value} minutes";
+      return
+        int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) == 1
+        ? $"{m.Groups[1].Value} minute"
+        : $"{m.Groups[1].Value} minutes";
     }, regexOptions);
 
     sentence = JobReplacement(sentence);

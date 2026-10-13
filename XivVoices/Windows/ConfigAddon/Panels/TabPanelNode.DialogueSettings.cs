@@ -516,7 +516,10 @@ public class DialogueSettingsTabPanelNode(IServiceProvider _services) : TabPanel
   {
     base.OnSizeChanged();
 
-    _otherSettingsContainerNode.Size = new Vector2(Width - _otherSettingsContainerNode.X, Height - _otherSettingsSectionNode.Y - _otherSettingsSectionNode.Height + 2.0f);
+    _otherSettingsContainerNode.Size = new Vector2(
+      Width - _otherSettingsContainerNode.X,
+      Height - _otherSettingsSectionNode.Y - _otherSettingsSectionNode.Height + 2.0f
+    );
   }
 
   public override void ConfigurationSaved()

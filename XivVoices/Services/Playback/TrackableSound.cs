@@ -2,7 +2,7 @@ using SoundTouch.Net.NAudioSupport;
 
 namespace XivVoices.Services;
 
-public class TrackableSound : ISampleProvider, IDisposable
+public class TrackableSound : ISampleProvider
 {
   private readonly ILogger _logger;
 
@@ -12,7 +12,7 @@ public class TrackableSound : ISampleProvider, IDisposable
   private readonly SoundTouchWaveProvider _soundTouchProvider;
   private readonly WaveStream _sourceStream;
 
-  private bool _playbackEnded = false;
+  private bool _playbackEnded;
 
   private readonly Lock _positionLock = new();
   private long _lastSamplesPlayedAtRead;
@@ -20,10 +20,10 @@ public class TrackableSound : ISampleProvider, IDisposable
   private long _samplesPlayed;
 
   public XivMessage Message { get; }
-  public bool IsStopping { get; set; } = false;
-  public bool IsMuted = false;
+  public bool IsStopping { get; set; }
+  public bool IsMuted { get; set; }
 
-  public Action<TrackableSound>? OnPlaybackStopped;
+  public Action<TrackableSound>? OnPlaybackStopped { get; set; }
 
   public TrackableSound(ILogger logger, XivMessage message, WaveStream sourceStream)
   {
@@ -114,7 +114,7 @@ public class TrackableSound : ISampleProvider, IDisposable
       field = Math.Clamp(value, 0f, 3f);
       _volumeProvider.Volume = IsMuted ? 0f : Math.Clamp(field * (1f + (RelativeVolume / 100f)), 0f, 3f);
     }
-  } = 0; // Start with 0 volume until it gets set correctly.
+  } // Start with 0 volume until it gets set correctly.
 
   public float RelativeVolume
   {
@@ -124,7 +124,7 @@ public class TrackableSound : ISampleProvider, IDisposable
       field = value;
       _volumeProvider.Volume = IsMuted ? 0f : Math.Clamp(Volume * (1f + (RelativeVolume / 100f)), 0f, 3f);
     }
-  } = 0;
+  }
 
   public float Pan
   {
@@ -134,23 +134,17 @@ public class TrackableSound : ISampleProvider, IDisposable
       field = Math.Clamp(value, -1f, 1f);
       _panningProvider.Pan = value;
     }
-  } = 0.0f;
+  }
 
   public double Speed
   {
     get => _soundTouchProvider.TempoChange + 100;
-    set
-    {
-      _soundTouchProvider.TempoChange = value - 100;
-    }
+    set => _soundTouchProvider.TempoChange = value - 100;
   }
 
   public double Pitch
   {
     get => _soundTouchProvider.Pitch * 100;
-    set
-    {
-      _soundTouchProvider.Pitch = value / 100;
-    }
+    set => _soundTouchProvider.Pitch = value / 100;
   }
 }

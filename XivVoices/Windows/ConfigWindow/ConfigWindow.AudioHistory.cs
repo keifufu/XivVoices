@@ -16,70 +16,68 @@ public partial class ConfigWindow
     ImGui.Dummy(ScaledVector2(0, 5));
 
     ImGui.Unindent(ScaledFloat(8));
-    using (ImRaii.ChildDisposable child = ImRaii.Child("##AudioHistoryScrollingRegion", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.AlwaysVerticalScrollbar))
+    using ImRaii.ChildDisposable child = ImRaii.Child("##AudioHistoryScrollingRegion", new(ImGui.GetContentRegionAvail().X, ImGui.GetContentRegionAvail().Y), false, ImGuiWindowFlags.AlwaysVerticalScrollbar);
+    if (!child.Success) return;
+
+    IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> history = _playbackService.GetPlaybackHistory();
+    if (!history.Any())
     {
-      if (!child.Success) return;
+      ImGui.Text("There are no voicelines in your history.");
+      return;
+    }
 
-      IEnumerable<(XivMessage message, bool isPlaying, float percentage, bool isQueued)> history = _playbackService.GetPlaybackHistory();
-      if (!history.Any())
+    foreach ((XivMessage message, bool isPlaying, float percentage, bool isQueued) in history)
+    {
+      ImGui.TextWrapped($"{message.RawSpeaker}: {message.AddName(message.RawSentence)}");
+
+      float progressSize = 245;
+      Vector4 plotHistogramColor = _green;
+
+      bool allowReports = !message.IsLocalTTS;
+      if (!allowReports) progressSize = 270;
+      if (message.IsLocalTTS) plotHistogramColor = _yellow;
+
+      using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))
       {
-        ImGui.Text("There are no voicelines in your history.");
-        return;
+        ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), message.IsGenerating ? "generating" : isQueued ? "queued" : isPlaying ? "playing" : "stopped");
       }
 
-      foreach ((XivMessage message, bool isPlaying, float percentage, bool isQueued) in history)
+      if (allowReports)
       {
-        ImGui.TextWrapped($"{message.RawSpeaker}: {message.AddName(message.RawSentence)}");
-
-        float progressSize = 245;
-        Vector4 plotHistogramColor = _green;
-
-        bool allowReports = !message.IsLocalTTS;
-        if (!allowReports) progressSize = 270;
-        if (message.IsLocalTTS) plotHistogramColor = _yellow;
-
-        using (ImRaii.PushColor(ImGuiCol.PlotHistogram, plotHistogramColor))
-        {
-          ImGui.ProgressBar(percentage, ScaledVector2(progressSize, 24), message.IsGenerating ? "generating" : isQueued ? "queued" : isPlaying ? "playing" : "stopped");
-        }
-
-        if (allowReports)
-        {
-          ImGui.SameLine();
-          using (ImRaii.Disabled(message.Reported || _dataService.IsOutdated))
-          {
-            if (ImGuiComponents.IconButton($"##reportButton-{message.Id}", Dalamud.Interface.FontAwesomeIcon.Flag, new(24)))
-            {
-              OpenInputPrompt("Report Reason", "", (value) =>
-              {
-                message.Reported = true;
-                _reportService.ReportWithReason(message, value);
-              });
-            }
-          }
-        }
-
         ImGui.SameLine();
-        if (message.IsGenerating || isQueued)
+        using (ImRaii.Disabled(message.Reported || _dataService.IsOutdated))
         {
-          if (ImGui.Button("Skip" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
+          if (ImGuiComponents.IconButton($"##reportButton-{message.Id}", Dalamud.Interface.FontAwesomeIcon.Flag, new(24)))
           {
-            _playbackService.SkipQueuedLine(message);
+            OpenInputPrompt("Report Reason", "", (value) =>
+            {
+              message.Reported = true;
+              _reportService.ReportWithReason(message, value);
+            });
           }
         }
-        else
-        {
-          if (ImGui.Button(isPlaying ? "Stop" : "Play" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
-          {
-            if (isPlaying)
-              _playbackService.Stop(message.Id);
-            else
-              _ = _playbackService.Play(message, true);
-          }
-        }
-
-        ImGui.Dummy(ScaledVector2(0, 10));
       }
+
+      ImGui.SameLine();
+      if (message.IsGenerating || isQueued)
+      {
+        if (ImGui.Button("Skip" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
+        {
+          _playbackService.SkipQueuedLine(message);
+        }
+      }
+      else
+      {
+        if (ImGui.Button(isPlaying ? "Stop" : "Play" + $"##controlButton-{message.Id}", ScaledVector2(50, 24)))
+        {
+          if (isPlaying)
+            _playbackService.Stop(message.Id);
+          else
+            _ = _playbackService.Play(message, true);
+        }
+      }
+
+      ImGui.Dummy(ScaledVector2(0, 10));
     }
   }
 }

@@ -27,16 +27,16 @@ public class XivMessage
   public VoiceEntry? Voice { get; }
 
   [JsonIgnore]
-  public string? VoicelinePath;
+  public string? VoicelinePath { get; set; }
 
   [JsonIgnore]
   public bool IsLocalTTS => VoicelinePath == null;
 
   [JsonIgnore]
-  public bool IsGenerating = false;
+  public bool IsGenerating { get; set; } = false;
 
   [JsonIgnore]
-  public CancellationTokenSource GenerationToken = new();
+  public CancellationTokenSource GenerationToken { get; set; } = new();
 
   [JsonIgnore]
   public bool Reported { get; set; } = false;

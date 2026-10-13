@@ -6,7 +6,7 @@ namespace XivVoices.Windows;
 
 public class ConfigAddon : NativeAddon
 {
-  public ConfigTab CurrentTab = ConfigTab.Overview;
+  public ConfigTab CurrentTab { get; set; } = ConfigTab.Overview;
 
   private readonly IServiceProvider _services;
   private readonly Configuration _configuration;
@@ -210,7 +210,7 @@ public class ConfigAddon : NativeAddon
       node.IsActive = node.Tab == tab;
   }
 
-  private int _debugModeClickCount = 0;
+  private int _debugModeClickCount;
   private DateTime _debugModeLastClickTime;
   private readonly TimeSpan _debugModeMaxClickInteral = TimeSpan.FromSeconds(1);
   private unsafe void OnDiscordButtonMouseClick(AtkEventListener* thisPtr, AtkEventType eventType, int eventParam, AtkEvent* atkEvent, AtkEventData* atkEventData)
@@ -237,13 +237,11 @@ public class ConfigAddon : NativeAddon
       _configuration.DebugMode = !_configuration.DebugMode;
       _configuration.Save();
 
-      if (CurrentTab == ConfigTab.Debug || CurrentTab == ConfigTab.SelfTest)
+      if (CurrentTab is ConfigTab.Debug or ConfigTab.SelfTest)
         SetTab(ConfigTab.Overview);
     }
   }
 
   public unsafe bool CheckCollision(AtkEventData* atkEventData)
-  {
-    return WindowNode?.CheckCollision(atkEventData) ?? false;
-  }
+    => WindowNode?.CheckCollision(atkEventData) ?? false;
 }

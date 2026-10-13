@@ -7,11 +7,13 @@ namespace XivVoices.Windows;
 
 public abstract class IconListItemNode<T> : ListItemNode<T>, IListItemNode
 {
+#pragma warning disable CA1000
   public static float ItemHeight => 48.0f;
+#pragma warning restore CA1000
 
-  protected readonly IconImageNode _iconNode;
-  protected readonly TextNode _labelTextNode;
-  protected readonly TextNode _subLabelTextNode;
+  private readonly IconImageNode _iconNode;
+  private readonly TextNode _labelTextNode;
+  private readonly TextNode _subLabelTextNode;
 
   protected IconListItemNode()
   {

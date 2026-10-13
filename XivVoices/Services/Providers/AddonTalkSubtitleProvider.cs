@@ -6,17 +6,22 @@ namespace XivVoices.Services;
 
 public interface IAddonTalkSubtitleProvider : IHostedService;
 
-public class AddonTalkSubtitleProvider(ILogger _logger, IGameInteropService _gameInteropService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IAddonLifecycle _addonLifecycle) : IAddonTalkSubtitleProvider
+public class AddonTalkSubtitleProvider(
+  ILogger _logger,
+  IAddonLifecycle _addonLifecycle,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService) : IAddonTalkSubtitleProvider
 {
   private string _lastSentence = "";
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.RegisterListener(AddonEvent.PostDraw, "TalkSubtitle", OnTalkSubtitleAddonPostDraw);
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.UnregisterListener(OnTalkSubtitleAddonPostDraw);
     return _logger.ServiceLifecycle();

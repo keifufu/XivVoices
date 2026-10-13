@@ -11,8 +11,20 @@ public interface ILogger : IHostedService
   void SetConfiguration(Configuration configuration);
 
   void DalamudToast(NotificationType type, string title, string text, int durationSeconds = 5);
+
   void Toast(string pre = "", string italic = "", string post = "");
-  void Chat(string uncolored = "", string pre = "", string italic = "", string post = "", string name = "", XivChatType? channel = null, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2);
+
+  void Chat(
+    string uncolored = "",
+    string pre = "",
+    string italic = "",
+    string post = "",
+    string name = "",
+    XivChatType? channel = null,
+    bool addPrefix = true,
+    ushort preColor = 2,
+    ushort italicColor = 2,
+    ushort postColor = 2);
 
   void Error(string text,
       [CallerFilePath] string callerPath = "",
@@ -29,30 +41,29 @@ public interface ILogger : IHostedService
       [CallerMemberName] string callerName = "",
       [CallerLineNumber] int lineNumber = -1);
 
-  void DebugObj<T>(T obj,
-      [CallerFilePath] string callerPath = "",
-      [CallerMemberName] string callerName = "",
-      [CallerLineNumber] int lineNumber = -1);
-
   Task ServiceLifecycle(string? status = null,
       [CallerFilePath] string callerPath = "",
       [CallerMemberName] string callerName = "",
       [CallerLineNumber] int lineNumber = -1);
 }
 
-public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGui, INotificationManager _notificationManager) : ILogger
+public class Logger(
+  IChatGui _chatGui,
+  IToastGui _toastGui,
+  IPluginLog _pluginLog,
+  INotificationManager _notificationManager) : ILogger
 {
-  private Configuration _configuration { get; set; } = new Configuration();
+  private Configuration _configuration = new();
   public List<string> LogHistory { get; } = [];
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
     return ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     TaskScheduler.UnobservedTaskException -= OnUnobservedTaskException;
 
@@ -60,20 +71,15 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   }
 
   public void SetConfiguration(Configuration configuration)
-  {
-    _configuration = configuration;
-  }
+    => _configuration = configuration;
 
-  private string SanitizeLog(string log)
-  {
-    // if (string.IsNullOrEmpty(_configuration.StreamElementsApiKey)) return log;
-    // return log.Replace(_configuration.StreamElementsApiKey, "REDACTED");
-    return log;
-  }
+  // if (string.IsNullOrEmpty(_configuration.StreamElementsApiKey)) return log;
+  // return log.Replace(_configuration.StreamElementsApiKey, "REDACTED");
+  private string SanitizeLog(string log) => log;
 
   private void AddLogHistory(string logEntry)
   {
-    string timestamp = DateTime.UtcNow.ToString("HH:mm:ss.fff");
+    string timestamp = DateTime.UtcNow.ToString("HH:mm:ss.fff", CultureInfo.InvariantCulture);
     LogHistory.Add($"[{timestamp}] {logEntry}");
   }
 
@@ -111,7 +117,17 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
     );
   }
 
-  public void Chat(string uncolored = "", string pre = "", string italic = "", string post = "", string name = "", XivChatType? channel = null, bool addPrefix = true, ushort preColor = 2, ushort italicColor = 2, ushort postColor = 2)
+  public void Chat(
+    string uncolored = "",
+    string pre = "",
+    string italic = "",
+    string post = "",
+    string name = "",
+    XivChatType? channel = null,
+    bool addPrefix = true,
+    ushort preColor = 2,
+    ushort italicColor = 2,
+    ushort postColor = 2)
   {
     XivChatEntry chatMessage = new()
     {
@@ -135,69 +151,48 @@ public class Logger(IPluginLog _pluginLog, IToastGui _toastGui, IChatGui _chatGu
   private string FormatCallsite(string callerPath = "", string callerName = "", int lineNumber = -1) =>
     $"[{Path.GetFileName(callerPath)}:{callerName}:{lineNumber}]";
 
-  public void Error(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public void Error(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
   {
     string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
     _pluginLog.Error(logEntry);
     AddLogHistory(logEntry);
   }
 
-  public void Error(Exception ex, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public void Error(Exception ex,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
   {
     string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} Exception: {ex}");
     _pluginLog.Error(logEntry);
     AddLogHistory(logEntry);
   }
 
-  public void Debug(string text, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public void Debug(string text,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
   {
     string logEntry = SanitizeLog($"{FormatCallsite(callerPath, callerName, lineNumber)} {text}");
     if (_configuration.DebugLogging) _pluginLog.Debug(logEntry);
     AddLogHistory(logEntry);
   }
 
-  public void DebugObj<T>(T obj, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
+  public Task ServiceLifecycle(string? status = null,
+    [CallerFilePath] string callerPath = "",
+    [CallerMemberName] string callerName = "",
+    [CallerLineNumber] int lineNumber = -1)
   {
-    if (obj == null)
-    {
-      Debug("null", callerPath, callerName, lineNumber);
-      return;
-    }
-
-    Type type = typeof(T);
-    StringBuilder sb = new();
-    sb.AppendLine($"Type: {type.Name}");
-
-    PropertyInfo[] properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-    foreach (PropertyInfo prop in properties)
-    {
-      object? value = prop.GetValue(obj);
-      sb.AppendLine($"  {prop.Name}: {value ?? null}");
-    }
-
-    FieldInfo[] fields = type.GetFields(BindingFlags.Public | BindingFlags.Instance);
-    foreach (FieldInfo field in fields)
-    {
-      object? value = field.GetValue(obj);
-      sb.AppendLine($"  {field.Name}: {value ?? null}");
-    }
-
-    if (properties.Length == 0 && fields.Length == 0)
-      sb.AppendLine("  No public properties or fields found.");
-
-    Debug(sb.ToString(), callerPath, callerName, lineNumber);
-  }
-
-  public Task ServiceLifecycle(string? status = null, [CallerFilePath] string callerPath = "", [CallerMemberName] string callerName = "", [CallerLineNumber] int lineNumber = -1)
-  {
+    string className = Path.GetFileNameWithoutExtension(callerPath);
     string lifecycleStage = status ??
       (callerName.Contains("Start")
       ? "started" : callerName.Contains("Stop")
       ? "stopped" : "changed");
 
-    string className = Path.GetFileNameWithoutExtension(callerPath);
     Debug($"{className} {lifecycleStage}", callerPath, callerName, lineNumber);
-
     return Task.CompletedTask;
   }
 }

@@ -18,7 +18,13 @@ public interface ILocalTTSService : IHostedService
   event System.Action? OnInitialized;
 }
 
-public partial class LocalTTSService(ILogger _logger, Configuration _configuration, IDataService _dataService, IGameInteropService _gameInteropService, IGameConfig _gameConfig, IDalamudPluginInterface _pluginInterface) : ILocalTTSService
+public partial class LocalTTSService(
+  ILogger _logger,
+  IGameConfig _gameConfig,
+  IDataService _dataService,
+  Configuration _configuration,
+  IGameInteropService _gameInteropService,
+  IDalamudPluginInterface _pluginInterface) : ILocalTTSService
 {
   public event System.Action? OnInitialized;
   public List<LocalTTSVoice> Voices { get; private set; } = [];
@@ -32,7 +38,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private SessionOptions? _sessionOptions;
   private KokoroModel? _model;
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     OrtEnv.DisableDllImportResolver = true;
     NativeLibrary.SetDllImportResolver(Assembly.Load("Microsoft.ML.OnnxRuntime"), DllImportResolver);
@@ -43,7 +49,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _dataService.OnToolsDownloaded -= Reinitialize;
     return _logger.ServiceLifecycle();
@@ -120,7 +126,7 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   private void LoadVoices(string path)
   {
     if (!Directory.Exists(path)) return;
-    foreach (string filePath in Directory.GetFiles(path).Where(f => f.EndsWith(".npy")))
+    foreach (string filePath in Directory.GetFiles(path).Where(f => f.EndsWith(".npy", StringComparison.Ordinal)))
       Voices.Add(LocalTTSVoice.FromPath(filePath));
   }
 
@@ -143,8 +149,12 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
   {
     if (message.PitchOverride != null) return message.PitchOverride.Value;
 
-    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.SelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
-    if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options)) return options.pitch;
+    string speaker = message.Source is MessageSource.ChatMessage or MessageSource.SelectString
+      ? $"{message.Speaker}@{message.SpeakerWorld}"
+      : message.Speaker;
+
+    if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options))
+      return options.pitch;
 
     if (_configuration.LocalTTSPitchRandomization)
     {
@@ -168,7 +178,10 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
       if (match != null) return match;
     }
 
-    string speaker = message.Source == MessageSource.ChatMessage || message.Source == MessageSource.SelectString ? $"{message.Speaker}@{message.SpeakerWorld}" : message.Speaker;
+    string speaker = message.Source is MessageSource.ChatMessage or MessageSource.SelectString
+      ? $"{message.Speaker}@{message.SpeakerWorld}"
+      : message.Speaker;
+
     if (_configuration.LocalTTSOverrides.TryGetValue(speaker, out (string voice, int pitch) options))
     {
       LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == options.voice);
@@ -180,7 +193,8 @@ public partial class LocalTTSService(ILogger _logger, Configuration _configurati
 
     if (message.Source == MessageSource.ChatMessage && _configuration.LocalTTSChatChannelVoicesEnabled)
     {
-      if (_configuration.LocalTTSChatChannelVoices.TryGetValue(message.ChatChannel ?? XivChatType.Say, out (string? male, string? female) chatChannelVoices))
+      if (_configuration.LocalTTSChatChannelVoices.TryGetValue(message.ChatChannel ?? XivChatType.Say,
+        out (string? male, string? female) chatChannelVoices))
       {
         string? voice = (gender == "Male" ? chatChannelVoices.male : chatChannelVoices.female) ?? defaultVoice;
         LocalTTSVoice? match = Voices.FirstOrDefault(v => v.Name == voice);

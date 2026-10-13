@@ -44,25 +44,23 @@ public partial class ConfigWindow
     if (_configuration.PlaybackDeviceType == PlaybackDeviceType.WaveOut)
     {
       IEnumerable<WaveOutCapabilities> devices = _playbackService.GetWaveOutDevices();
-      using (ImRaii.ComboDisposable combo = ImRaii.Combo("##WaveOutDevices", _configuration.WaveOutDevice ?? "Default Output Device"))
+      using ImRaii.ComboDisposable combo = ImRaii.Combo("##WaveOutDevices", _configuration.WaveOutDevice ?? "Default Output Device");
+      if (combo.Success)
       {
-        if (combo.Success)
+        if (ImGui.Selectable("Default Output Device", _configuration.WaveOutDevice == null))
         {
-          if (ImGui.Selectable("Default Output Device", _configuration.WaveOutDevice == null))
+          _configuration.WaveOutDevice = null;
+          _configuration.Save();
+          _playbackService.InitializeOutputDevice();
+        }
+
+        for (int i = 0; i < devices.Count(); i++)
+        {
+          if (ImGui.Selectable($"{devices.ElementAt(i).ProductName}##{i}", _configuration.WaveOutDevice == devices.ElementAt(i).ProductName))
           {
-            _configuration.WaveOutDevice = null;
+            _configuration.WaveOutDevice = devices.ElementAt(i).ProductName;
             _configuration.Save();
             _playbackService.InitializeOutputDevice();
-          }
-
-          for (int i = 0; i < devices.Count(); i++)
-          {
-            if (ImGui.Selectable($"{devices.ElementAt(i).ProductName}##{i}", _configuration.WaveOutDevice == devices.ElementAt(i).ProductName))
-            {
-              _configuration.WaveOutDevice = devices.ElementAt(i).ProductName;
-              _configuration.Save();
-              _playbackService.InitializeOutputDevice();
-            }
           }
         }
       }
@@ -72,25 +70,23 @@ public partial class ConfigWindow
     {
       IEnumerable<DirectSoundDeviceInfo> devices = _playbackService.GetDirectSoundDevices();
       DirectSoundDeviceInfo? selectedDevice = devices.FirstOrDefault((d) => d.Guid == _configuration.DirectSoundDevice);
-      using (ImRaii.ComboDisposable combo = ImRaii.Combo("##DirectSoundDevices", selectedDevice?.Description ?? "Default Output Device"))
+      using ImRaii.ComboDisposable combo = ImRaii.Combo("##DirectSoundDevices", selectedDevice?.Description ?? "Default Output Device");
+      if (combo.Success)
       {
-        if (combo.Success)
+        if (ImGui.Selectable("Default Output Device", _configuration.DirectSoundDevice == null))
         {
-          if (ImGui.Selectable("Default Output Device", _configuration.DirectSoundDevice == null))
+          _configuration.DirectSoundDevice = null;
+          _configuration.Save();
+          _playbackService.InitializeOutputDevice();
+        }
+
+        for (int i = 0; i < devices.Count(); i++)
+        {
+          if (ImGui.Selectable($"{devices.ElementAt(i).Description}##{i}", _configuration.DirectSoundDevice == devices.ElementAt(i).Guid))
           {
-            _configuration.DirectSoundDevice = null;
+            _configuration.DirectSoundDevice = devices.ElementAt(i).Guid;
             _configuration.Save();
             _playbackService.InitializeOutputDevice();
-          }
-
-          for (int i = 0; i < devices.Count(); i++)
-          {
-            if (ImGui.Selectable($"{devices.ElementAt(i).Description}##{i}", _configuration.DirectSoundDevice == devices.ElementAt(i).Guid))
-            {
-              _configuration.DirectSoundDevice = devices.ElementAt(i).Guid;
-              _configuration.Save();
-              _playbackService.InitializeOutputDevice();
-            }
           }
         }
       }
@@ -151,8 +147,12 @@ public partial class ConfigWindow
     }
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Voicelines will play like normal when the window is unfocused.");
+      }
+    }
 
     if (ImGui.RadioButton("Pause voicelines while unfocused", _configuration.UnfocusedBehavior == UnfocusedBehavior.Pause))
     {
@@ -161,8 +161,12 @@ public partial class ConfigWindow
     }
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Voicelines will be paused entirely until window is refocused.");
+      }
+    }
 
     if (ImGui.RadioButton("Mute voicelines while unfocused", _configuration.UnfocusedBehavior == UnfocusedBehavior.Mute))
     {
@@ -171,7 +175,11 @@ public partial class ConfigWindow
     }
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text("Voicelines will still continue playback, but they will be muted.");
+      }
+    }
   }
 }

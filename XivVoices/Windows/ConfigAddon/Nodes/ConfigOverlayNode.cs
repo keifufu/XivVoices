@@ -10,9 +10,10 @@ namespace XivVoices.Windows;
 
 public class ConfigOverlayNode : ResNode
 {
+  public WindowBackgroundTextureNode ContentNode { get; private set; }
+
   private readonly IAddonEventManager _addonEventManager;
 
-  public readonly WindowBackgroundTextureNode ContentNode;
   private readonly SimpleImageNode _configOverlayBackgroundNode;
   private readonly TextNode _titleNode;
   private readonly HorizontalLineNode _horizontalLine;

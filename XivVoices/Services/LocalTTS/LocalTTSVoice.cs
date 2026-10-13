@@ -10,15 +10,19 @@ public class LocalTTSVoice
     return new LocalTTSVoice
     {
       Name = fileNameWithoutExtension.Split("_")[1].FirstCharToUpper(CultureInfo.InvariantCulture),
-      _fileName = fileNameWithoutExtension,
-      _features = np.Load<float[,,]>(filePath)
+      FileName = fileNameWithoutExtension,
+      Features = np.Load<float[,,]>(filePath)
     };
   }
 
-  public string Name { get; init => field = value; } = "";
-  public string Gender => _fileName[1] == 'm' ? "Male" : "Female";
+  public string Name { get; init; } = "";
+  public string Gender => FileName[1] == 'm' ? "Male" : "Female";
 
-  private string _fileName { get; init => field = value; } = "";
-  private float[,,] _features { get; init; } = null!;
-  public static implicit operator float[,,](LocalTTSVoice voice) => voice._features;
+  private string FileName { get; init; } = "";
+  private float[,,] Features { get; init; } = null!;
+
+  public static implicit operator float[,,](LocalTTSVoice voice)
+  {
+    return voice.Features;
+  }
 }

@@ -7,19 +7,24 @@ namespace XivVoices.Services;
 public interface IAddonBattleTalkProvider : IHostedService;
 
 // PostRefresh is too early here? Guess I'm polling this one too.
-public class AddonBattleTalkProvider(ILogger _logger, IGameInteropService _gameInteropService, ISelfTestService _selfTestService, IMessageDispatcher _messageDispatcher, IAddonLifecycle _addonLifecycle) : IAddonBattleTalkProvider
+public class AddonBattleTalkProvider(
+  ILogger _logger,
+  IAddonLifecycle _addonLifecycle,
+  ISelfTestService _selfTestService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService) : IAddonBattleTalkProvider
 {
   private string _lastSpeaker = "";
   private string _lastSentence = "";
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.RegisterListener(AddonEvent.PostDraw, "_BattleTalk", OnBattleTalkAddonPostDraw);
 
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _addonLifecycle.UnregisterListener(OnBattleTalkAddonPostDraw);
 

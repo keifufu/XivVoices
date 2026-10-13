@@ -37,8 +37,12 @@ public partial class ConfigWindow
     {
       ImGui.SameLine();
       using (ImRaii.Disabled(!enabled))
+      {
         if (ImGui.Button(button))
+        {
           action();
+        }
+      }
     }
 
     ImGui.Dummy(ScaledVector2(0, 5));
@@ -75,7 +79,11 @@ public partial class ConfigWindow
       _selfTestService.SkipTo(state);
 
     if (ImGui.IsItemHovered())
+    {
       using (ImRaii.Tooltip())
+      {
         ImGui.Text($"Skip to {state}");
+      }
+    }
   }
 }

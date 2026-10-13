@@ -4,12 +4,20 @@ namespace XivVoices.Services;
 
 public interface ICommandService : IHostedService;
 
-public class CommandService(ILogger _logger, Configuration _configuration, IWindowService _windowService, IDataService _dataService, IPlaybackService _playbackService, IMessageDispatcher _messageDispatcher, IGameInteropService _gameInteropService, ICommandManager _commandManager) : ICommandService
+public class CommandService(
+  ILogger _logger,
+  IDataService _dataService,
+  Configuration _configuration,
+  IWindowService _windowService,
+  ICommandManager _commandManager,
+  IPlaybackService _playbackService,
+  IMessageDispatcher _messageDispatcher,
+  IGameInteropService _gameInteropService) : ICommandService
 {
   private const string XivVoicesCommand = "/xivvoices";
   private const string XivVoicesCommandAlias = "/xivv";
 
-  public Task StartAsync(CancellationToken token)
+  public Task StartAsync(CancellationToken cancellationToken)
   {
     _commandManager.AddHandler(XivVoicesCommand, new CommandInfo(OnCommand)
     {
@@ -23,7 +31,7 @@ public class CommandService(ILogger _logger, Configuration _configuration, IWind
     return _logger.ServiceLifecycle();
   }
 
-  public Task StopAsync(CancellationToken token)
+  public Task StopAsync(CancellationToken cancellationToken)
   {
     _commandManager.RemoveHandler(XivVoicesCommand);
     _commandManager.RemoveHandler(XivVoicesCommandAlias);

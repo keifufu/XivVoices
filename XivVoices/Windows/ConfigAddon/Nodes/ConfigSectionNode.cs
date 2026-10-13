@@ -7,8 +7,8 @@ public class ConfigSectionNode : ResNode
 {
   public const float Indent = 18.0f;
 
-  public float LastNodeY = 0.0f;
-  public float CurrentY = 0.0f;
+  private float _lastNodeY = 0.0f;
+  private float _currentY = 0.0f;
 
   public ConfigSectionNode(string header, ConfigSectionNode? previousSection = null, float offset = 0)
   {
@@ -25,14 +25,14 @@ public class ConfigSectionNode : ResNode
   {
     if (inline)
     {
-      if (node.Y == 0.0f) node.Y = LastNodeY + padding;
+      if (node.Y == 0.0f) node.Y = _lastNodeY + padding;
     }
     else
     {
       if (indent) node.X += Indent;
-      node.Y += CurrentY + padding;
-      LastNodeY = node.Y;
-      CurrentY = node.Y + node.Height;
+      node.Y += _currentY + padding;
+      _lastNodeY = node.Y;
+      _currentY = node.Y + node.Height;
     }
     node.AttachNode(this);
 
