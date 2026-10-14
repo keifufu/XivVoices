@@ -51,6 +51,7 @@ public class Logger(
   IChatGui _chatGui,
   IToastGui _toastGui,
   IPluginLog _pluginLog,
+  IDalamudPluginInterface _pluginInterface,
   INotificationManager _notificationManager) : ILogger
 {
   private Configuration _configuration = new();
@@ -134,7 +135,7 @@ public class Logger(
       Type = channel ?? _configuration.DefaultChatChannel,
       Name = new SeStringBuilder().AddText(name).Build(),
       Message = new SeStringBuilder()
-        .AddUiForeground(addPrefix ? "[XivVoices] " : "", 35)
+        .AddUiForeground(addPrefix ? $"[{_pluginInterface.InternalName}] " : "", 35)
         .AddText(channel != null ? uncolored : "")
         .AddUiForeground(channel == null ? uncolored : "", 2)
         .AddUiForeground(pre, preColor)
