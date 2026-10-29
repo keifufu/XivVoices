@@ -72,6 +72,11 @@ jobs:
 
           echo "download_count=$TOTAL" >> $GITHUB_OUTPUT
 
+      - name: Switch to repo branch
+        run: |
+          git fetch origin repo:refs/remotes/origin/repo
+          git switch --track -c repo origin/repo
+
       - name: Write out repo.json
         run: |
           path="./repo.json"
@@ -94,4 +99,4 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add repo.json
           git commit -m "[CI] Updating repo.json for ${{ github.ref_name }}" || true
-          git push origin main
+          git push origin repo
