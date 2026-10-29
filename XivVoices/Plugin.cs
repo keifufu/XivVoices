@@ -16,7 +16,6 @@ public sealed class Plugin : IAsyncDalamudPlugin
     IChatGui chatGui,
     IGameGui gameGui,
     IKeyState keyState,
-    IToastGui toastGui,
     ICondition condition,
     IFramework framework,
     IPluginLog pluginLog,
@@ -51,7 +50,6 @@ public sealed class Plugin : IAsyncDalamudPlugin
         collection.AddSingleton(chatGui);
         collection.AddSingleton(gameGui);
         collection.AddSingleton(keyState);
-        collection.AddSingleton(toastGui);
         collection.AddSingleton(condition);
         collection.AddSingleton(framework);
         collection.AddSingleton(pluginLog);

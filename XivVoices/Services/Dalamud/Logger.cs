@@ -1,6 +1,6 @@
-using Dalamud.Game.Gui.Toast;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Interface.ImGuiNotification;
+using Lumina.Text.ReadOnly;
 
 namespace XivVoices.Services;
 
@@ -11,8 +11,6 @@ public interface ILogger : IHostedService
   void SetConfiguration(Configuration configuration);
 
   void DalamudToast(NotificationType type, string title, string text, int durationSeconds = 5);
-
-  void Toast(string pre = "", string italic = "", string post = "");
 
   void Chat(
     string uncolored = "",
@@ -49,7 +47,6 @@ public interface ILogger : IHostedService
 
 public class Logger(
   IChatGui _chatGui,
-  IToastGui _toastGui,
   IPluginLog _pluginLog,
   IDalamudPluginInterface _pluginInterface,
   INotificationManager _notificationManager) : ILogger
@@ -102,22 +99,6 @@ public class Logger(
     });
   }
 
-  public void Toast(string pre = "", string italic = "", string post = "")
-  {
-    _toastGui.ShowNormal(
-      new SeStringBuilder()
-        .AddText(pre)
-        .AddItalics(italic)
-        .AddText(post)
-        .Build(),
-      new ToastOptions
-      {
-        Position = ToastPosition.Bottom,
-        Speed = ToastSpeed.Fast,
-      }
-    );
-  }
-
   public void Chat(
     string uncolored = "",
     string pre = "",
@@ -130,20 +111,35 @@ public class Logger(
     ushort italicColor = 2,
     ushort postColor = 2)
   {
+    using RentedSeStringBuilder rssb = new();
+    ReadOnlySeString nameStr = rssb.Builder.Append(name).ToReadOnlySeString();
+    rssb.Clear();
+    ReadOnlySeString messageStr = rssb.Builder
+      .PushColorType(35)
+        .Append(addPrefix ? $"[{_pluginInterface.InternalName}] " : "")
+      .PopColorType()
+        .Append(channel != null ? uncolored : "")
+      .PushColorType(2)
+        .Append(channel == null ? uncolored : "")
+      .PopColorType()
+      .PushColorType(preColor)
+        .Append(pre)
+      .PopColorType()
+      .AppendSetItalic(true)
+      .PushColorType(italicColor)
+        .Append(italic)
+      .PopColorType()
+      .AppendSetItalic(false)
+      .PushColorType(postColor)
+        .Append(post)
+      .PopColorType()
+      .ToReadOnlySeString();
+
     XivChatEntry chatMessage = new()
     {
       Type = channel ?? _configuration.DefaultChatChannel,
-      Name = new SeStringBuilder().AddText(name).Build(),
-      Message = new SeStringBuilder()
-        .AddUiForeground(addPrefix ? $"[{_pluginInterface.InternalName}] " : "", 35)
-        .AddText(channel != null ? uncolored : "")
-        .AddUiForeground(channel == null ? uncolored : "", 2)
-        .AddUiForeground(pre, preColor)
-        .AddItalicsOn()
-        .AddUiForeground(italic, italicColor)
-        .AddItalicsOff()
-        .AddUiForeground(post, postColor)
-        .Build(),
+      Name = SeString.Parse(nameStr.Data.ToArray()),
+      Message = SeString.Parse(messageStr.Data.ToArray()),
     };
     _chatGui.Print(chatMessage);
     Debug($"Printed chatMessage::'{chatMessage.Message}'");

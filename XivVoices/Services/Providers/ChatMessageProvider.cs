@@ -1,6 +1,6 @@
 using Dalamud.Game.Chat;
-using Dalamud.Game.Text.SeStringHandling;
-using Dalamud.Game.Text.SeStringHandling.Payloads;
+using Lumina.Text.Payloads;
+using Lumina.Text.ReadOnly;
 
 namespace XivVoices.Services;
 
@@ -10,6 +10,7 @@ public class ChatMessageProvider(
   ILogger _logger,
   IChatGui _chatGui,
   IObjectTable _objectTable,
+  IDataManager _dataManager,
   Configuration _configuration,
   ISelfTestService _selfTestService,
   IMessageDispatcher _messageDispatcher,
@@ -31,30 +32,10 @@ public class ChatMessageProvider(
 
   private void OnChatMessage(IChatMessage message)
   {
-    string speaker = "";
-    string? speakerWorld = null;
-    try
-    {
-      foreach (Payload item in message.Sender.Payloads)
-      {
-        if (item is PlayerPayload player)
-        {
-          speaker = player.PlayerName;
-          speakerWorld = player.World.Value.Name.ToString();
-          break;
-        }
-
-        // This should only be used for messages from the local player, as everyone else should always have a PlayerPayload.
-        // So we will always set the world to our home world here.
-        if (item is TextPayload text && text.Text != null && text.Text.ToString().Trim().Contains(' '))
-        {
-          speaker = text.Text;
-          speakerWorld = _gameInteropService.PlayerWorld;
-          break;
-        }
-      }
-    }
-    catch { }
+    (string name, string world)? sender = GetSender(message);
+    if (!sender.HasValue) return;
+    string speaker = sender.Value.name;
+    string speakerWorld = sender.Value.world;
 
     if (_selfTestService.Step == SelfTestStep.Provider_Chat)
       _selfTestService.Report_Provider_Chat(message.LogKind, speaker, speakerWorld, message.Message.ToString());
@@ -70,7 +51,7 @@ public class ChatMessageProvider(
         break;
       case XivChatType.TellOutgoing:
         speaker = _gameInteropService.PlayerName ?? "Unknown";
-        speakerWorld = _gameInteropService.PlayerWorld;
+        speakerWorld = _gameInteropService.PlayerWorld ?? "Unknown";
         allowed = _configuration.ChatTellEnabled;
         break;
       case XivChatType.Party:
@@ -126,5 +107,32 @@ public class ChatMessageProvider(
       _ = _messageDispatcher.TryDispatch(MessageSource.ChatMessage, speaker, message.Message.ToString(),
             speakerWorld: speakerWorld, chatChannel: message.LogKind);
     }
+  }
+
+  private (string, string)? GetSender(IChatMessage message)
+  {
+    foreach (ReadOnlySePayload payload in message.OriginalSender)
+    {
+      if (payload.Type != ReadOnlySePayloadType.Macro || payload.MacroCode != MacroCode.Link) continue;
+      if (!payload.TryGetExpression(
+        out ReadOnlySeExpression linkTypeExpression, out _,
+        out ReadOnlySeExpression worldIdExpression, out _,
+        out ReadOnlySeExpression characterNameExpression))
+      {
+        continue;
+      }
+      if (!linkTypeExpression.TryGetInt(out int payloadLinkType)) continue;
+      if (payloadLinkType != (int)LinkMacroPayloadType.Character) continue;
+      if (!worldIdExpression.TryGetUInt(out uint worldId)) continue;
+      if (!characterNameExpression.TryGetString(out ReadOnlySeString characterName)) continue;
+      if (!_dataManager.GetExcelSheet<World>().TryGetRow(worldId, out World world)) continue;
+      return (characterName.ToString(), world.Name.ToString());
+    }
+
+    // Local player messages don't have a character payload.
+    // If the sender otherwise matches the local player we will use that.
+    if (_objectTable.LocalPlayer == null) return null;
+    if (!message.OriginalSender.ToString().Contains(_objectTable.LocalPlayer.Name.ToString())) return null;
+    return (_objectTable.LocalPlayer.Name.ToString(), _objectTable.LocalPlayer.HomeWorld.Value.Name.ToString());
   }
 }
