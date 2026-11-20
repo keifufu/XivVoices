@@ -12,6 +12,7 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
 
   private CheckboxNode _enableAutomaticReportsNode = null!;
   private CheckboxNode _logReportsToChatNode = null!;
+  private CheckboxNode _printExtraDialogueNode = null!;
 
   private ConfigSectionNode _audioLogsSectionNode = null!;
   private ListNode<(XivMessage message, bool isPlaying, float percentage, bool isQueued), AudioHistoryNode> _audioLogsNode = null!;
@@ -64,6 +65,19 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
       }
     };
     reportSettingsSectionNode.AttachNode(_logReportsToChatNode);
+
+    _printExtraDialogueNode = new()
+    {
+      String = "Print extra dialogue to chat",
+      TextTooltip = "Prints dialogue the game doesn't normally display, such as Bubbles or Battle Talk, to the NPC Dialogue channel.",
+      Size = new Vector2(260.0f, 20.0f),
+      OnClick = (value) =>
+      {
+        _configuration.PrintExtraDialogue = value;
+        _configuration.Save();
+      }
+    };
+    reportSettingsSectionNode.AttachNode(_printExtraDialogueNode);
 
     AttachNode(reportSettingsSectionNode);
 
@@ -211,5 +225,6 @@ public class AudioHistoryTabPanelNode(IServiceProvider _services) : TabPanelNode
   {
     _enableAutomaticReportsNode.IsChecked = _configuration.EnableAutomaticReports;
     _logReportsToChatNode.IsChecked = _configuration.LogReportsToChat;
+    _printExtraDialogueNode.IsChecked = _configuration.PrintExtraDialogue;
   }
 }

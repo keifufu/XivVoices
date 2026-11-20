@@ -118,6 +118,7 @@ public class Configuration : IPluginConfiguration
   // Audio History
   public bool EnableAutomaticReports = true;
   public bool LogReportsToChat = false;
+  public bool PrintExtraDialogue = true;
 
   // Debug Settings
   public bool DebugMode = false;

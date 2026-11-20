@@ -113,7 +113,7 @@ public class ChatMessageProvider(
   {
     foreach (ReadOnlySePayload payload in message.OriginalSender)
     {
-      if (payload.Type != ReadOnlySePayloadType.Macro || payload.MacroCode != MacroCode.Link) continue;
+      if (!payload.IsMacro(MacroCode.Link)) continue;
       if (!payload.TryGetExpression(
         out ReadOnlySeExpression linkTypeExpression, out _,
         out ReadOnlySeExpression worldIdExpression, out _,
